@@ -18,8 +18,9 @@ class Stage(Enum):
     SUSCEPTIBLE = 1
     INFECTED = 2
     DETECTED = 3
-    RECOVERED = 4
-    DECEASED = 5
+    SEVERE = 4
+    RECOVERED = 5
+    DECEASED = 6
 
 
 class AgeGroup(Enum):
@@ -57,8 +58,11 @@ class CovidAgent(Agent):
         # These are random Bernoulli variables, not values!
         self.infection = bernoulli(model.prob_contagion)
         self.infect_place = bernoulli(model.prob_contagion_places)
-        self.mortality = bernoulli(mort/model.avg_recovery)
+        # Mortality in vulnerable population appears to be around day 2-3
+        self.mortality = bernoulli(5*mort/model.avg_recovery)
         self.detection = bernoulli(model.prob_detection)
+        # Severity appears to appear after day 5
+        self.severity = bernoulli(3*model.prob_severe/model.avg_recovery)
         self._model = model
         self.curr_dwelling = 0
         self.curr_incubation = 0
@@ -107,6 +111,23 @@ class CovidAgent(Agent):
             else:
                 self.stage = Stage.DETECTED
         elif self.stage == Stage.DETECTED:
+            # Once a patient has been detected, it does not move and starts
+            # the road to recovery or death
+            #
+            # Limitation: our model fails to capture severity per day
+            # in an ICU, this needs to be included.
+            if self.curr_recovery < self.recovery_time:
+                # Not recovered yet, may pass away depending on prob.
+                if self.mortality.rvs():
+                    self.stage = Stage.DECEASED
+                else:
+                    self.curr_recovery = self.curr_recovery + 1
+
+                    if self.severity.rvs():
+                        self.stage = Stage.SEVERE
+            else:
+                self.stage = Stage.RECOVERED
+        elif self.stage == Stage.SEVERE:
             # Once a patient has been detected, it does not move and starts
             # the road to recovery or death
             #
@@ -175,6 +196,9 @@ def compute_infected(model):
 def compute_detected(model):
     return count_type(model, Stage.DETECTED)
 
+def compute_severe(model):
+    return count_type(model, Stage.SEVERE)
+
 def compute_recovered(model):
     return count_type(model, Stage.RECOVERED)
 
@@ -193,7 +217,7 @@ def count_type(model, stage):
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
     def __init__(self, N, width, height, distancing, amort, 
-                 smort, adist, sdist, plock, pcont, pdet):
+                 smort, psev, adist, sdist, plock, pcont, pdet):
         self.running = True
         self.num_agents = N
         self.grid = MultiGrid(width, height, True)
@@ -228,6 +252,9 @@ class CovidModel(Model):
         # Probability of lockdown
         self.prob_lock = plock
 
+        # Probability of severity
+        self.prob_severe = psev
+
         # Create agents
         i = 0
 
@@ -242,7 +269,6 @@ class CovidModel(Model):
                     x = self.random.randrange(self.grid.width)
                     y = self.random.randrange(self.grid.height)
                     self.grid.place_agent(a, (x,y))
-
                     i = i + 1
         
         self.datacollector = DataCollector(
@@ -250,6 +276,7 @@ class CovidModel(Model):
                 "Susceptible": compute_susceptible,
                 "Infected": compute_infected,
                 "Detected": compute_detected,
+                "Severe": compute_severe,
                 "Recovered": compute_recovered,
                 "Deceased": compute_deceased
             },

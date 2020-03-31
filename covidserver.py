@@ -57,7 +57,7 @@ def agent_portrayal(agent):
     portrayal = {"Shape": "circle",
                  "Filled": "true",
                  "Layer": 0,
-                 "r": 0.2}
+                 "r": 0.5}
 
     if agent.stage == Stage.SUSCEPTIBLE:
         portrayal["Color"] = "blue"
@@ -67,6 +67,9 @@ def agent_portrayal(agent):
         portrayal["Layer"] = 0
     elif agent.stage == Stage.DETECTED:
         portrayal["Color"] = "yellow"
+        portrayal["Layer"] = 0
+    elif agent.stage == Stage.SEVERE:
+        portrayal["Color"] = "magenta"
         portrayal["Layer"] = 0
     elif agent.stage == Stage.RECOVERED:
         portrayal["Color"] = "green"
@@ -90,6 +93,8 @@ chart = ChartModule([{"Label": "Susceptible",
                       "Color": "Yellow"},
                       {"Label": "Recovered",
                       "Color": "Green"},
+                      {"Label": "Severe",
+                      "Color": "Magenta"},
                       {"Label": "Deceased",
                       "Color": "Black"},
                       ],
@@ -109,7 +114,8 @@ server = ModularServer(CovidModel,
                            "sdist": cr_sex_distribution,
                            "pcont": 0.5,
                            "pdet": 0.0,
-                           "plock": 0.0
+                           "plock": 0.0,
+                           "psev": 0.1
                         })
 
 server.port = 8521 # The default

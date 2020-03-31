@@ -1,3 +1,9 @@
+# Santiago Nunez-Corrales and Eric Jakobsson
+# Illinois Informatics and Molecular and Cell Biology
+# University of Illinois at Urbana-Champaign
+# {nunezco,jake}@illinois.edu
+
+# A simple tunable model for COVID-19 response
 from covidmodel import CovidModel
 import matplotlib
 import matplotlib.pyplot as plt
