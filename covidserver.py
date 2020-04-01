@@ -7,6 +7,7 @@
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.modules import ChartModule
 from mesa.visualization.ModularVisualization import ModularServer
+from mesa.visualization.UserParam import UserSettableParameter
 
 from covidmodel import CovidModel
 from covidmodel import Stage
@@ -62,11 +63,17 @@ def agent_portrayal(agent):
     if agent.stage == Stage.SUSCEPTIBLE:
         portrayal["Color"] = "blue"
         portrayal["Layer"] = 0
-    elif agent.stage == Stage.INFECTED:
+    elif agent.stage == Stage.INCUBATING:
         portrayal["Color"] = "red"
         portrayal["Layer"] = 0
-    elif agent.stage == Stage.DETECTED:
+    elif agent.stage == Stage.ASYMPTOMATIC:
+        portrayal["Color"] = "brown"
+        portrayal["Layer"] = 0
+    elif agent.stage == Stage.SYMPDETECTED:
         portrayal["Color"] = "yellow"
+        portrayal["Layer"] = 0
+    elif agent.stage == Stage.ASYMPDETECTED:
+        portrayal["Color"] = "cyan"
         portrayal["Layer"] = 0
     elif agent.stage == Stage.SEVERE:
         portrayal["Color"] = "magenta"
@@ -76,6 +83,9 @@ def agent_portrayal(agent):
         portrayal["Layer"] = 0
     elif agent.stage == Stage.DECEASED:
         portrayal["Color"] = "black"
+        portrayal["Layer"] = 0
+    elif agent.locked:
+        portrayal["Color"] = "gray"
         portrayal["Layer"] = 0
     else:
         portrayal["Color"] = "gray"
@@ -87,36 +97,49 @@ grid = CanvasGrid(agent_portrayal, 50, 50, 400, 400)
 
 chart = ChartModule([{"Label": "Susceptible",
                       "Color": "Blue"},
-                      {"Label": "Infected",
+                      {"Label": "Incubating",
                       "Color": "Red"},
-                      {"Label": "Detected",
+                      {"Label": "Asymptomatic",
+                      "Color": "Brown"},
+                      {"Label": "SymptDetected",
                       "Color": "Yellow"},
+                      {"Label": "AsymptDetected",
+                      "Color": "Cyan"},
                       {"Label": "Recovered",
                       "Color": "Green"},
                       {"Label": "Severe",
                       "Color": "Magenta"},
                       {"Label": "Deceased",
                       "Color": "Black"},
+                      {"Label": "Locked",
+                      "Color": "Gray"},
                       ],
                     data_collector_name='datacollector')
 
+model_params = {
+
+    "N":255,
+    "width":50,
+    "height":50,
+    "distancing": False,
+    "amort": cr_age_mortality,
+    "smort": cr_sex_mortality,
+    "adist": cr_age_distribution,
+    "sdist": cr_sex_distribution,
+    "pasympt": UserSettableParameter("slider", "Proportion of asymptomatics", 0.2, 0.0, 1.0, 0.05),
+    "pcont": UserSettableParameter("slider", "Probability of contagion", 0.5, 0.0, 1.0, 0.05),
+    "pdet": UserSettableParameter("slider", "Probability of detection", 0.2, 0.0, 1.0, 0.05),
+    "plock": UserSettableParameter("slider", "Shelter-at-home effectiveness", 0.0, 0.0, 1.0, 0.05),
+    "psev": UserSettableParameter("slider", "Proportion of severe cases", 0.03, 0.0, 0.20, 0.01),
+    "ddet": UserSettableParameter("slider", "Days before of detection", 10, 1, 60, 1),
+    "dimp": UserSettableParameter("slider", "Days to implement detection", 8, 1, 60, 1)
+}
+
 server = ModularServer(CovidModel,
                        [grid, chart],
-                       "COVID-19 agent spread model",
-                       {
-                           "N":255,
-                           "width":50,
-                           "height":50,
-                           "distancing": False,
-                           "amort": cr_age_mortality,
-                           "smort": cr_sex_mortality,
-                           "adist": cr_age_distribution,
-                           "sdist": cr_sex_distribution,
-                           "pcont": 0.5,
-                           "pdet": 0.0,
-                           "plock": 0.0,
-                           "psev": 0.1
-                        })
+                       "COVID-19 agent spread model- Costa Rica",
+                       model_params
+                       )
 
 server.port = 8521 # The default
 server.launch()

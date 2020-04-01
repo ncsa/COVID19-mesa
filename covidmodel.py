@@ -16,11 +16,13 @@ import sys
 
 class Stage(Enum):
     SUSCEPTIBLE = 1
-    INFECTED = 2
-    DETECTED = 3
-    SEVERE = 4
-    RECOVERED = 5
-    DECEASED = 6
+    INCUBATING = 2
+    ASYMPTOMATIC = 3
+    SYMPDETECTED = 4
+    ASYMPDETECTED = 5
+    SEVERE = 6
+    RECOVERED = 7
+    DECEASED = 8
 
 
 class AgeGroup(Enum):
@@ -39,14 +41,16 @@ class SexGroup(Enum):
     MALE = 1
     FEMALE = 2
 
+
 class LockGroup(Enum):
     LOCKED = 1
     MOBILE = 2
 
+
 class CovidAgent(Agent):
     """ An agent representing a potential covid case"""
     
-    def __init__(self, unique_id, ageg, sexg, mort, distancing, model):
+    def __init__(self, unique_id, ageg, sexg, mort, distancing, locked, model):
         super().__init__(unique_id, model)
         self.stage = Stage.SUSCEPTIBLE
         self.age_group = ageg
@@ -60,26 +64,42 @@ class CovidAgent(Agent):
         self.infect_place = bernoulli(model.prob_contagion_places)
         # Mortality in vulnerable population appears to be around day 2-3
         self.mortality = bernoulli(5*mort/model.avg_recovery)
+        # Probability of being asymptomatic, which is similar to being infected but
+        # goes directly into recovery after the average period
+        self.asymptomatic = bernoulli(model.prob_asymptomatic)
+        # Probability of detection
         self.detection = bernoulli(model.prob_detection)
+        # Number of days since detection applied
+        self.days_detection = model.days_detection
         # Severity appears to appear after day 5
         self.severity = bernoulli(3*model.prob_severe/model.avg_recovery)
         self._model = model
         self.curr_dwelling = 0
         self.curr_incubation = 0
         self.curr_recovery = 0
+        self.curr_asymptomatic = 0
         self.distancing = distancing
-        self.locked = False
+        self.locked = locked
+        self.astep = 0
 
     def alive(self):
         print(f'{self.unique_id} {self.age_group} {self.sex_group} {self.mortality} is alive')
 
-    def is_infected(self):
-        return self.stage == Stage.INFECTED
+    def is_contagious(self):
+        return (self.stage == Stage.INCUBATING) or (self.stage == Stage.ASYMPTOMATIC)
 
     def step(self):
+        self.astep = self.astep + 1
+
         if self.stage == Stage.SUSCEPTIBLE:
             # Important: infected people drive the spread, not
             # the number of healthy ones
+
+            # If testing is available and the date is reached, test
+            # Testing of a healthy person should maintain them as
+            # still susceptible
+            if (self.detection.rvs()) and (self.astep >= self.model.days_detection):
+                pass
 
             # First opportunity to get infected: contact with others
             # in near proximity
@@ -87,36 +107,56 @@ class CovidAgent(Agent):
             infected_contact = False
 
             for c in cellmates:
-                if c.is_infected():
+                if c.is_contagious():
                     infected_contact = True
                     break
 
             if infected_contact:
                 if self.infection.rvs():
-                    self.stage = Stage.INFECTED
+                    self.stage = Stage.INCUBATING
 
             # Second opportunity to get infected: residual droplets in places
             # TODO
 
             if not(self.locked):
                 self.move()
-        elif self.stage == Stage.INFECTED:
+        elif self.stage == Stage.INCUBATING:
             # Susceptible patients only move and spread the disease.
             # If the incubation time is reached, it is immediately 
             # considered as detected since it is severe enough.
-            if self.curr_incubation < self.incubation_time:
-                self.curr_incubation = self.curr_incubation + 1
-                if not(self.locked):
-                    self.move()
+
+            # If testing is available and the date is reached, test
+            if (self.detection.rvs()) and (self.astep >= self.model.days_detection):
+                if self.asymptomatic.rvs():
+                    self.stage = Stage.ASYMPDETECTED
+                else:
+                    self.stage = Stage.SYMPDETECTED
             else:
-                self.stage = Stage.DETECTED
-        elif self.stage == Stage.DETECTED:
-            # Once a patient has been detected, it does not move and starts
-            # the road to recovery or death
-            #
-            # Limitation: our model fails to capture severity per day
-            # in an ICU, this needs to be included.
-            if self.curr_recovery < self.recovery_time:
+                if self.curr_incubation < self.incubation_time:
+                    self.curr_incubation = self.curr_incubation + 1
+                    if not(self.locked):
+                        self.move()
+                else:
+                    if self.asymptomatic.rvs():
+                        self.stage = Stage.ASYMPTOMATIC
+                    else:
+                        self.stage = Stage.SYMPDETECTED
+        elif self.stage == Stage.ASYMPTOMATIC:
+            # Asymptomayic patients only roam around, spreading the
+            # disease, only to recover thanks to particular features
+            # of their immune system
+            if (self.detection.rvs()) and (self.astep >= self.model.days_detection):
+                self.stage = Stage.ASYMPDETECTED
+            else:
+                if self.curr_recovery < self.recovery_time:
+                    if not(self.locked):
+                        self.move()
+                else:
+                    self.stage = Stage.RECOVERED
+        elif self.stage == Stage.SYMPDETECTED:
+            # Once a symptomatic patient has been detected, it does not move and starts
+            # the road to severity, recovery or death
+            if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
                 # Not recovered yet, may pass away depending on prob.
                 if self.mortality.rvs():
                     self.stage = Stage.DECEASED
@@ -127,12 +167,14 @@ class CovidAgent(Agent):
                         self.stage = Stage.SEVERE
             else:
                 self.stage = Stage.RECOVERED
+        elif self.stage == Stage.ASYMPDETECTED:
+            # The road of an asymptomatic patients is similar without the prospect of death
+            if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
+               self.curr_recovery = self.curr_recovery + 1
+            else:
+                self.stage = Stage.RECOVERED
         elif self.stage == Stage.SEVERE:
-            # Once a patient has been detected, it does not move and starts
-            # the road to recovery or death
-            #
-            # Limitation: our model fails to capture severity per day
-            # in an ICU, this needs to be included.
+            # Severe patients are in ICU facilities
             if self.curr_recovery < self.recovery_time:
                 # Not recovered yet, may pass away depending on prob.
                 if self.mortality.rvs():
@@ -190,11 +232,17 @@ class CovidAgent(Agent):
 def compute_susceptible(model):
     return count_type(model, Stage.SUSCEPTIBLE)
 
-def compute_infected(model):
-    return count_type(model, Stage.INFECTED)
+def compute_incubating(model):
+    return count_type(model, Stage.INCUBATING)
 
-def compute_detected(model):
-    return count_type(model, Stage.DETECTED)
+def compute_asymptomatic(model):
+    return count_type(model, Stage.ASYMPTOMATIC)
+
+def compute_symptdetected(model):
+    return count_type(model, Stage.SYMPDETECTED)
+
+def compute_asymptdetected(model):
+    return count_type(model, Stage.ASYMPDETECTED)
 
 def compute_severe(model):
     return count_type(model, Stage.SEVERE)
@@ -214,10 +262,19 @@ def count_type(model, stage):
 
     return count
 
+def compute_locked(model):
+    count = 0
+
+    for agent in model.schedule.agents:
+        if agent.locked:
+            count = count + 1
+
+    return count
+
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
-    def __init__(self, N, width, height, distancing, amort, 
-                 smort, psev, adist, sdist, plock, pcont, pdet):
+    def __init__(self, N, width, height, distancing, pasympt, amort, 
+                 smort, psev, adist, sdist, plock, pcont, pdet, ddet, dimp):
         self.running = True
         self.num_agents = N
         self.grid = MultiGrid(width, height, True)
@@ -236,6 +293,9 @@ class CovidModel(Model):
         # The average incubation period is 5 days, which can be changed
         self.avg_incubation = 5 * self._dwell_15_day
 
+        # Days elapsed before detection in place
+        self.days_detection = ddet* self._dwell_15_day
+
         # Probability of contagion after exposure in the same cell
         # Presupposes a person centered on a 1.8 meter radius square
         self.prob_contagion = pcont
@@ -243,14 +303,15 @@ class CovidModel(Model):
         # Probability of contagion due to residual droplets
         self.prob_contagion_places = 0.001
 
+        # Probability of being asymptomatic, contagious
+        # and only detectable by testing
+        self.prob_asymptomatic = pasympt
+
         # Average recovery time
         self.avg_recovery = 15 * self._dwell_15_day
 
         # Probsbility of detection
-        self.prob_detection = pdet
-
-        # Probability of lockdown
-        self.prob_lock = plock
+        self.prob_detection = pdet/dimp
 
         # Probability of severity
         self.prob_severe = psev
@@ -258,13 +319,22 @@ class CovidModel(Model):
         # Create agents
         i = 0
 
+        n_ags = len(self.schedule.agents)
+        n_lock = int(round(n_ags * self.plock))
+        i_ag = 0
+
         for ag in self.age_distribution:
             for sg in self.sex_distribution:
                 r = self.age_distribution[ag]*self.sex_distribution[sg]
                 n = int(round(self.num_agents*r))
                 mort = self.age_mortality[ag]*self.sex_mortality[sg]
                 for k in range(n):
-                    a = CovidAgent(i, ag, sg, mort, distancing, self)
+                    if i_ag < n_lock:
+                        a = CovidAgent(i, ag, sg, mort, distancing, True, self)
+                        i_ag = i_ag + 1
+                    else:
+                        a = CovidAgent(i, ag, sg, mort, distancing, False, self)
+
                     self.schedule.add(a)
                     x = self.random.randrange(self.grid.width)
                     y = self.random.randrange(self.grid.height)
@@ -274,11 +344,14 @@ class CovidModel(Model):
         self.datacollector = DataCollector(
             model_reporters = {
                 "Susceptible": compute_susceptible,
-                "Infected": compute_infected,
-                "Detected": compute_detected,
+                "Incubating": compute_incubating,
+                "Asymptomatic": compute_asymptomatic,
+                "SymptDetected": compute_symptdetected,
+                "AsymptDetected": compute_asymptdetected,
                 "Severe": compute_severe,
                 "Recovered": compute_recovered,
-                "Deceased": compute_deceased
+                "Deceased": compute_deceased,
+                "Locked": compute_locked
             },
             agent_reporters = {
                 "Position": "pos",
@@ -288,18 +361,6 @@ class CovidModel(Model):
             }
         )
 
-        # Now, setup all agents according to lock down rules
-        n_ags = len(self.schedule.agents)
-        n_lock = int(round(n_ags * self.prob_lock))
-        i_ag = 0
-
-        for a in self.schedule.agents:
-            if i_ag < n_lock:
-                a.locked = True
-                continue
-            else:
-                break
-
         # Final step: infect a random agent that is not locked
         
         first_infected = self.random.choice(self.schedule.agents)
@@ -308,7 +369,7 @@ class CovidModel(Model):
             first_infected = self.random.choice(self.schedule.agents)
         
         print(first_infected.unique_id)
-        first_infected.stage = Stage.INFECTED
+        first_infected.stage = Stage.INCUBATING
    
     def step(self):
         self.datacollector.collect(self)
