@@ -60,10 +60,10 @@ class CovidAgent(Agent):
         self.dwelling_time = poisson(model.avg_dwell).rvs()
         self.recovery_time = poisson(model.avg_recovery).rvs()
         # These are random Bernoulli variables, not values!
-        self.infection = bernoulli(2*model.prob_contagion)
+        self.infection = bernoulli(model.prob_contagion)
         self.infect_place = bernoulli(model.prob_contagion_places)
         # Mortality in vulnerable population appears to be around day 2-3
-        self.mortality = bernoulli(mort/model.avg_recovery)
+        self.mortality = bernoulli(5*mort/model.avg_recovery)
         # Probability of being asymptomatic, which is similar to being infected but
         # goes directly into recovery after the average period
         self.asymptomatic = bernoulli(model.prob_asymptomatic)
@@ -72,7 +72,7 @@ class CovidAgent(Agent):
         # Number of days since detection applied
         self.days_detection = model.days_detection
         # Severity appears to appear after day 5
-        self.severity = bernoulli(model.prob_severe/model.avg_recovery)
+        self.severity = bernoulli(3*model.prob_severe/model.avg_recovery)
         self._model = model
         self.curr_dwelling = 0
         self.curr_incubation = 0
@@ -90,7 +90,7 @@ class CovidAgent(Agent):
         return (self.stage == Stage.INCUBATING) or (self.stage == Stage.ASYMPTOMATIC)
 
     def interactants(self):
-        self.model.grid.get_cell_list_contents([self.pos]) - 1
+        return len(self.model.grid.get_cell_list_contents([self.pos]))
 
     def step(self):
         self.astep = self.astep + 1
@@ -286,15 +286,14 @@ def compute_contacts(model):
     count = 0
 
     for agent in model.schedule.agents:
-        if agent.locked:
-            count = count + 1
+        count = count + agent.interactants()
 
-    return count
+    return count/len(model.schedule.agents)
 
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
-    def __init__(self, N, width, height, distancing, pasympt, amort, smort, 
-                 psev, adist, sdist, plock, peffl, pcont, pdet, ddet, dimp):
+    def __init__(self, N, width, height, distancing, pasympt, amort, smort, avinc,
+                 avrec, psev, adist, sdist, plock, peffl, pcont, pdet, ddet, dimp):
         self.running = True
         self.num_agents = N
         self.grid = MultiGrid(width, height, True)
@@ -303,6 +302,7 @@ class CovidModel(Model):
         self.sex_mortality = smort
         self.age_distribution = adist
         self.sex_distribution = sdist
+        self.stepno = 0
 
         # Number of 15 minute dwelling times per day
         self.dwell_15_day = 96
@@ -311,7 +311,7 @@ class CovidModel(Model):
         self.avg_dwell = 4
 
         # The average incubation period is 5 days, which can be changed
-        self.avg_incubation = int(round(5.1 * self.dwell_15_day))
+        self.avg_incubation = int(round(avinc * self.dwell_15_day))
 
         # Days elapsed before detection in place
         self.days_detection = ddet* self.dwell_15_day
@@ -328,7 +328,7 @@ class CovidModel(Model):
         self.prob_asymptomatic = pasympt
 
         # Average recovery time
-        self.avg_recovery = 15 * self.dwell_15_day
+        self.avg_recovery = avrec * self.dwell_15_day
 
         # Probsbility of detection
         self.prob_detection = pdet/dimp
@@ -388,5 +388,7 @@ class CovidModel(Model):
         first_infected.stage = Stage.INCUBATING
    
     def step(self):
+        print(f"Computing step #{self.stepno}")
         self.datacollector.collect(self)
         self.schedule.step()
+        self.stepno = self.stepno + 1

@@ -117,7 +117,6 @@ chart = ChartModule([{"Label": "Susceptible",
                     data_collector_name='datacollector')
 
 model_params = {
-
     "N":255,
     "width":50,
     "height":50,
@@ -126,8 +125,10 @@ model_params = {
     "smort": cr_sex_mortality,
     "adist": cr_age_distribution,
     "sdist": cr_sex_distribution,
+    "avinc": UserSettableParameter("slider", "Average incubation time", 5, 2, 24, 1),
+    "avrec": UserSettableParameter("slider", "Average recovery time", 15, 15, 30, 1),
     "pasympt": UserSettableParameter("slider", "Proportion of asymptomatics", 0.2, 0.0, 1.0, 0.05),
-    "pcont": UserSettableParameter("slider", "Probability of contagion", 0.5, 0.0, 1.0, 0.01),
+    "pcont": UserSettableParameter("slider", "Probability of contagion", 0.03, 0.0, 0.1, 0.01),
     "pdet": UserSettableParameter("slider", "Probability of detection", 0.2, 0.0, 1.0, 0.05),
     "plock": UserSettableParameter("slider", "Proportion in shelter-at-home", 0.0, 0.0, 1.0, 0.05),
     "peffl": UserSettableParameter("slider", "Shelter-at-home effectiveness", 0.0, 0.0, 1.0, 0.05),
@@ -138,7 +139,7 @@ model_params = {
 
 server = ModularServer(CovidModel,
                        [grid, chart],
-                       "COVID-19 agent spread model- Costa Rica",
+                       "COVID-19 agent spread model - San Jose, Costa Rica",
                        model_params
                        )
 
