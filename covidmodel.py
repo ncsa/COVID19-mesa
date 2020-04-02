@@ -89,6 +89,9 @@ class CovidAgent(Agent):
     def is_contagious(self):
         return (self.stage == Stage.INCUBATING) or (self.stage == Stage.ASYMPTOMATIC)
 
+    def interactants(self):
+        self.model.grid.get_cell_list_contents([self.pos]) - 1
+
     def step(self):
         self.astep = self.astep + 1
 
@@ -279,6 +282,15 @@ def compute_locked(model):
 
     return count
 
+def compute_contacts(model):
+    count = 0
+
+    for agent in model.schedule.agents:
+        if agent.locked:
+            count = count + 1
+
+    return count
+
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
     def __init__(self, N, width, height, distancing, pasympt, amort, smort, 
@@ -299,7 +311,7 @@ class CovidModel(Model):
         self.avg_dwell = 4
 
         # The average incubation period is 5 days, which can be changed
-        self.avg_incubation = 5 * self.dwell_15_day
+        self.avg_incubation = int(round(5.1 * self.dwell_15_day))
 
         # Days elapsed before detection in place
         self.days_detection = ddet* self.dwell_15_day

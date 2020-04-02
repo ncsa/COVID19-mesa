@@ -127,7 +127,7 @@ model_params = {
     "adist": cr_age_distribution,
     "sdist": cr_sex_distribution,
     "pasympt": UserSettableParameter("slider", "Proportion of asymptomatics", 0.2, 0.0, 1.0, 0.05),
-    "pcont": UserSettableParameter("slider", "Probability of contagion", 0.5, 0.0, 1.0, 0.05),
+    "pcont": UserSettableParameter("slider", "Probability of contagion", 0.5, 0.0, 1.0, 0.01),
     "pdet": UserSettableParameter("slider", "Probability of detection", 0.2, 0.0, 1.0, 0.05),
     "plock": UserSettableParameter("slider", "Proportion in shelter-at-home", 0.0, 0.0, 1.0, 0.05),
     "peffl": UserSettableParameter("slider", "Shelter-at-home effectiveness", 0.0, 0.0, 1.0, 0.05),
