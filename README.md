@@ -14,12 +14,17 @@ A simple simulation to explore contagion by COVID-19 via agent-based modeling (A
 
 - Port to Elixir or any other distributed platform capable of scaling up to 100 km^2 and 100,000 agents
 - Integration of econometric models to evaluate community recovery and response
-- 
+- Improvement of probability distributions beyond existing ones
 
 ## Acknowledgments
 
-* Tomas de Camino Beck, epidemiologist and modeling
-* Rajesh Venkatachalapathy, agent-based modeling
+The following individuals have contributed directly and indirectly to rapid development of this software package.
+
+* [Tomas de Camino Beck (ULead)](https://cr.linkedin.com/in/tomas-de-camino-beck-ph-d-a64887102), epidemiology and modeling
+* [Rajesh Venkatachalapathy (Portland State University)](https://www.linkedin.com/in/rajesh-venkatachalapathy-8931b1115), agent-based modeling (SPEC)
+* [Srikanth Mudigonda (Saint Louis University)](https://www.slu.edu/online/contact-us/faculty/srikanth-mudigonda.php), agent-based modeling (SPEC)
+* [Milton Friesen (Cardus, U Waterloo)](https://www.cardus.ca/who-we-are/our-team/mfriesen/), agent-based modeling (SPEC)
+* [Jeff Graham (Susquehanna University)](https://www.susqu.edu/academics/faculty/fac/jeffrey-graham), agent-based modeling (SPEC)
 
 ## Related Literature 
 
