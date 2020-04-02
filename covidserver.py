@@ -129,10 +129,11 @@ model_params = {
     "pasympt": UserSettableParameter("slider", "Proportion of asymptomatics", 0.2, 0.0, 1.0, 0.05),
     "pcont": UserSettableParameter("slider", "Probability of contagion", 0.5, 0.0, 1.0, 0.05),
     "pdet": UserSettableParameter("slider", "Probability of detection", 0.2, 0.0, 1.0, 0.05),
-    "plock": UserSettableParameter("slider", "Shelter-at-home effectiveness", 0.0, 0.0, 1.0, 0.05),
+    "plock": UserSettableParameter("slider", "Proportion in shelter-at-home", 0.0, 0.0, 1.0, 0.05),
+    "peffl": UserSettableParameter("slider", "Shelter-at-home effectiveness", 0.0, 0.0, 1.0, 0.05),
     "psev": UserSettableParameter("slider", "Proportion of severe cases", 0.03, 0.0, 0.20, 0.01),
-    "ddet": UserSettableParameter("slider", "Days before of detection", 10, 1, 60, 1),
-    "dimp": UserSettableParameter("slider", "Days to implement detection", 8, 1, 60, 1)
+    "ddet": UserSettableParameter("slider", "Days before massive testing", 10, 1, 60, 1),
+    "dimp": UserSettableParameter("slider", "Massive testing duration", 8, 1, 60, 1)
 }
 
 server = ModularServer(CovidModel,

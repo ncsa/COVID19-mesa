@@ -50,7 +50,7 @@ class LockGroup(Enum):
 class CovidAgent(Agent):
     """ An agent representing a potential covid case"""
     
-    def __init__(self, unique_id, ageg, sexg, mort, distancing, locked, model):
+    def __init__(self, unique_id, ageg, sexg, mort, distancing, model):
         super().__init__(unique_id, model)
         self.stage = Stage.SUSCEPTIBLE
         self.age_group = ageg
@@ -60,10 +60,10 @@ class CovidAgent(Agent):
         self.dwelling_time = poisson(model.avg_dwell).rvs()
         self.recovery_time = poisson(model.avg_recovery).rvs()
         # These are random Bernoulli variables, not values!
-        self.infection = bernoulli(model.prob_contagion)
+        self.infection = bernoulli(2*model.prob_contagion)
         self.infect_place = bernoulli(model.prob_contagion_places)
         # Mortality in vulnerable population appears to be around day 2-3
-        self.mortality = bernoulli(5*mort/model.avg_recovery)
+        self.mortality = bernoulli(mort/model.avg_recovery)
         # Probability of being asymptomatic, which is similar to being infected but
         # goes directly into recovery after the average period
         self.asymptomatic = bernoulli(model.prob_asymptomatic)
@@ -72,14 +72,15 @@ class CovidAgent(Agent):
         # Number of days since detection applied
         self.days_detection = model.days_detection
         # Severity appears to appear after day 5
-        self.severity = bernoulli(3*model.prob_severe/model.avg_recovery)
+        self.severity = bernoulli(model.prob_severe/model.avg_recovery)
         self._model = model
         self.curr_dwelling = 0
         self.curr_incubation = 0
         self.curr_recovery = 0
         self.curr_asymptomatic = 0
         self.distancing = distancing
-        self.locked = locked
+        self.locked = bool(bernoulli(self.model.prob_lock).rvs())
+        self.lock_eff = bernoulli(self.model.prob_lock_effective)
         self.astep = 0
 
     def alive(self):
@@ -107,13 +108,17 @@ class CovidAgent(Agent):
             infected_contact = False
 
             for c in cellmates:
-                if c.is_contagious():
-                    infected_contact = True
-                    break
-
+                    if c.is_contagious():
+                        infected_contact = True
+                        break        
+            
             if infected_contact:
-                if self.infection.rvs():
-                    self.stage = Stage.INCUBATING
+                if self.locked:
+                    if self.infection.rvs() and not(self.lock_eff.rvs()):
+                        self.stage = Stage.INCUBATING
+                else:
+                    if self.infection.rvs():
+                        self.stage = Stage.INCUBATING
 
             # Second opportunity to get infected: residual droplets in places
             # TODO
@@ -156,6 +161,8 @@ class CovidAgent(Agent):
         elif self.stage == Stage.SYMPDETECTED:
             # Once a symptomatic patient has been detected, it does not move and starts
             # the road to severity, recovery or death
+            self.locked = True
+
             if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
                 # Not recovered yet, may pass away depending on prob.
                 if self.mortality.rvs():
@@ -168,6 +175,7 @@ class CovidAgent(Agent):
             else:
                 self.stage = Stage.RECOVERED
         elif self.stage == Stage.ASYMPDETECTED:
+            self.locked = True
             # The road of an asymptomatic patients is similar without the prospect of death
             if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
                self.curr_recovery = self.curr_recovery + 1
@@ -273,8 +281,8 @@ def compute_locked(model):
 
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
-    def __init__(self, N, width, height, distancing, pasympt, amort, 
-                 smort, psev, adist, sdist, plock, pcont, pdet, ddet, dimp):
+    def __init__(self, N, width, height, distancing, pasympt, amort, smort, 
+                 psev, adist, sdist, plock, peffl, pcont, pdet, ddet, dimp):
         self.running = True
         self.num_agents = N
         self.grid = MultiGrid(width, height, True)
@@ -285,16 +293,16 @@ class CovidModel(Model):
         self.sex_distribution = sdist
 
         # Number of 15 minute dwelling times per day
-        self._dwell_15_day = 96
+        self.dwell_15_day = 96
 
         # Average dwelling units
         self.avg_dwell = 4
 
         # The average incubation period is 5 days, which can be changed
-        self.avg_incubation = 5 * self._dwell_15_day
+        self.avg_incubation = 5 * self.dwell_15_day
 
         # Days elapsed before detection in place
-        self.days_detection = ddet* self._dwell_15_day
+        self.days_detection = ddet* self.dwell_15_day
 
         # Probability of contagion after exposure in the same cell
         # Presupposes a person centered on a 1.8 meter radius square
@@ -308,7 +316,7 @@ class CovidModel(Model):
         self.prob_asymptomatic = pasympt
 
         # Average recovery time
-        self.avg_recovery = 15 * self._dwell_15_day
+        self.avg_recovery = 15 * self.dwell_15_day
 
         # Probsbility of detection
         self.prob_detection = pdet/dimp
@@ -316,12 +324,14 @@ class CovidModel(Model):
         # Probability of severity
         self.prob_severe = psev
 
+        # Proportion in shelter at home
+        self.prob_lock = plock
+
+        # Shelter-at-home effectiveness
+        self.prob_lock_effective = peffl
+
         # Create agents
         i = 0
-
-        n_ags = len(self.schedule.agents)
-        n_lock = int(round(n_ags * self.plock))
-        i_ag = 0
 
         for ag in self.age_distribution:
             for sg in self.sex_distribution:
@@ -329,12 +339,7 @@ class CovidModel(Model):
                 n = int(round(self.num_agents*r))
                 mort = self.age_mortality[ag]*self.sex_mortality[sg]
                 for k in range(n):
-                    if i_ag < n_lock:
-                        a = CovidAgent(i, ag, sg, mort, distancing, True, self)
-                        i_ag = i_ag + 1
-                    else:
-                        a = CovidAgent(i, ag, sg, mort, distancing, False, self)
-
+                    a = CovidAgent(i, ag, sg, mort, distancing, self)
                     self.schedule.add(a)
                     x = self.random.randrange(self.grid.width)
                     y = self.random.randrange(self.grid.height)
@@ -362,7 +367,6 @@ class CovidModel(Model):
         )
 
         # Final step: infect a random agent that is not locked
-        
         first_infected = self.random.choice(self.schedule.agents)
         
         while first_infected.locked:
