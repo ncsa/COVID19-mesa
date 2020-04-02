@@ -1,6 +1,7 @@
 # COVID19-mesa
 
 *Santiago Nunez-Corrales, Informatics and NCSA, UIUC (nunezco2@illinois.edu)*
+
 *Eric Jakobsson, Molecular and Cell Bioogy and NCSA, UIUC (jake@illinois.edu)*
 
 
