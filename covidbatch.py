@@ -64,9 +64,9 @@ cr_sex_distribution = {
 }
 
 model_params = {
-    "N":3904,
-    "width":200,
-    "height":200,
+    "N":10000,
+    "width":321,
+    "height":321,
     "distancing": False,
     "amort": cr_age_mortality,
     "smort": cr_sex_mortality,
@@ -89,7 +89,7 @@ batch_run = BatchRunner(
     {},
     model_params,
     iterations=10,
-    max_steps=300,
+    max_steps=3,
     model_reporters = {
         "Susceptible": compute_susceptible,
         "Incubating": compute_incubating,
