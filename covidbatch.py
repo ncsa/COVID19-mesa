@@ -4,9 +4,8 @@
 # {nunezco,jake}@illinois.edu
 
 # A simple tunable model for COVID-19 response
+from mesa.batchrunner import BatchRunner
 from covidmodel import CovidModel
-import matplotlib
-import matplotlib.pyplot as plt
 import pandas as pd
 
 
@@ -15,6 +14,15 @@ from covidmodel import Stage
 from covidmodel import AgeGroup
 from covidmodel import SexGroup
 from covidmodel import LockGroup
+from covidmodel import compute_susceptible
+from covidmodel import compute_incubating
+from covidmodel import compute_asymptomatic
+from covidmodel import compute_symptdetected
+from covidmodel import compute_asymptdetected
+from covidmodel import compute_severe
+from covidmodel import compute_deceased
+from covidmodel import compute_recovered
+from covidmodel import compute_locked
 
 # Specific model data
 
@@ -56,9 +64,9 @@ cr_sex_distribution = {
 }
 
 model_params = {
-    "N":255,
-    "width":50,
-    "height":50,
+    "N":3904,
+    "width":200,
+    "height":200,
     "distancing": False,
     "amort": cr_age_mortality,
     "smort": cr_sex_mortality,
@@ -69,35 +77,32 @@ model_params = {
     "pasympt": 0.2,
     "pcont": 0.04,
     "pdet": 0.0,
-    "plock": 0.5,
-    "peffl": 0.8,
-    "psev": 0.03,
+    "plock": 0.0,
+    "peffl": 0.0,
+    "psev": 0.13,
     "ddet": 10,
     "dimp": 8
 }
 
-cm = CovidModel(model_params["N"],
-                model_params["width"],
-                model_params["height"],
-                False,
-                model_params["pasympt"],
-                model_params["amort"],
-                model_params["smort"],
-                model_params["avinc"],
-                model_params["avrec"],
-                model_params["psev"],
-                model_params["adist"],
-                model_params["sdist"],
-                model_params["plock"],
-                model_params["peffl"],
-                model_params["pcont"],
-                model_params["pdet"],
-                model_params["ddet"],
-                model_params["dimp"])
+batch_run = BatchRunner(
+    CovidModel,
+    {},
+    model_params,
+    iterations=10,
+    max_steps=300,
+    model_reporters = {
+        "Susceptible": compute_susceptible,
+        "Incubating": compute_incubating,
+        "Asymptomatic": compute_asymptomatic,
+        "SymptQuarantined": compute_symptdetected,
+        "AsymptQuarantined": compute_asymptdetected,
+        "Severe": compute_severe,
+        "Recovered": compute_recovered,
+        "Deceased": compute_deceased,
+        "Isolated": compute_locked
+    }
+)
 
-# Simulate for 90 days
-for i in range(90 * cm.dwell_15_day):
-    cm.step()
-
-trends = cm.datacollector.get_model_vars_dataframe()
-trends.to_csv('cr_0.5_distancing_0.80_eff.csv')
+batch_run.run_all()
+run_data = batch_run.get_model_vars_dataframe()
+run_data.to_csv("cr_no_measures_ensemb.csv")

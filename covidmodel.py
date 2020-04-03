@@ -241,28 +241,28 @@ class CovidAgent(Agent):
             self.curr_dwelling = poisson(self._model.avg_dwell).rvs()
 
 def compute_susceptible(model):
-    return count_type(model, Stage.SUSCEPTIBLE)
+    return count_type(model, Stage.SUSCEPTIBLE)/model.num_agents
 
 def compute_incubating(model):
-    return count_type(model, Stage.INCUBATING)
+    return count_type(model, Stage.INCUBATING)/model.num_agents
 
 def compute_asymptomatic(model):
-    return count_type(model, Stage.ASYMPTOMATIC)
+    return count_type(model, Stage.ASYMPTOMATIC)/model.num_agents
 
 def compute_symptdetected(model):
-    return count_type(model, Stage.SYMPDETECTED)
+    return count_type(model, Stage.SYMPDETECTED)/model.num_agents
 
 def compute_asymptdetected(model):
-    return count_type(model, Stage.ASYMPDETECTED)
+    return count_type(model, Stage.ASYMPDETECTED)/model.num_agents
 
 def compute_severe(model):
-    return count_type(model, Stage.SEVERE)
+    return count_type(model, Stage.SEVERE)/model.num_agents
 
 def compute_recovered(model):
-    return count_type(model, Stage.RECOVERED)
+    return count_type(model, Stage.RECOVERED)/model.num_agents
 
 def compute_deceased(model):
-    return count_type(model, Stage.DECEASED)
+    return count_type(model, Stage.DECEASED)/model.num_agents
 
 def count_type(model, stage):
     count = 0
@@ -280,7 +280,7 @@ def compute_locked(model):
         if agent.locked:
             count = count + 1
 
-    return count
+    return count/model.num_agents
 
 def compute_contacts(model):
     count = 0
@@ -363,12 +363,12 @@ class CovidModel(Model):
                 "Susceptible": compute_susceptible,
                 "Incubating": compute_incubating,
                 "Asymptomatic": compute_asymptomatic,
-                "SymptDetected": compute_symptdetected,
-                "AsymptDetected": compute_asymptdetected,
+                "SymptQuarantined": compute_symptdetected,
+                "AsymptQuarantined": compute_asymptdetected,
                 "Severe": compute_severe,
                 "Recovered": compute_recovered,
                 "Deceased": compute_deceased,
-                "Locked": compute_locked
+                "Isolated": compute_locked
             },
             agent_reporters = {
                 "Position": "pos",
@@ -384,11 +384,9 @@ class CovidModel(Model):
         while first_infected.locked:
             first_infected = self.random.choice(self.schedule.agents)
         
-        print(first_infected.unique_id)
         first_infected.stage = Stage.INCUBATING
    
     def step(self):
-        print(f"Computing step #{self.stepno}")
         self.datacollector.collect(self)
         self.schedule.step()
         self.stepno = self.stepno + 1
