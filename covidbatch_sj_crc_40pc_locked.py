@@ -67,8 +67,8 @@ model_params = {
     "pasympt": 0.2,
     "pcont": 0.04,
     "pdet": 0.0,
-    "plock": 0.0,
-    "peffl": 0.0,
+    "plock": 0.4,
+    "peffl": 1.0,
     "psev": 0.13,
     "ddet": 10,
     "dimp": 8
@@ -102,4 +102,4 @@ for i in range(num_iterations):
 dfs = pd.concat(ldfs)
 
 dfs.rename(columns={'': 'Step'})
-dfs.to_csv("sj_crc_no_measures.csv")
+dfs.to_csv("sj_crc_40pc_locked.csv")

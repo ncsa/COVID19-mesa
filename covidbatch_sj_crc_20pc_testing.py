@@ -66,12 +66,12 @@ model_params = {
     "avrec": 15,
     "pasympt": 0.2,
     "pcont": 0.04,
-    "pdet": 0.0,
+    "pdet": 0.2,
     "plock": 0.0,
     "peffl": 0.0,
     "psev": 0.13,
-    "ddet": 10,
-    "dimp": 8
+    "ddet": 35,
+    "dimp": 7
 }
 
 num_iterations = 12
@@ -102,4 +102,4 @@ for i in range(num_iterations):
 dfs = pd.concat(ldfs)
 
 dfs.rename(columns={'': 'Step'})
-dfs.to_csv("sj_crc_no_measures.csv")
+dfs.to_csv("sj_crc_20pc_testing.csv")
