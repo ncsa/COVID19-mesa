@@ -4,7 +4,7 @@
 # {nunezco,jake}@illinois.edu
 
 # A simple tunable model for COVID-19 response
-from mesa.batchrunner import BatchRunnerMP
+from mesa.batchrunner import BatchRunner
 from covidmodel import CovidModel
 from covidmodel import CovidModel
 from covidmodel import Stage
@@ -77,9 +77,8 @@ model_params = {
 num_iterations = 12
 num_steps = 12000
 
-batch_run = BatchRunnerMP(
+batch_run = BatchRunner(
     CovidModel,
-    nr_processes=3,
     fixed_parameters=model_params,
     iterations=num_iterations,
     max_steps=num_steps,
