@@ -53,15 +53,15 @@ cr_sex_distribution = {
 }
 
 model_params = {
-    "N":1000,
-    "width":101,
-    "height":101,
+    "N":244,
+    "width":50,
+    "height":50,
     "distancing": False,
     "amort": cr_age_mortality,
     "smort": cr_sex_mortality,
     "adist": cr_age_distribution,
     "sdist": cr_sex_distribution,
-    "avinc": 5,
+    "avinc": 9,
     "avrec": 15,
     "pasympt": 0.2,
     "pcont": 0.04,
@@ -73,8 +73,8 @@ model_params = {
     "dimp": 8
 }
 
-num_iterations = 3
-num_steps = 4
+num_iterations = 5
+num_steps = 12000
 
 batch_run = BatchRunner(
     CovidModel,
@@ -99,4 +99,6 @@ for i in range(num_iterations):
     ldfs.append(dft)
 
 dfs = pd.concat(ldfs)
+
+dfs.rename(columns={'': 'Step'})
 dfs.to_csv("cr_no_measures_ensemb.csv")
