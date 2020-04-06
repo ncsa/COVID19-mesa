@@ -1,6 +1,6 @@
 # COVID19-mesa
 
-*Santiago Nunez-Corrales, Informatics, UIUC (nunezco2@illinois.edu)*
+*Santiago Nunez-Corrales, Informatics and NCSA, UIUC (nunezco2@illinois.edu)*
 
 *Eric Jakobsson, Molecular and Cell Bioogy and NCSA, UIUC (jake@illinois.edu)*
 
@@ -25,6 +25,7 @@ The following individuals have contributed directly and indirectly to rapid deve
 * [Srikanth Mudigonda (Saint Louis University)](https://www.slu.edu/online/contact-us/faculty/srikanth-mudigonda.php), agent-based modeling (SPEC)
 * [Milton Friesen (Cardus, U Waterloo)](https://www.cardus.ca/who-we-are/our-team/mfriesen/), agent-based modeling (SPEC)
 * [Jeff Graham (Susquehanna University)](https://www.susqu.edu/academics/faculty/fac/jeffrey-graham), agent-based modeling (SPEC)
+* [Galen Arnold, (NCSA UIUC)](http://www.ncsa.illinois.edu/assets/php/directory/contact.php?contact=arnoldg), Python optimization strategies 
 
 ## Related Literature 
 

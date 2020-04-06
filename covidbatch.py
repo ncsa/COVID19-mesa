@@ -64,9 +64,9 @@ cr_sex_distribution = {
 }
 
 model_params = {
-    "N":10000,
-    "width":321,
-    "height":321,
+    "N":1000,
+    "width":101,
+    "height":101,
     "distancing": False,
     "amort": cr_age_mortality,
     "smort": cr_sex_mortality,
@@ -88,7 +88,7 @@ batch_run = BatchRunner(
     CovidModel,
     {},
     model_params,
-    iterations=10,
+    iterations=30,
     max_steps=3,
     model_reporters = {
         "Susceptible": compute_susceptible,

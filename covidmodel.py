@@ -56,35 +56,26 @@ class CovidAgent(Agent):
         self.age_group = ageg
         self.sex_group = sexg
         # These are fixed values associated with properties of individuals
-        self.incubation_time = poisson(model.avg_incubation).rvs()
-        self.dwelling_time = poisson(model.avg_dwell).rvs()
-        self.recovery_time = poisson(model.avg_recovery).rvs()
-        # These are random Bernoulli variables, not values!
-        self.infection = bernoulli(model.prob_contagion)
-        self.infect_place = bernoulli(model.prob_contagion_places)
+        self.incubation_time = poisson.rvs(model.avg_incubation)
+        self.dwelling_time = poisson.rvs(model.avg_dwell)
+        self.recovery_time = poisson.rvs(model.avg_recovery)
+        # self.infect_place = bernoulli(model.prob_contagion_places)
         # Mortality in vulnerable population appears to be around day 2-3
-        self.mortality = bernoulli(5*mort/model.avg_recovery)
-        # Probability of being asymptomatic, which is similar to being infected but
-        # goes directly into recovery after the average period
-        self.asymptomatic = bernoulli(model.prob_asymptomatic)
-        # Probability of detection
-        self.detection = bernoulli(model.prob_detection)
+        self.mortality_value = 5*mort/model.avg_recovery
         # Number of days since detection applied
         self.days_detection = model.days_detection
         # Severity appears to appear after day 5
-        self.severity = bernoulli(3*model.prob_severe/model.avg_recovery)
-        self._model = model
+        self.severity_value = 3*model.prob_severe/model.avg_recovery
         self.curr_dwelling = 0
         self.curr_incubation = 0
         self.curr_recovery = 0
         self.curr_asymptomatic = 0
         self.distancing = distancing
         self.locked = bool(bernoulli(self.model.prob_lock).rvs())
-        self.lock_eff = bernoulli(self.model.prob_lock_effective)
         self.astep = 0
 
     def alive(self):
-        print(f'{self.unique_id} {self.age_group} {self.sex_group} {self.mortality} is alive')
+        print(f'{self.unique_id} {self.age_group} {self.sex_group} is alive')
 
     def is_contagious(self):
         return (self.stage == Stage.INCUBATING) or (self.stage == Stage.ASYMPTOMATIC)
@@ -102,7 +93,8 @@ class CovidAgent(Agent):
             # If testing is available and the date is reached, test
             # Testing of a healthy person should maintain them as
             # still susceptible
-            if (self.detection.rvs()) and (self.astep >= self.model.days_detection):
+            if (self.astep >= self.model.days_detection) and \
+                (bernoulli.rvs(self.model.prob_detection)):
                 pass
 
             # First opportunity to get infected: contact with others
@@ -117,10 +109,11 @@ class CovidAgent(Agent):
             
             if infected_contact:
                 if self.locked:
-                    if self.infection.rvs() and not(self.lock_eff.rvs()):
+                    if bernoulli.rvs(self.model.prob_contagion) and \
+                        not(bernoulli.rvs(self.model.prob_lock_effective)):
                         self.stage = Stage.INCUBATING
                 else:
-                    if self.infection.rvs():
+                    if bernoulli.rvs(self.model.prob_contagion):
                         self.stage = Stage.INCUBATING
 
             # Second opportunity to get infected: residual droplets in places
@@ -134,8 +127,9 @@ class CovidAgent(Agent):
             # considered as detected since it is severe enough.
 
             # If testing is available and the date is reached, test
-            if (self.detection.rvs()) and (self.astep >= self.model.days_detection):
-                if self.asymptomatic.rvs():
+            if (self.astep >= self.model.days_detection) and \
+                (bernoulli.rvs(self.model.prob_detection)):
+                if bernoulli.rvs(self.model.prob_asymptomatic):
                     self.stage = Stage.ASYMPDETECTED
                 else:
                     self.stage = Stage.SYMPDETECTED
@@ -145,7 +139,7 @@ class CovidAgent(Agent):
                     if not(self.locked):
                         self.move()
                 else:
-                    if self.asymptomatic.rvs():
+                    if bernoulli.rvs(self.model.prob_asymptomatic):
                         self.stage = Stage.ASYMPTOMATIC
                     else:
                         self.stage = Stage.SYMPDETECTED
@@ -153,7 +147,8 @@ class CovidAgent(Agent):
             # Asymptomayic patients only roam around, spreading the
             # disease, only to recover thanks to particular features
             # of their immune system
-            if (self.detection.rvs()) and (self.astep >= self.model.days_detection):
+            if (self.astep >= self.model.days_detection) and \
+                (bernoulli.rvs(self.model.prob_detection)):
                 self.stage = Stage.ASYMPDETECTED
             else:
                 if self.curr_recovery < self.recovery_time:
@@ -168,12 +163,12 @@ class CovidAgent(Agent):
 
             if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
                 # Not recovered yet, may pass away depending on prob.
-                if self.mortality.rvs():
+                if bernoulli.rvs(self.mortality_value):
                     self.stage = Stage.DECEASED
                 else:
                     self.curr_recovery = self.curr_recovery + 1
 
-                    if self.severity.rvs():
+                    if bernoulli.rvs(self.severity_value):
                         self.stage = Stage.SEVERE
             else:
                 self.stage = Stage.RECOVERED
@@ -188,7 +183,7 @@ class CovidAgent(Agent):
             # Severe patients are in ICU facilities
             if self.curr_recovery < self.recovery_time:
                 # Not recovered yet, may pass away depending on prob.
-                if self.mortality.rvs():
+                if bernoulli.rvs(self.mortality_value):
                     self.stage = Stage.DECEASED
                 else:
                     self.curr_recovery = self.curr_recovery + 1
@@ -238,7 +233,7 @@ class CovidAgent(Agent):
                 new_position = self.random.choice(possible_steps)
 
             self.model.grid.move_agent(self, new_position)
-            self.curr_dwelling = poisson(self._model.avg_dwell).rvs()
+            self.curr_dwelling = poisson.rvs(self.model.avg_dwell)
 
 def compute_susceptible(model):
     return count_type(model, Stage.SUSCEPTIBLE)/model.num_agents
@@ -331,7 +326,7 @@ class CovidModel(Model):
         self.avg_recovery = avrec * self.dwell_15_day
 
         # Probsbility of detection
-        self.prob_detection = pdet/dimp
+        self.prob_detection = pdet/(dimp  * self.dwell_15_day)
 
         # Probability of severity
         self.prob_severe = psev
