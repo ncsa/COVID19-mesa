@@ -6,23 +6,12 @@
 # A simple tunable model for COVID-19 response
 from mesa.batchrunner import BatchRunner
 from covidmodel import CovidModel
-import pandas as pd
-
-
 from covidmodel import CovidModel
 from covidmodel import Stage
 from covidmodel import AgeGroup
 from covidmodel import SexGroup
 from covidmodel import LockGroup
-from covidmodel import compute_susceptible
-from covidmodel import compute_incubating
-from covidmodel import compute_asymptomatic
-from covidmodel import compute_symptdetected
-from covidmodel import compute_asymptdetected
-from covidmodel import compute_severe
-from covidmodel import compute_deceased
-from covidmodel import compute_recovered
-from covidmodel import compute_locked
+import pandas as pd
 
 # Specific model data
 
@@ -84,25 +73,30 @@ model_params = {
     "dimp": 8
 }
 
+num_iterations = 3
+num_steps = 4
+
 batch_run = BatchRunner(
     CovidModel,
     {},
     model_params,
-    iterations=30,
-    max_steps=3,
+    iterations=num_iterations,
+    max_steps=num_steps,
     model_reporters = {
-        "Susceptible": compute_susceptible,
-        "Incubating": compute_incubating,
-        "Asymptomatic": compute_asymptomatic,
-        "SymptQuarantined": compute_symptdetected,
-        "AsymptQuarantined": compute_asymptdetected,
-        "Severe": compute_severe,
-        "Recovered": compute_recovered,
-        "Deceased": compute_deceased,
-        "Isolated": compute_locked
+        "Data collector": lambda m: m.datacollector
     }
 )
 
 batch_run.run_all()
+
+# Unify all into a single dataframe for storage
 run_data = batch_run.get_model_vars_dataframe()
-run_data.to_csv("cr_no_measures_ensemb.csv")
+ldfs = []
+
+for i in range(num_iterations):
+    dft = run_data["Data collector"][2].get_model_vars_dataframe()
+    dft["Iteration"] = i
+    ldfs.append(dft)
+
+dfs = pd.concat(ldfs)
+dfs.to_csv("cr_no_measures_ensemb.csv")
