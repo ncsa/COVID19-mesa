@@ -4,7 +4,7 @@
 # {nunezco,jake}@illinois.edu
 
 # A simple tunable model for COVID-19 response
-from mesa.batchrunner import BatchRunner
+from mesa.batchrunner import BatchRunnerMP
 from covidmodel import CovidModel
 from covidmodel import CovidModel
 from covidmodel import Stage
@@ -12,6 +12,7 @@ from covidmodel import AgeGroup
 from covidmodel import SexGroup
 from covidmodel import LockGroup
 import pandas as pd
+
 
 # Specific model data
 
@@ -73,13 +74,13 @@ model_params = {
     "dimp": 8
 }
 
-num_iterations = 5
+num_iterations = 30
 num_steps = 12000
 
-batch_run = BatchRunner(
+batch_run = BatchRunnerMP(
     CovidModel,
-    {},
-    model_params,
+    nr_processes=8,
+    fixed_parameters=model_params,
     iterations=num_iterations,
     max_steps=num_steps,
     model_reporters = {
@@ -101,4 +102,4 @@ for i in range(num_iterations):
 dfs = pd.concat(ldfs)
 
 dfs.rename(columns={'': 'Step'})
-dfs.to_csv("cr_no_measures_ensemb.csv")
+dfs.to_csv("sj_crc_no_measures_ensemb.csv")
