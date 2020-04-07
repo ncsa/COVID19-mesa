@@ -79,7 +79,7 @@ model_params = {
 cm = CovidModel(model_params["N"],
                 model_params["width"],
                 model_params["height"],
-                False,
+                model_params["distancing"],
                 model_params["pasympt"],
                 model_params["amort"],
                 model_params["smort"],

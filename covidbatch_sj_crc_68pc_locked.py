@@ -67,7 +67,7 @@ model_params = {
     "pasympt": 0.2,
     "pcont": 0.04,
     "pdet": 0.0,
-    "plock": 0.4,
+    "plock": 0.68,
     "peffl": 1.0,
     "psev": 0.13,
     "ddet": 10,
@@ -122,4 +122,4 @@ for i in range(num_iterations):
     ldfs.append(dft)
 
 dfs = pd.concat(ldfs)
-dfs.to_csv("sj_crc_40pc_locked.csv")
+dfs.to_csv("sj_crc_68pc_locked.csv")

@@ -70,35 +70,56 @@ model_params = {
     "plock": 0.4,
     "peffl": 1.0,
     "psev": 0.13,
-    "ddet": 10,
-    "dimp": 8
+    "ddet": 35,
+    "dimp": 7
 }
 
 num_iterations = 12
 num_steps = 12000
 
-batch_run = BatchRunner(
-    CovidModel,
-    fixed_parameters=model_params,
-    iterations=num_iterations,
-    max_steps=num_steps,
-    model_reporters = {
-        "Data collector": lambda m: m.datacollector
-    }
-)
+#batch_run = BatchRunner(
+#    CovidModel,
+#    fixed_parameters=model_params,
+#    iterations=num_iterations,
+#    max_steps=num_steps,
+#    model_reporters = {
+#        "Data collector": lambda m: m.datacollector
+#    }
+#)
 
-batch_run.run_all()
+#batch_run.run_all()
 
 # Unify all into a single dataframe for storage
-run_data = batch_run.get_model_vars_dataframe()
+#run_data = batch_run.get_model_vars_dataframe()
 ldfs = []
 
 for i in range(num_iterations):
-    dft = run_data["Data collector"][2].get_model_vars_dataframe()
+    print(f"Iteration {i}")
+    cm = CovidModel(model_params["N"],
+                model_params["width"],
+                model_params["height"],
+                model_params["distancing"],
+                model_params["pasympt"],
+                model_params["amort"],
+                model_params["smort"],
+                model_params["avinc"],
+                model_params["avrec"],
+                model_params["psev"],
+                model_params["adist"],
+                model_params["sdist"],
+                model_params["plock"],
+                model_params["peffl"],
+                model_params["pcont"],
+                model_params["pdet"],
+                model_params["ddet"],
+                model_params["dimp"])
+    
+    for j in range(num_steps):
+        cm.step()
+
+    dft = cm.datacollector.get_model_vars_dataframe()
     dft["Iteration"] = i
     ldfs.append(dft)
 
 dfs = pd.concat(ldfs)
-
-dfs.rename(columns={'': 'Step'})
 dfs.to_csv("sj_crc_40pc_locked_20pc_testing.csv")

@@ -10,13 +10,12 @@ import pandas as pd
 from covidmodel import CovidModel
 
 plt.figure(figsize = (11.7, 8.27))
-df = pd.read_csv("sj_crc_40pc_locked_20pc_testing.csv")
+df = pd.read_csv("sj_crc_68pc_locked.csv")
 df["Step"] = df["Step"]/96
 df_melt = df.melt(id_vars=['Step','Iteration'])
 #print(df_melt)
 ax = sns.lineplot(x="Step", y="value", hue="variable", data=df_melt, ci=None)
-ax.legend(title="SJ/CRC 40%L/20%T", fontsize='small')
+ax.legend(title="SJ/CRC 68% locked", fontsize='small')
 ax.set_xlabel("Days")
 ax.set_ylabel("Percent")
-plt.savefig("sj_crc_40pc_locked_20pc_testing.png", dpi=300)
-
+plt.savefig("sj_crc_68pc_locked.png", dpi=300)
