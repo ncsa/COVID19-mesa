@@ -15,8 +15,8 @@ df["Step"] = df["Step"]/96
 df_melt = df.melt(id_vars=['Step','Iteration'])
 #print(df_melt)
 ax = sns.lineplot(x="Step", y="value", hue="variable", data=df_melt, ci=None)
-ax.legend(title="SJ/CRC no measures", fontsize='small')
-ax.set_xlabel("Days")
-ax.set_ylabel("Percent")
+ax.legend(title="SJ/CRC sin medidas", fontsize='small')
+ax.set_xlabel("Días")
+ax.set_ylabel("Fracción de la población")
 plt.savefig("sj_crc_no_measures.png", dpi=300)
 
