@@ -285,6 +285,10 @@ def compute_contacts(model):
 
     return count/len(model.schedule.agents)
 
+def compute_stepno(model):
+    return model.stepno
+
+
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
     def __init__(self, N, width, height, distancing, pasympt, amort, smort, avinc,
@@ -355,6 +359,7 @@ class CovidModel(Model):
         
         self.datacollector = DataCollector(
             model_reporters = {
+                "Step": compute_stepno,
                 "Susceptible": compute_susceptible,
                 "Incubating": compute_incubating,
                 "Asymptomatic": compute_asymptomatic,

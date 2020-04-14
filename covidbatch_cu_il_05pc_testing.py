@@ -121,5 +121,9 @@ for i in range(num_iterations):
     dft["Iteration"] = i
     ldfs.append(dft)
 
-dfs = pd.concat(ldfs)
+#dfs = pd.concat(ldfs)
+#dfs.columns = [
+#    'Step', 'Susceptible', 'Incubating', 'Asymptomatic', 'SymptQuarantined',
+#    'AsymptQuarantined','Severe', 'Recovered', 'Deceased', 'Isolated', 'Iteration'
+#]
 dfs.to_csv("cu_il_05pc_testing.csv")
