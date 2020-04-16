@@ -11,6 +11,7 @@ from covidmodel import Stage
 from covidmodel import AgeGroup
 from covidmodel import SexGroup
 from covidmodel import LockGroup
+from covidmodel import ValueGroup
 import pandas as pd
 
 
@@ -53,6 +54,30 @@ cr_sex_distribution = {
     SexGroup.FEMALE: 0.504
 }
 
+# Value distribution per stage per interaction (micro vs macroeconomics)
+cr_value_distibution = {
+    ValueGroup.PERSONAL: {
+        Stage.SUSCEPTIBLE: 1.0,
+        Stage.INCUBATING: 1.0,
+        Stage.SYMPDETECTED: -0.2,
+        Stage.ASYMPTOMATIC: 1.0,
+        Stage.ASYMPDETECTED: -0.2,
+        Stage.SEVERE: -5.0,
+        Stage.RECOVERED: 0.8,
+        Stage.DECEASED: 0
+    },
+    ValueGroup.PUBLIC: {
+        Stage.SUSCEPTIBLE: 10.0,
+        Stage.INCUBATING: 10.0,
+        Stage.SYMPDETECTED: -20.0,
+        Stage.ASYMPTOMATIC: 10.0,
+        Stage.ASYMPDETECTED: -25,
+        Stage.SEVERE: -250.0,
+        Stage.RECOVERED: 5,
+        Stage.DECEASED: -1
+    }
+}
+
 model_params = {
     "N":244,
     "width":50,
@@ -63,15 +88,19 @@ model_params = {
     "adist": cr_age_distribution,
     "sdist": cr_sex_distribution,
     "avinc": 9,
-    "avrec": 15,
+    "avrec": 20,
     "pasympt": 0.2,
     "pcont": 0.04,
     "pdet": 0.0,
     "plock": 0.0,
-    "peffl": 0.0,
-    "psev": 0.13,
-    "ddet": 10,
-    "dimp": 7
+    "peffl": 1.0,
+    "psev": 0.10,
+    "ddet": 35,
+    "dimp": 7,
+    "stvald": cr_value_distibution,
+    "tcost": 200,
+    "aper": 1.0,
+    "apub": 1.0
 }
 
 num_iterations = 12
@@ -112,7 +141,11 @@ for i in range(num_iterations):
                 model_params["pcont"],
                 model_params["pdet"],
                 model_params["ddet"],
-                model_params["dimp"])
+                model_params["dimp"],
+                model_params["stvald"],
+                model_params["tcost"],
+                model_params["aper"],
+                model_params["apub"])
     
     for j in range(num_steps):
         cm.step()

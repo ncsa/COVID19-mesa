@@ -14,6 +14,7 @@ from covidmodel import Stage
 from covidmodel import AgeGroup
 from covidmodel import SexGroup
 from covidmodel import LockGroup
+from covidmodel import ValueGroup
 
 # Specific model data
 
@@ -52,6 +53,30 @@ cr_age_distribution = {
 cr_sex_distribution = {
     SexGroup.MALE: 0.496,
     SexGroup.FEMALE: 0.504
+}
+
+# Value distribution per stage per interaction (micro vs macroeconomics)
+cr_value_distibution = {
+    ValueGroup.PERSONAL: {
+        Stage.SUSCEPTIBLE: 1.0,
+        Stage.INCUBATING: 1.0,
+        Stage.SYMPDETECTED: -0.2,
+        Stage.ASYMPTOMATIC: 1.0,
+        Stage.ASYMPDETECTED: -0.2,
+        Stage.SEVERE: -5.0,
+        Stage.RECOVERED: 0.8,
+        Stage.DECEASED: 0
+    },
+    ValueGroup.PUBLIC: {
+        Stage.SUSCEPTIBLE: 10.0,
+        Stage.INCUBATING: 10.0,
+        Stage.SYMPDETECTED: -20.0,
+        Stage.ASYMPTOMATIC: 10.0,
+        Stage.ASYMPDETECTED: -25,
+        Stage.SEVERE: -250.0,
+        Stage.RECOVERED: 5,
+        Stage.DECEASED: -5
+    }
 }
 
 def agent_portrayal(agent):
@@ -116,6 +141,21 @@ chart = ChartModule([{"Label": "Susceptible",
                       ],
                     data_collector_name='datacollector')
 
+chart_personal_value = ChartModule([{"Label": "CummulPersValue",
+                      "Color": "Black"}
+                      ],
+                    data_collector_name='datacollector'
+)
+
+chart_public_value = ChartModule([
+                      {"Label": "CummulPublValue",
+                      "Color": "Red"},
+                      {"Label": "CummulTestCost",
+                      "Color": "Green"}
+                      ],
+                    data_collector_name='datacollector'
+)
+
 model_params = {
     "N":255,
     "width":50,
@@ -134,11 +174,15 @@ model_params = {
     "peffl": UserSettableParameter("slider", "Shelter-at-home effectiveness", 0.0, 0.0, 1.0, 0.05),
     "psev": UserSettableParameter("slider", "Proportion of severe cases", 0.13, 0.0, 0.20, 0.01),
     "ddet": UserSettableParameter("slider", "Days before massive testing", 10, 1, 60, 1),
-    "dimp": UserSettableParameter("slider", "Massive testing duration", 8, 1, 60, 1)
+    "dimp": UserSettableParameter("slider", "Massive testing duration", 8, 1, 60, 1),
+    "stvald": cr_value_distibution,
+    "tcost": 300,
+    "aper": UserSettableParameter("slider", "Personal value amplifier", 1.0, 0.0, 2.0, 0.1),
+    "apub": UserSettableParameter("slider", "Public value amplifier", 1.0, 0.0, 2.0, 0.1),
 }
 
 server = ModularServer(CovidModel,
-                       [grid, chart],
+                       [chart_personal_value, chart_public_value],
                        "COVID-19 agent spread model - San Jose, Costa Rica",
                        model_params
                        )
