@@ -74,8 +74,8 @@ model_params = {
     "dimp": 8
 }
 
-num_iterations = 12
-num_steps = 12000
+num_iterations = 2
+num_steps = 10
 
 #batch_run = BatchRunner(
 #    CovidModel,
@@ -121,7 +121,7 @@ for i in range(num_iterations):
     dft["Iteration"] = i
     ldfs.append(dft)
 
-#dfs = pd.concat(ldfs)
+dfs = pd.concat(ldfs)
 #dfs.columns = [
 #    'Step', 'Susceptible', 'Incubating', 'Asymptomatic', 'SymptQuarantined',
 #    'AsymptQuarantined','Severe', 'Recovered', 'Deceased', 'Isolated', 'Iteration'
