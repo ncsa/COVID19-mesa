@@ -343,13 +343,13 @@ def compute_contacts(model):
 def compute_stepno(model):
     return model.stepno
 
-def compute_commul_personal_value(model):
+def compute_commul_private_value(model):
     value = 0
 
     for agent in model.schedule.agents:
         value = value + agent.cummul_personal_value
 
-    return np.power(value, model.alpha_personal)
+    return np.power(value, model.alpha_personal)/model.num_agents
 
 def compute_commul_public_value(model):
     value = 0
@@ -453,7 +453,7 @@ class CovidModel(Model):
                 "Recovered": compute_recovered,
                 "Deceased": compute_deceased,
                 "Isolated": compute_locked,
-                "CummulPersValue": compute_commul_personal_value,
+                "CummulPrivValue": compute_commul_private_value,
                 "CummulPublValue": compute_commul_public_value,
                 "CummulTestCost": compute_commul_testing_cost
             },

@@ -137,11 +137,11 @@ chart = ChartModule([{"Label": "Susceptible",
                       {"Label": "Deceased",
                       "Color": "Black"},
                       {"Label": "Locked",
-                      "Color": "Gray"},
+                      "Color": "Gray"},chart
                       ],
                     data_collector_name='datacollector')
 
-chart_personal_value = ChartModule([{"Label": "CummulPersValue",
+chart_personal_value = ChartModule([{"Label": "CummulPrivValue",
                       "Color": "Black"}
                       ],
                     data_collector_name='datacollector'
