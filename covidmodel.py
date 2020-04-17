@@ -382,7 +382,7 @@ class CovidModel(Model):
         self.age_distribution = adist
         self.sex_distribution = sdist
         self.stage_value_dist = stvald
-        self.test_cost = 0
+        self.test_cost = tcost
         self.stepno = 0
         self.alpha_personal = aper
         self.alpha_public = apub

@@ -70,10 +70,10 @@ cr_value_distibution = {
     ValueGroup.PUBLIC: {
         Stage.SUSCEPTIBLE: 10.0,
         Stage.INCUBATING: 10.0,
-        Stage.SYMPDETECTED: -20.0,
+        Stage.SYMPDETECTED: -5.0,
         Stage.ASYMPTOMATIC: 10.0,
-        Stage.ASYMPDETECTED: -25,
-        Stage.SEVERE: -250.0,
+        Stage.ASYMPDETECTED: -1.0,
+        Stage.SEVERE: -30.0,
         Stage.RECOVERED: 5,
         Stage.DECEASED: -5
     }
