@@ -89,7 +89,7 @@ class CovidAgent(Agent):
         return (self.stage == Stage.INCUBATING) or (self.stage == Stage.ASYMPTOMATIC)
 
     def interactants(self):
-        return len(self.model.grid.get_cell_list_contents([self.pos]))
+        return len(self.model.grid.get_cell_list_contents([self.pos])) - 1
 
     def step(self):
         self.astep = self.astep + 1
@@ -368,10 +368,14 @@ def compute_commul_testing_cost(model):
 
     return tested * model.test_cost
 
+def compute_eff_reprod_number(model):
+    avg_contacts = compute_contacts(model)
+    return model.prob_contagion * avg_contacts * model.avg_incubation
+
 
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
-    def __init__(self, N, width, height, distancing, pasympt, amort, smort, avinc, avrec, psev, 
+    def __init__(self, N, width, height, dist, pasympt, amort, smort, avinc, avrec, psev, 
                  adist, sdist, plock, peffl, pcont, pdet, ddet, dimp, stvald, tcost, aper, apub):
         self.running = True
         self.num_agents = N
@@ -386,6 +390,7 @@ class CovidModel(Model):
         self.stepno = 0
         self.alpha_personal = aper
         self.alpha_public = apub
+        self.distancing = dist
 
         # Number of 15 minute dwelling times per day
         self.dwell_15_day = 96
@@ -434,7 +439,7 @@ class CovidModel(Model):
                 n = int(round(self.num_agents*r))
                 mort = self.age_mortality[ag]*self.sex_mortality[sg]
                 for k in range(n):
-                    a = CovidAgent(i, ag, sg, mort, distancing, self)
+                    a = CovidAgent(i, ag, sg, mort, self.distancing, self)
                     self.schedule.add(a)
                     x = self.random.randrange(self.grid.width)
                     y = self.random.randrange(self.grid.height)
@@ -455,7 +460,9 @@ class CovidModel(Model):
                 "Isolated": compute_locked,
                 "CummulPrivValue": compute_commul_private_value,
                 "CummulPublValue": compute_commul_public_value,
-                "CummulTestCost": compute_commul_testing_cost
+                "CummulTestCost": compute_commul_testing_cost,
+                "Contacts": compute_contacts,
+                "Rt": compute_eff_reprod_number
             },
             agent_reporters = {
                 "Position": "pos",
@@ -477,3 +484,4 @@ class CovidModel(Model):
         self.datacollector.collect(self)
         self.schedule.step()
         self.stepno = self.stepno + 1
+

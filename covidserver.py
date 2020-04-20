@@ -137,7 +137,7 @@ chart = ChartModule([{"Label": "Susceptible",
                       {"Label": "Deceased",
                       "Color": "Black"},
                       {"Label": "Locked",
-                      "Color": "Gray"},chart
+                      "Color": "Gray"},
                       ],
                     data_collector_name='datacollector')
 
@@ -156,11 +156,20 @@ chart_public_value = ChartModule([
                     data_collector_name='datacollector'
 )
 
+chart_epidemiology = ChartModule([
+                      {"Label": "Rt",
+                      "Color": "Blue"},
+                      #{"Label": "CummulTestCost",
+                      #"Color": "Green"}
+                      ],
+                    data_collector_name='datacollector'
+)
+
 model_params = {
     "N":255,
     "width":50,
     "height":50,
-    "distancing": False,
+    "dist": False,
     "amort": cr_age_mortality,
     "smort": cr_sex_mortality,
     "adist": cr_age_distribution,
@@ -182,7 +191,8 @@ model_params = {
 }
 
 server = ModularServer(CovidModel,
-                       [chart_personal_value, chart_public_value],
+                       [chart_epidemiology],
+                       #[chart_personal_value, chart_public_value],
                        "COVID-19 agent spread model - San Jose, Costa Rica",
                        model_params
                        )
