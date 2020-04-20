@@ -4,9 +4,10 @@
 # {nunezco,jake}@illinois.edu
 
 # A simple tunable model for COVID-19 response
-from mesa.batchrunner import BatchRunner
+from batchrunner2 import BatchRunnerMP
 from covidmodel import CovidModel
-from covidmodel import CovidModel
+from covidmodel import * #CovidModel
+
 from covidmodel import Stage
 from covidmodel import AgeGroup
 from covidmodel import SexGroup
@@ -75,20 +76,37 @@ model_params = {
 }
 
 num_iterations = 2
-num_steps = 10
+num_steps = 1
+processors = 2
 
-#batch_run = BatchRunner(
-#    CovidModel,
-#    fixed_parameters=model_params,
-#    iterations=num_iterations,
-#    max_steps=num_steps,
-#    model_reporters = {
-#        "Data collector": lambda m: m.datacollector
-#    }
-#)
+batch_run = BatchRunnerMP(
+    CovidModel,
+    nr_processes = processors,
+    fixed_parameters=model_params,
+    iterations=num_iterations,
+    max_steps=num_steps,
+    model_reporters={
+        "Step": compute_stepno,
+        "Susceptible": compute_susceptible,
+        "Incubating": compute_incubating,
+        "Asymptomatic":compute_asymptomatic,
+        "SymptQuarantined": compute_symptdetected,
+        "AsymptQuarantined": compute_asymptdetected,
+        "Severe": compute_severe,
+        "Recovered": compute_recovered,
+        "Deceased": compute_deceased,
+        "Isolated": compute_locked,
+        "CummulPersValue": compute_commul_personal_value,
+        "CummulPublValue": compute_commul_public_value,
+        "CummulTestCost": compute_commul_testing_cost
+    },
 
-#batch_run.run_all()
+)
 
+results = batch_run.run_all()
+print (results)
+
+'''
 # Unify all into a single dataframe for storage
 #run_data = batch_run.get_model_vars_dataframe()
 ldfs = []
@@ -127,3 +145,4 @@ dfs = pd.concat(ldfs)
 #    'AsymptQuarantined','Severe', 'Recovered', 'Deceased', 'Isolated', 'Iteration'
 #]
 dfs.to_csv("cu_il_05pc_testing.csv")
+'''

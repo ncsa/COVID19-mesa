@@ -4,7 +4,8 @@
 # {nunezco,jake}@illinois.edu
 
 # A simple tunable model for COVID-19 response
-from mesa.batchrunner import BatchRunner
+from batchrunner_local import BatchRunnerMP
+from multiprocessing import freeze_support
 from covidmodel import CovidModel
 from covidmodel import CovidModel
 from covidmodel import Stage
@@ -12,8 +13,8 @@ from covidmodel import AgeGroup
 from covidmodel import SexGroup
 from covidmodel import LockGroup
 from covidmodel import ValueGroup
+from covidmodel import *
 import pandas as pd
-
 
 # Specific model data
 
@@ -79,9 +80,8 @@ cr_value_distibution = {
 }
 
 model_params = {
-    "N":244,
-    "width":50,
-    "height":50,
+    "width":10,
+    "height":10,
     "distancing": False,
     "amort": cr_age_mortality,
     "smort": cr_sex_mortality,
@@ -103,21 +103,42 @@ model_params = {
     "apub": 1.0
 }
 
-num_iterations = 12
-num_steps = 12000
+var_params = {"N": range(25,50,25)}
 
-#batch_run = BatchRunner(
-#    CovidModel,
-#    fixed_parameters=model_params,
-#    iterations=num_iterations,
-#    max_steps=num_steps,
-#    model_reporters = {
-#        "Data collector": lambda m: m.datacollector
-#    }
-#)
+num_iterations = 2
+num_steps = 12
 
-#batch_run.run_all()
+if __name__ == "__main__":
+    freeze_support()
 
+    batch_run = BatchRunnerMP(
+        CovidModel,
+        nr_processes=2,
+        fixed_parameters=model_params,
+        variable_parameters=var_params,
+        iterations=num_iterations,
+        max_steps=num_steps,
+        model_reporters={
+                    "Step": compute_stepno,
+                    "Susceptible": compute_susceptible,
+                    "Incubating": compute_incubating,
+                    "Asymptomatic": compute_asymptomatic,
+                    "SymptQuarantined": compute_symptdetected,
+                    "AsymptQuarantined": compute_asymptdetected,
+                    "Severe": compute_severe,
+                    "Recovered": compute_recovered,
+                    "Deceased": compute_deceased,
+                    "Isolated": compute_locked,
+                    "CummulPersValue": compute_commul_personal_value,
+                    "CummulPublValue": compute_commul_public_value,
+                    "CummulTestCost": compute_commul_testing_cost
+                },)
+
+
+    result = batch_run.run_all()
+    print (result)
+
+'''
 # Unify all into a single dataframe for storage
 #run_data = batch_run.get_model_vars_dataframe()
 ldfs = []
@@ -156,3 +177,4 @@ for i in range(num_iterations):
 
 dfs = pd.concat(ldfs)
 dfs.to_csv("sj_crc_no_measures.csv")
+'''

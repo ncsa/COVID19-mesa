@@ -7,7 +7,7 @@
 from mesa import Agent, Model
 from mesa.time import RandomActivation
 from mesa.space import MultiGrid
-from mesa.datacollection import DataCollector
+from datacollection import DataCollector
 from scipy.stats import poisson, bernoulli
 from enum import Enum
 import numpy as np
