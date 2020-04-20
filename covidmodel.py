@@ -76,7 +76,7 @@ class CovidAgent(Agent):
         self.curr_recovery = 0
         self.curr_asymptomatic = 0
         self.distancing = distancing
-        self.locked = bool(bernoulli(self.model.prob_lock).rvs())
+        self.isolated = bool(bernoulli(self.model.prob_lock).rvs())
         self.astep = 0
         self.count_value_tested = False
         self.cummul_personal_value = 0
@@ -109,10 +109,16 @@ class CovidAgent(Agent):
             cellmates = self.model.grid.get_cell_list_contents([self.pos])
             infected_contact = False
 
+            # Isolated people should only be contagious if they do not follow proper
+            # shelter-at-home measures
             for c in cellmates:
                     if c.is_contagious():
-                        infected_contact = True
-                        break        
+                        if self.isolated and bernoulli.rvs(1 - self.model.prob_lock_effective):
+                            infected_contact = True
+                            break
+                        else:
+                            infected_contact = True
+                            break        
             
             # Value is computed before infected stage happens
             self.cummul_personal_value = self.cummul_personal_value + \
@@ -121,7 +127,7 @@ class CovidAgent(Agent):
                 ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SUSCEPTIBLE])
 
             if infected_contact:
-                if self.locked:
+                if self.isolated:
                     if bernoulli.rvs(self.model.prob_contagion) and \
                         not(bernoulli.rvs(self.model.prob_lock_effective)):
                         self.stage = Stage.INCUBATING
@@ -132,7 +138,7 @@ class CovidAgent(Agent):
             # Second opportunity to get infected: residual droplets in places
             # TODO
 
-            if not(self.locked):
+            if not(self.isolated):
                 self.move()
         elif self.stage == Stage.INCUBATING:
             # Susceptible patients only move and spread the disease.
@@ -159,7 +165,7 @@ class CovidAgent(Agent):
             else:
                 if self.curr_incubation < self.incubation_time:
                     self.curr_incubation = self.curr_incubation + 1
-                    if not(self.locked):
+                    if not(self.isolated):
                         self.move()
                 else:
                     if bernoulli.rvs(self.model.prob_asymptomatic):
@@ -182,14 +188,14 @@ class CovidAgent(Agent):
                 self.count_value_tested = True
             else:
                 if self.curr_recovery < self.recovery_time:
-                    if not(self.locked):
+                    if not(self.isolated):
                         self.move()
                 else:
                     self.stage = Stage.RECOVERED
         elif self.stage == Stage.SYMPDETECTED:
             # Once a symptomatic patient has been detected, it does not move and starts
             # the road to severity, recovery or death
-            self.locked = True
+            self.isolated = True
             
             self.cummul_personal_value = self.cummul_personal_value + \
                 self.model.stage_value_dist[ValueGroup.PERSONAL][Stage.SYMPDETECTED]
@@ -208,7 +214,7 @@ class CovidAgent(Agent):
             else:
                 self.stage = Stage.RECOVERED
         elif self.stage == Stage.ASYMPDETECTED:
-            self.locked = True
+            self.isolated = True
 
             self.cummul_personal_value = self.cummul_personal_value + \
                 self.model.stage_value_dist[ValueGroup.PERSONAL][Stage.ASYMPDETECTED]
@@ -245,7 +251,7 @@ class CovidAgent(Agent):
 
             # A recovered agent can now move freely within the grid again
             self.curr_recovery = 0
-            if not(self.locked):
+            if not(self.isolated):
                 self.move()
         elif self.stage == Stage.DECEASED:
             self.cummul_personal_value = self.cummul_personal_value + \
@@ -323,11 +329,11 @@ def count_type(model, stage):
 
     return count
 
-def compute_locked(model):
+def compute_isolated(model):
     count = 0
 
     for agent in model.schedule.agents:
-        if agent.locked:
+        if agent.isolated:
             count = count + 1
 
     return count/model.num_agents
@@ -376,7 +382,7 @@ def compute_eff_reprod_number(model):
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
     def __init__(self, N, width, height, dist, pasympt, amort, smort, avinc, avrec, psev, 
-                 adist, sdist, plock, peffl, pcont, pdet, ddet, dimp, stvald, tcost, aper, apub):
+                 adist, sdist, plock, peffl, pcont, pdet, ddet, dimp, stvald, tcost, aper, apub, dummy=0):
         self.running = True
         self.num_agents = N
         self.grid = MultiGrid(width, height, True)
@@ -457,7 +463,7 @@ class CovidModel(Model):
                 "Severe": compute_severe,
                 "Recovered": compute_recovered,
                 "Deceased": compute_deceased,
-                "Isolated": compute_locked,
+                "Isolated": compute_isolated,
                 "CummulPrivValue": compute_commul_private_value,
                 "CummulPublValue": compute_commul_public_value,
                 "CummulTestCost": compute_commul_testing_cost,
@@ -472,10 +478,10 @@ class CovidModel(Model):
             }
         )
 
-        # Final step: infect a random agent that is not locked
+        # Final step: infect a random agent that is not isolated
         first_infected = self.random.choice(self.schedule.agents)
         
-        while first_infected.locked:
+        while first_infected.isolated:
             first_infected = self.random.choice(self.schedule.agents)
         
         first_infected.stage = Stage.INCUBATING

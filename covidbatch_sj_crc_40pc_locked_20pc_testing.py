@@ -80,9 +80,10 @@ cr_value_distibution = {
 }
 
 model_params = {
-    "width":10,
-    "height":10,
-    "distancing": False,
+    "N": 250,
+    "width":50,
+    "height":50,
+    "dist": False,
     "amort": cr_age_mortality,
     "smort": cr_sex_mortality,
     "adist": cr_age_distribution,
@@ -95,7 +96,7 @@ model_params = {
     "plock": 0.4,
     "peffl": 1.0,
     "psev": 0.10,
-    "ddet": 35,
+    "ddet": 20,
     "dimp": 7,
     "stvald": cr_value_distibution,
     "tcost": 200,
@@ -103,17 +104,17 @@ model_params = {
     "apub": 1.0
 }
 
-var_params = {"N": range(25,50,25)}
+var_params = {"dummy": range(25,50,25)}
 
-num_iterations = 2
-num_steps = 12
+num_iterations = 12
+num_steps = 14000
 
 if __name__ == "__main__":
     freeze_support()
 
     batch_run = BatchRunnerMP(
         CovidModel,
-        nr_processes=2,
+        nr_processes=3,
         fixed_parameters=model_params,
         variable_parameters=var_params,
         iterations=num_iterations,
@@ -128,54 +129,23 @@ if __name__ == "__main__":
                     "Severe": compute_severe,
                     "Recovered": compute_recovered,
                     "Deceased": compute_deceased,
-                    "Isolated": compute_locked,
-                    "CummulPersValue": compute_commul_personal_value,
+                    "CummulPrivValue": compute_commul_private_value,
                     "CummulPublValue": compute_commul_public_value,
-                    "CummulTestCost": compute_commul_testing_cost
+                    "CummulTestCost": compute_commul_testing_cost,
+                    "Rt": compute_eff_reprod_number
                 },)
 
 
-    result = batch_run.run_all()
-    print (result)
+    cm_runs = batch_run.run_all()
 
-'''
-# Unify all into a single dataframe for storage
-#run_data = batch_run.get_model_vars_dataframe()
-ldfs = []
+    ldfs = []
+    i = 0
 
-for i in range(num_iterations):
-    print(f"Iteration {i}")
-    cm = CovidModel(model_params["N"],
-                model_params["width"],
-                model_params["height"],
-                model_params["distancing"],
-                model_params["pasympt"],
-                model_params["amort"],
-                model_params["smort"],
-                model_params["avinc"],
-                model_params["avrec"],
-                model_params["psev"],
-                model_params["adist"],
-                model_params["sdist"],
-                model_params["plock"],
-                model_params["peffl"],
-                model_params["pcont"],
-                model_params["pdet"],
-                model_params["ddet"],
-                model_params["dimp"],
-                model_params["stvald"],
-                model_params["tcost"],
-                model_params["aper"],
-                model_params["apub"])
+    for cm in cm_runs.values():
+        cm["Iteration"] = i
+        ldfs.append(cm)
+        i = i + 1
 
+    dfs = pd.concat(ldfs)
+    dfs.to_csv("sj_crc_40l_20t_test.csv")
     
-    for j in range(num_steps):
-        cm.step()
-
-    dft = cm.datacollector.get_model_vars_dataframe()
-    dft["Iteration"] = i
-    ldfs.append(dft)
-
-dfs = pd.concat(ldfs)
-dfs.to_csv("sj_crc_40pc_locked_20pc_testing.csv")
-'''
