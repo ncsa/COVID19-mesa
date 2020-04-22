@@ -481,7 +481,7 @@ def compute_commul_private_value(model):
     for agent in model.schedule.agents:
         value = value + agent.cummul_private_value
 
-    return np.power(value, model.alpha_private)/model.num_agents
+    return np.sign(value)*np.power(np.abs(value), model.alpha_private)/model.num_agents
 
 def compute_commul_public_value(model):
     value = 0
@@ -489,7 +489,7 @@ def compute_commul_public_value(model):
     for agent in model.schedule.agents:
         value = value + agent.cummul_public_value
 
-    return np.power(value, model.alpha_public)
+    return np.sign(value)*np.power(np.abs(value), model.alpha_public)/model.num_agents
 
 def compute_commul_testing_cost(model):
     tested = 0
