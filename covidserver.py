@@ -118,7 +118,7 @@ def agent_portrayal(agent):
 
     return portrayal
 
-grid = CanvasGrid(agent_portrayal, 50, 50, 400, 400)
+grid = CanvasGrid(agent_portrayal, 30, 30, 400, 400)
 
 chart = ChartModule([{"Label": "Susceptible",
                       "Color": "Blue"},
@@ -136,7 +136,7 @@ chart = ChartModule([{"Label": "Susceptible",
                       "Color": "Magenta"},
                       {"Label": "Deceased",
                       "Color": "Black"},
-                      {"Label": "Locked",
+                      {"Label": "Isolated",
                       "Color": "Gray"},
                       ],
                     data_collector_name='datacollector')
@@ -165,33 +165,46 @@ chart_epidemiology = ChartModule([
                     data_collector_name='datacollector'
 )
 
+chart_employment = ChartModule([
+                      {"Label": "Employed",
+                      "Color": "Blue"},
+                      {"Label": "Unemployed",
+                      "Color": "Red"}
+                      ],
+                    data_collector_name='datacollector'
+)
+
 model_params = {
-    "N":255,
-    "width":50,
-    "height":50,
-    "dist": False,
-    "amort": cr_age_mortality,
-    "smort": cr_sex_mortality,
-    "adist": cr_age_distribution,
-    "sdist": cr_sex_distribution,
-    "avinc": UserSettableParameter("slider", "Average incubation time", 5, 2, 24, 1),
-    "avrec": UserSettableParameter("slider", "Average recovery time", 15, 15, 30, 1),
-    "pasympt": UserSettableParameter("slider", "Proportion of asymptomatics", 0.2, 0.0, 1.0, 0.05),
-    "pcont": UserSettableParameter("slider", "Probability of contagion", 0.04, 0.0, 0.15, 0.01),
-    "pdet": UserSettableParameter("slider", "Probability of detection", 0.2, 0.0, 1.0, 0.05),
-    "plock": UserSettableParameter("slider", "Proportion in shelter-at-home", 0.0, 0.0, 1.0, 0.05),
-    "peffl": UserSettableParameter("slider", "Shelter-at-home effectiveness", 0.0, 0.0, 1.0, 0.05),
-    "psev": UserSettableParameter("slider", "Proportion of severe cases", 0.13, 0.0, 0.20, 0.01),
-    "ddet": UserSettableParameter("slider", "Days before massive testing", 10, 1, 60, 1),
-    "dimp": UserSettableParameter("slider", "Massive testing duration", 8, 1, 60, 1),
-    "stvald": cr_value_distibution,
-    "tcost": 300,
-    "aper": UserSettableParameter("slider", "Personal value amplifier", 1.0, 0.0, 2.0, 0.1),
-    "apub": UserSettableParameter("slider", "Public value amplifier", 1.0, 0.0, 2.0, 0.1),
+    "num_agents": 200,
+    "width": 30,
+    "height": 30,
+    "age_mortality": cr_age_mortality,
+    "sex_mortality": cr_sex_mortality,
+    "age_distribution": cr_age_distribution,
+    "sex_distribution": cr_sex_distribution,
+    "avg_incubation_time": UserSettableParameter("slider", "Average incubation time", 5, 2, 24, 1),
+    "avg_recovery_time": UserSettableParameter("slider", "Average recovery time", 15, 15, 30, 1),
+    "proportion_asymptomatic": UserSettableParameter("slider", "Proportion of asymptomatics", 0.2, 0.0, 1.0, 0.05),
+    "proportion_severe": UserSettableParameter("slider", "Proportion of severe cases", 0.13, 0.0, 0.20, 0.01),
+    "prob_contagion": UserSettableParameter("slider", "Probability of contagion", 0.03, 0.0, 0.1, 0.005),
+    "proportion_isolated": UserSettableParameter("slider", "Proportion isolated", 0.0, 0.0, 1.0, 0.05),
+    "day_start_isolation": UserSettableParameter("slider", "Isolation policy start (days) ", 365, 1, 365, 2),
+    "days_isolation_lasts": UserSettableParameter("slider", "Duration of isolation policy ", 365, 1, 365, 2),
+    "prob_isolation_effective": UserSettableParameter("slider", "Isolation effectiveness", 1.0, 0.0, 1.0, 0.05),
+    "social_distance": UserSettableParameter("slider", "Social distance (meters)", 1.8, 0.0, 2.5, 0.1),
+    "day_distancing_start": UserSettableParameter("slider", "Social distancing policy start (days) ", 365, 1, 365, 2),
+    "days_distancing_lasts": UserSettableParameter("slider", "Duration of social distancing policy ", 365, 1, 365, 5),
+    "proportion_detected": UserSettableParameter("slider", "Proportion of detected cases", 0.1, 0.0, 1.0, 0.05),
+    "day_testing_start": UserSettableParameter("slider", "Generalized testing policy start (days) ", 365, 1, 365, 2),
+    "days_testing_lasts": UserSettableParameter("slider", "Duration of generalized testing policy ", 365, 1, 365, 2),
+    "stage_value_matrix": cr_value_distibution,
+    "test_cost": 200,
+    "alpha_private": UserSettableParameter("slider", "Personal value amplifier", 1.0, 0.0, 2.0, 0.1),
+    "alpha_public": UserSettableParameter("slider", "Public value amplifier", 1.0, 0.0, 2.0, 0.1),
 }
 
 server = ModularServer(CovidModel,
-                       [chart_epidemiology],
+                       [grid, chart_employment],
                        #[chart_personal_value, chart_public_value],
                        "COVID-19 agent spread model - San Jose, Costa Rica",
                        model_params
