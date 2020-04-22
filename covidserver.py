@@ -182,21 +182,23 @@ model_params = {
     "sex_mortality": cr_sex_mortality,
     "age_distribution": cr_age_distribution,
     "sex_distribution": cr_sex_distribution,
+    "prop_initial_infected": UserSettableParameter("slider", "Proportion of initially infected", 0.001, 0.0, 0.1
+    , 0.001),
     "avg_incubation_time": UserSettableParameter("slider", "Average incubation time", 5, 2, 24, 1),
     "avg_recovery_time": UserSettableParameter("slider", "Average recovery time", 15, 15, 30, 1),
     "proportion_asymptomatic": UserSettableParameter("slider", "Proportion of asymptomatics", 0.2, 0.0, 1.0, 0.05),
     "proportion_severe": UserSettableParameter("slider", "Proportion of severe cases", 0.13, 0.0, 0.20, 0.01),
     "prob_contagion": UserSettableParameter("slider", "Probability of contagion", 0.03, 0.0, 0.1, 0.005),
     "proportion_isolated": UserSettableParameter("slider", "Proportion isolated", 0.0, 0.0, 1.0, 0.05),
-    "day_start_isolation": UserSettableParameter("slider", "Isolation policy start (days) ", 365, 1, 365, 2),
-    "days_isolation_lasts": UserSettableParameter("slider", "Duration of isolation policy ", 365, 1, 365, 2),
+    "day_start_isolation": UserSettableParameter("slider", "Isolation policy start (days) ", 365, 0, 365, 2),
+    "days_isolation_lasts": UserSettableParameter("slider", "Duration of isolation policy ", 365, 0, 365, 2),
     "prob_isolation_effective": UserSettableParameter("slider", "Isolation effectiveness", 1.0, 0.0, 1.0, 0.05),
     "social_distance": UserSettableParameter("slider", "Social distance (meters)", 1.8, 0.0, 2.5, 0.1),
-    "day_distancing_start": UserSettableParameter("slider", "Social distancing policy start (days) ", 365, 1, 365, 2),
-    "days_distancing_lasts": UserSettableParameter("slider", "Duration of social distancing policy ", 365, 1, 365, 5),
+    "day_distancing_start": UserSettableParameter("slider", "Social distancing policy start (days) ", 365, 0, 365, 2),
+    "days_distancing_lasts": UserSettableParameter("slider", "Duration of social distancing policy ", 365, 0, 365, 5),
     "proportion_detected": UserSettableParameter("slider", "Proportion of detected cases", 0.1, 0.0, 1.0, 0.05),
-    "day_testing_start": UserSettableParameter("slider", "Generalized testing policy start (days) ", 365, 1, 365, 2),
-    "days_testing_lasts": UserSettableParameter("slider", "Duration of generalized testing policy ", 365, 1, 365, 2),
+    "day_testing_start": UserSettableParameter("slider", "Generalized testing policy start (days) ", 365, 0, 365, 2),
+    "days_testing_lasts": UserSettableParameter("slider", "Duration of generalized testing policy ", 365, 0, 365, 2),
     "stage_value_matrix": cr_value_distibution,
     "test_cost": 200,
     "alpha_private": UserSettableParameter("slider", "Personal value amplifier", 1.0, 0.0, 2.0, 0.1),
@@ -204,9 +206,9 @@ model_params = {
 }
 
 server = ModularServer(CovidModel,
-                       [grid, chart_employment],
+                       [grid, chart_epidemiology],
                        #[chart_personal_value, chart_public_value],
-                       "COVID-19 agent spread model - San Jose, Costa Rica",
+                       "COVID-19 epidemiological and economic model",
                        model_params
                        )
 

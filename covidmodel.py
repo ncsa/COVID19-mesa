@@ -521,7 +521,7 @@ def compute_eff_reprod_number(model):
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
     def __init__(self, num_agents, width, height, age_mortality, sex_mortality, age_distribution, sex_distribution, 
-                 proportion_asymptomatic, proportion_severe, avg_incubation_time, avg_recovery_time,
+                 prop_initial_infected, proportion_asymptomatic, proportion_severe, avg_incubation_time, avg_recovery_time,
                  prob_contagion, proportion_isolated, day_start_isolation, days_isolation_lasts, prob_isolation_effective,
                  social_distance, day_distancing_start, days_distancing_lasts, proportion_detected, day_testing_start, days_testing_lasts,
                  stage_value_matrix, test_cost, alpha_private, alpha_public, dummy=0):
@@ -628,12 +628,14 @@ class CovidModel(Model):
         )
 
         # Final step: infect a random agent that is not isolated
-        first_infected = self.random.choice(self.schedule.agents)
+        num_init = int(self.num_agents * prop_initial_infected)
         
-        while first_infected.isolated:
-            first_infected = self.random.choice(self.schedule.agents)
-        
-        first_infected.stage = Stage.INCUBATING
+        for a in self.schedule.agents:
+            if num_init < 0:
+                break
+            else:
+                a.stage = Stage.INCUBATING
+                num_init = num_init - 1
    
     def step(self):
         self.datacollector.collect(self)
