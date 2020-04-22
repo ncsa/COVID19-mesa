@@ -13,7 +13,6 @@ from covidmodel import CovidModel
 from covidmodel import Stage
 from covidmodel import AgeGroup
 from covidmodel import SexGroup
-from covidmodel import LockGroup
 from covidmodel import ValueGroup
 
 # Specific model data
@@ -57,9 +56,9 @@ cr_sex_distribution = {
 
 # Value distribution per stage per interaction (micro vs macroeconomics)
 cr_value_distibution = {
-    ValueGroup.PERSONAL: {
+    ValueGroup.PRIVATE: {
         Stage.SUSCEPTIBLE: 1.0,
-        Stage.INCUBATING: 1.0,
+        Stage.EXPOSED: 1.0,
         Stage.SYMPDETECTED: -0.2,
         Stage.ASYMPTOMATIC: 1.0,
         Stage.ASYMPDETECTED: -0.2,
@@ -69,7 +68,7 @@ cr_value_distibution = {
     },
     ValueGroup.PUBLIC: {
         Stage.SUSCEPTIBLE: 10.0,
-        Stage.INCUBATING: 10.0,
+        Stage.EXPOSED: 10.0,
         Stage.SYMPDETECTED: -5.0,
         Stage.ASYMPTOMATIC: 10.0,
         Stage.ASYMPDETECTED: -1.0,
@@ -88,7 +87,7 @@ def agent_portrayal(agent):
     if agent.stage == Stage.SUSCEPTIBLE:
         portrayal["Color"] = "blue"
         portrayal["Layer"] = 0
-    elif agent.stage == Stage.INCUBATING:
+    elif agent.stage == Stage.EXPOSED:
         portrayal["Color"] = "red"
         portrayal["Layer"] = 0
     elif agent.stage == Stage.ASYMPTOMATIC:

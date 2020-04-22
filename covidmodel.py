@@ -16,7 +16,7 @@ import sys
 
 class Stage(Enum):
     SUSCEPTIBLE = 1
-    INCUBATING = 2
+    EXPOSED = 2
     ASYMPTOMATIC = 3
     SYMPDETECTED = 4
     ASYMPDETECTED = 5
@@ -42,13 +42,8 @@ class SexGroup(Enum):
     FEMALE = 2
 
 
-class LockGroup(Enum):
-    LOCKED = 1
-    MOBILE = 2
-
-
 class ValueGroup(Enum):
-    PERSONAL = 1
+    PRIVATE = 1
     PUBLIC = 2 
 
 
@@ -94,7 +89,7 @@ class CovidAgent(Agent):
         print(f'{self.unique_id} {self.age_group} {self.sex_group} is alive')
 
     def is_contagious(self):
-        return (self.stage == Stage.INCUBATING) or (self.stage == Stage.ASYMPTOMATIC)
+        return (self.stage == Stage.EXPOSED) or (self.stage == Stage.ASYMPTOMATIC)
 
     def dmult(self):
         # In this function, we simulate aerosol effects exhibited by droplets due to
@@ -161,7 +156,7 @@ class CovidAgent(Agent):
 
         # Self isolation is tricker. We only isolate susceptibles, incubating and asymptomatics
         if not(self.in_isolation) and (self.astep >= self.model.isolation_start):
-            if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.INCUBATING) or \
+            if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
                 (self.stage == Stage.ASYMPTOMATIC):
                 if bool(bernoulli.rvs(self.model.isolation_rate)):
                     self.isolated = True
@@ -171,7 +166,7 @@ class CovidAgent(Agent):
                 
         # Using a similar logic, we remove isolation for all relevant agents still locked
         if self.in_isolation and (self.astep >= self.model.isolation_end):
-            if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.INCUBATING) or \
+            if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
                 (self.stage == Stage.ASYMPTOMATIC):
                 self.isolated = False
                 self.in_isolation = False
@@ -215,7 +210,7 @@ class CovidAgent(Agent):
 
 
                 self.cummul_private_value = self.cummul_private_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PERSONAL][Stage.SUSCEPTIBLE])*isolation_private_divider
+                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.SUSCEPTIBLE])*isolation_private_divider
                 self.cummul_public_value = self.cummul_public_value + \
                     ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SUSCEPTIBLE])*isolation_public_divider
             else:
@@ -226,17 +221,17 @@ class CovidAgent(Agent):
                 if self.isolated:
                     if bernoulli.rvs(self.prob_contagion) and \
                         not(bernoulli.rvs(self.model.prob_isolation_effective)):
-                        self.stage = Stage.INCUBATING
+                        self.stage = Stage.EXPOSED
                 else:
                     if bernoulli.rvs(self.prob_contagion):
-                        self.stage = Stage.INCUBATING
+                        self.stage = Stage.EXPOSED
 
             # Second opportunity to get infected: residual droplets in places
             # TODO
 
             if not(self.isolated):
                 self.move()
-        elif self.stage == Stage.INCUBATING:
+        elif self.stage == Stage.EXPOSED:
             # Susceptible patients only move and spread the disease.
             # If the incubation time is reached, it is immediately 
             # considered as detected since it is severe enough.
@@ -253,12 +248,12 @@ class CovidAgent(Agent):
                     isolation_public_divider = 0.01
                 
                 self.cummul_private_value = self.cummul_private_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PERSONAL][Stage.INCUBATING])*isolation_private_divider
+                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.EXPOSED])*isolation_private_divider
                 self.cummul_public_value = self.cummul_public_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.INCUBATING])*isolation_public_divider
+                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.EXPOSED])*isolation_public_divider
             else:
                 self.cummul_private_value = self.cummul_private_value + 0
-                self.cummul_public_value = self.cummul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.INCUBATING]
+                self.cummul_public_value = self.cummul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.EXPOSED]
 
             # If testing is available and the date is reached, test
             if not(self.count_value_tested) and bernoulli.rvs(self.test_chance):
@@ -292,7 +287,7 @@ class CovidAgent(Agent):
                     isolation_public_divider = 0.01
                 
                     self.cummul_private_value = self.cummul_private_value + \
-                        ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PERSONAL][Stage.ASYMPTOMATIC])*isolation_private_divider
+                        ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.ASYMPTOMATIC])*isolation_private_divider
                     self.cummul_public_value = self.cummul_public_value + \
                         ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPTOMATIC])*isolation_public_divider
                 else:
@@ -314,7 +309,7 @@ class CovidAgent(Agent):
             self.isolated = True
             
             self.cummul_private_value = self.cummul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PERSONAL][Stage.SYMPDETECTED]
+                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.SYMPDETECTED]
             self.cummul_public_value = self.cummul_public_value + \
                 self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SYMPDETECTED]
 
@@ -333,7 +328,7 @@ class CovidAgent(Agent):
             self.isolated = True
 
             self.cummul_private_value = self.cummul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PERSONAL][Stage.ASYMPDETECTED]
+                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.ASYMPDETECTED]
             self.cummul_public_value = self.cummul_public_value + \
                 self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPDETECTED]
 
@@ -344,7 +339,7 @@ class CovidAgent(Agent):
                 self.stage = Stage.RECOVERED
         elif self.stage == Stage.SEVERE:            
             self.cummul_private_value = self.cummul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PERSONAL][Stage.SEVERE]
+                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.SEVERE]
             self.cummul_public_value = self.cummul_public_value + \
                 self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SEVERE]
 
@@ -369,7 +364,7 @@ class CovidAgent(Agent):
                     isolation_public_divider = 0.01
 
                 self.cummul_private_value = self.cummul_private_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PERSONAL][Stage.RECOVERED])*isolation_private_divider
+                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.RECOVERED])*isolation_private_divider
                 self.cummul_public_value = self.cummul_public_value + \
                     ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.RECOVERED])*isolation_public_divider
             else:
@@ -383,7 +378,7 @@ class CovidAgent(Agent):
             self.move()
         elif self.stage == Stage.DECEASED:
             self.cummul_private_value = self.cummul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PERSONAL][Stage.DECEASED]
+                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.DECEASED]
             self.cummul_public_value = self.cummul_public_value + \
                 self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.DECEASED]
         else:
@@ -413,7 +408,7 @@ def compute_susceptible(model):
     return count_type(model, Stage.SUSCEPTIBLE)/model.num_agents
 
 def compute_incubating(model):
-    return count_type(model, Stage.INCUBATING)/model.num_agents
+    return count_type(model, Stage.EXPOSED)/model.num_agents
 
 def compute_asymptomatic(model):
     return count_type(model, Stage.ASYMPTOMATIC)/model.num_agents
@@ -509,7 +504,7 @@ def compute_eff_reprod_number(model):
     prob_contagion = 0.0
 
     for agent in model.schedule.agents:
-        if (agent.stage == Stage.SUSCEPTIBLE) or (agent.stage == Stage.INCUBATING) or \
+        if (agent.stage == Stage.SUSCEPTIBLE) or (agent.stage == Stage.EXPOSED) or \
             (agent.stage == Stage.ASYMPTOMATIC):
             prob_contagion = agent.prob_contagion
             break
@@ -634,7 +629,7 @@ class CovidModel(Model):
             if num_init < 0:
                 break
             else:
-                a.stage = Stage.INCUBATING
+                a.stage = Stage.EXPOSED
                 num_init = num_init - 1
    
     def step(self):
