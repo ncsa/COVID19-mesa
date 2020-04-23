@@ -16,11 +16,11 @@ out_file = sys.argv[2]
 plt.figure(figsize = (11.7, 8.27))
 df0 = pd.read_csv(in_file)
 df0["Step"] = df0["Step"]/96
-df = df0.drop(["Unnamed: 0", "CummulPersValue", "CummulPublValue", "CummulTestCost"], axis=1)
+df = df0.drop(["Unnamed: 0", "CumulPrivValue", "CumulPublValue", "CumulTestCost", "Rt", "Employed", "Unemployed", "Tested", "Traced"], axis=1)
 df_melt = df.melt(id_vars=['Step','Iteration'])
 
 ax = sns.lineplot(x="Step", y="value", hue="variable", data=df_melt, ci=None)
-ax.legend(title="SJ/CRC no measures", fontsize='small')
+ax.legend(title="Model", fontsize='small')
 ax.set_xlabel("Days")
 ax.set_ylabel("Fraction of population")
 plt.savefig(out_file, dpi=300)

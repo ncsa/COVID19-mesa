@@ -68,7 +68,7 @@
                 "proportion_isolated": 0.45,
                 "day_start_isolation": 365,
                 "days_isolation_lasts": 365,
-                "prob_isolation_effective": 1.0
+                "prob_isolation_effective": 0.8
             },
             "distancing": {
                 "social_distance": 1.5,
@@ -91,7 +91,7 @@
             "avg_recovery_time": 15,
             "proportion_asymptomatic": 0.25,                                                             
             "proportion_severe": 0.1,
-            "prob_contagion": 0.03
+            "prob_contagion": 0.019
         }
     },
     "ensemble": {
@@ -99,6 +99,6 @@
         "runs": 10
     },
     "output": {
-        "prefix": "cu-current-no-testing"
+        "prefix": "outcomes/cu-current-no-testing"
     }
 }

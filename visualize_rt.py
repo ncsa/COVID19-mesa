@@ -21,7 +21,7 @@ df0["Step"] = df0["Step"]/96
 df = df0[["Step", "Iteration", "Rt"]]
 df_melt = df.melt(id_vars=['Step','Iteration'])
 axv = sns.lineplot(x="Step", y="value", hue="variable", data=df_melt, ci=None)
-axv.legend(title="SJ/CRC no measures", fontsize='small')
+axv.legend(title="Model", fontsize='small')
 axv.set_xlabel("Days")
 axv.set_ylabel("Private value")
 plt.axhline(y=0, linestyle="--", color='black')

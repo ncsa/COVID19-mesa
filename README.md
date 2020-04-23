@@ -37,8 +37,9 @@ The following individuals have contributed directly and indirectly to rapid deve
 
 * [Kucharski, A. J. et al. (2020)](https://www.nature.com/articles/s41591-020-0822-7?fbclid=IwAR0tA6W-KvBU3Gy7HqzKGSSZThZM63VgXNCg5vZPKtUmzSWxCUcU71ijAao). Early dynamics of transmission and control of COVID-19: a mathematical modelling study. The Lancet Infectious Diseases.
 
-> Person to person contagion: R_0 of 3.58
+> Person to person contagion: R_0 of 5.7
 
+* [Sanche, S.et al. (2020)](https://wwwnc.cdc.gov/eid/article/26/7/20-0282_article?deliveryName=USCDC_333-DM25287). "High Contagiousness and Rapid Spread of Severe Acute Respiratory Syndrome Coronavirus 2." Emerging Infectious Diseases 26, no. 7 (2020).
 * [Velavan, T. P., & Meyer, C. G. (2020)](https://www.researchgate.net/profile/Thirumalaisamy_Velavan3/publication/339232865_The_Covid-19_epidemic/links/5e4c5bbc92851c7f7f456773/The-Covid-19-epidemic.pdf). The COVID-19 epidemic. Trop Med Int Health, 25(3), 278-280.
 * [Wang, Y. et al (2020)](https://onlinelibrary.wiley.com/doi/pdf/10.1002/jmv.25748?casa_token=ED00nZrVSF0AAAAA:gSaam7oJuDOAM1suMJI8AvWJlvgsjuqm5i86hkSfsmlzWkEw5JPbhx4ytO_SrJXHRJJfTHscmFYeQG-C). Unique epidemiological and clinical features of the emerging 2019 novel coronavirus pneumonia (COVID‐19) implicate special control measures. Journal of medical virology.
 * [Mizumoto, K., & Chowell, G. (2020)]. Transmission potential of the novel coronavirus (COVID-19) onboard the Diamond Princess Cruises Ship, 2020. Infectious Disease Modelling.

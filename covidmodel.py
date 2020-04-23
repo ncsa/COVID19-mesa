@@ -683,7 +683,6 @@ class CovidModel(Model):
                 "CumulPrivValue": compute_cumul_private_value,
                 "CumulPublValue": compute_cumul_public_value,
                 "CumulTestCost": compute_cumul_testing_cost,
-                "Contacts": compute_contacts,
                 "Rt": compute_eff_reprod_number,
                 "Employed": compute_employed,
                 "Unemployed": compute_unemployed,
