@@ -7,14 +7,44 @@
 
 A simple simulation to explore contagion by COVID-19 via agent-based modeling (ABM), as well as potential effectiveness of various measures.
 
-**This software is under development rapidly to attempt to respond to the current situation, and should be used bearing this in mind.**
+**This software is under development rapidly to attempt to respond to the current situation, and should be used bearing this in mind. Any scenarios for specific communities should be considered provisional at all times and revised constantly against the most recent and best curated field evidence.**
 
+## Model features
+
+* JSON configurable
+* Single-run visual dashboard for a selection of variables of interest
+* Batch execution of models with graphic reporting and multiprocessing
+* Models
+  * Demographic (age/sex distribution/mortality)
+  * Epidemiological (extension of SEIR), including R(t)
+  * Policy measures including
+    * Shelter at home
+    * Social distancing based on latest findings (8-feet aerosol spread)
+    * Testing based on random resampling of not-infected parts of the population
+    * Testing based on contact tracing
+  * Simple micro/macro input-output matrix economic response *[experimental]*
+  * Simple pandemic-driven unemployment trends
+
+## Model callibration protocol
+
+Model callibration requires the best possible clinical data estimates for two parameters: the average incubation time and proportion of asyomptomatic patients:
+
+* For the average incubation time, hospital triaging of COVID-19 cases can provide information leading to estimates. Incubation time is likely to be blurred by multiple confusion variables captured in our model as a Poisson distribution. Despite its stochasticity, the model supposes that large population sizes group tightly towards a mean value. This assumption may need to be revised retrospectively later.
+* For the proportion of asymptomatics, contact tracing and structured testing can provide specific local information.
+
+### Suggested callibration steps
+
+1. Adjust grid size based on fixed population density until R0 matches the best known value for the area in the first days of the model (steps = 96) and > 30 runs. Population density in the model loosely includes average mobility patterns, and cell sizes reflect the distance traversed every 15 minutes. Also -but not recommended- the probability of contagion may be used to callibrate. This may imply unknown population conditions and should be used only to test hypotheses about individual variations that manifest in the ability of COVID-19 to spread.
+2. Execute the model to the point where the number of symptomatic agents corresponds to one representative agent. For example, with an ABM of 1000 agents and a population of 100k individuals, the critical infected agent-to-population ratio is 1:100. Use the point in time rounded to the nearest integer day as point of departure for policy measures. In practice, this implies executing the model in excess of three days the incubation period.
+3. If policy measures have been introduced mandatorily, use date above as the reference point for their introduction.
+
+### Scenario creation
+
+To develop scenarios, we strongly recommend starting from the most recently callibrated model that includes policies as well as usin a model without measures as a basis for counterfactual arguments.
 
 ## Current development needs
 
 - Port to Elixir or any other distributed platform capable of scaling up to 100 km^2 and 100,000 agents
-- Integration of econometric models to evaluate community recovery and response
-- Improvement of probability distributions beyond existing ones
 
 ## Acknowledgments
 

@@ -23,7 +23,7 @@ df_melt = df.melt(id_vars=['Step','Iteration'])
 axv = sns.lineplot(x="Step", y="value", hue="variable", data=df_melt, ci=None)
 axv.legend(title="Model", fontsize='small')
 axv.set_xlabel("Days")
-axv.set_ylabel("Private value")
+axv.set_ylabel("R(t)")
 plt.axhline(y=0, linestyle="--", color='black')
 plt.savefig(out_file, dpi=300)
 
