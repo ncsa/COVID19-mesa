@@ -66,12 +66,12 @@
         "policies": {
             "isolation": {
                 "proportion_isolated": 0.45,
-                "day_start_isolation": 365,
+                "day_start_isolation": 0,
                 "days_isolation_lasts": 365,
                 "prob_isolation_effective": 0.8
             },
             "distancing": {
-                "social_distance": 1.5,
+                "social_distance": 1.6,
                 "day_distancing_start": 365,
                 "days_distancing_lasts": 365
             },
@@ -95,10 +95,10 @@
         }
     },
     "ensemble": {
-        "steps": 960,
-        "runs": 15
+        "steps": 11808,
+        "runs": 16
     },
     "output": {
-        "prefix": "outcomes/cu-current-infected-callibration"
+        "prefix": "outcomes/cu-current-shelter-callibration"
     }
 }

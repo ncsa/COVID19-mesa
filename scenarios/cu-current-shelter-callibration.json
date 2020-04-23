@@ -66,7 +66,7 @@
         "policies": {
             "isolation": {
                 "proportion_isolated": 0.45,
-                "day_start_isolation": 365,
+                "day_start_isolation": 0,
                 "days_isolation_lasts": 365,
                 "prob_isolation_effective": 0.8
             },
@@ -99,6 +99,6 @@
         "runs": 15
     },
     "output": {
-        "prefix": "outcomes/cu-current-infected-callibration"
+        "prefix": "outcomes/cu-current-shelter-callibration"
     }
 }
