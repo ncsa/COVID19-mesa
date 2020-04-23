@@ -78,24 +78,25 @@
             "testing": {
                 "proportion_detected": 0.1,
                 "day_testing_start": 365,
-                "days_testing_lasts": 365
+                "days_testing_lasts": 365,
+                "tracing": false
             }
         },
         "epidemiology": {
-            "num_agents": 244,
-            "width": 68,
-            "height": 68,
+            "num_agents": 1000,
+            "width": 137,
+            "height": 137,
             "prop_initial_infected": 0.001,
-            "avg_incubation_time": 5,
+            "avg_incubation_time": 7,
             "avg_recovery_time": 15,
-            "proportion_asymptomatic": 0.2,                                                             
+            "proportion_asymptomatic": 0.25,                                                             
             "proportion_severe": 0.1,
             "prob_contagion": 0.03
         }
     },
     "ensemble": {
-        "steps": 100,
-        "runs": 4
+        "steps": 14000,
+        "runs": 10
     },
     "output": {
         "prefix": "cu-current-no-testing"

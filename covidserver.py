@@ -117,11 +117,11 @@ def agent_portrayal(agent):
 
     return portrayal
 
-grid = CanvasGrid(agent_portrayal, 30, 30, 400, 400)
+grid = CanvasGrid(agent_portrayal, 50, 50, 400, 400)
 
 chart = ChartModule([{"Label": "Susceptible",
                       "Color": "Blue"},
-                      {"Label": "Incubating",
+                      {"Label": "Exposed",
                       "Color": "Red"},
                       {"Label": "Asymptomatic",
                       "Color": "Brown"},
@@ -140,16 +140,16 @@ chart = ChartModule([{"Label": "Susceptible",
                       ],
                     data_collector_name='datacollector')
 
-chart_personal_value = ChartModule([{"Label": "CummulPrivValue",
+chart_personal_value = ChartModule([{"Label": "CumulPrivValue",
                       "Color": "Black"}
                       ],
                     data_collector_name='datacollector'
 )
 
 chart_public_value = ChartModule([
-                      {"Label": "CummulPublValue",
+                      {"Label": "CumulPublValue",
                       "Color": "Red"},
-                      {"Label": "CummulTestCost",
+                      {"Label": "CumulTestCost",
                       "Color": "Green"}
                       ],
                     data_collector_name='datacollector'
@@ -173,10 +173,19 @@ chart_employment = ChartModule([
                     data_collector_name='datacollector'
 )
 
+chart_tested = ChartModule([
+                      {"Label": "Tested",
+                      "Color": "Orange"},
+                      {"Label": "Traced",
+                      "Color": "Magenta"}
+                      ],
+                    data_collector_name='datacollector'
+)
+
 model_params = {
-    "num_agents": 200,
-    "width": 30,
-    "height": 30,
+    "num_agents": 240,
+    "width": 50,
+    "height": 50,
     "age_mortality": cr_age_mortality,
     "sex_mortality": cr_sex_mortality,
     "age_distribution": cr_age_distribution,
@@ -198,6 +207,7 @@ model_params = {
     "proportion_detected": UserSettableParameter("slider", "Proportion of detected cases", 0.1, 0.0, 1.0, 0.05),
     "day_testing_start": UserSettableParameter("slider", "Generalized testing policy start (days) ", 365, 0, 365, 2),
     "days_testing_lasts": UserSettableParameter("slider", "Duration of generalized testing policy ", 365, 0, 365, 2),
+    "tracing": UserSettableParameter("checkbox", "Contact tracing testing", False),
     "stage_value_matrix": cr_value_distibution,
     "test_cost": 200,
     "alpha_private": UserSettableParameter("slider", "Personal value amplifier", 1.0, 0.0, 2.0, 0.1),
@@ -205,7 +215,7 @@ model_params = {
 }
 
 server = ModularServer(CovidModel,
-                       [grid, chart_epidemiology],
+                       [chart_epidemiology, chart_personal_value, chart_public_value],
                        #[chart_personal_value, chart_public_value],
                        "COVID-19 epidemiological and economic model",
                        model_params
