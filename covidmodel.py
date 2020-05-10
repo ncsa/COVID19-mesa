@@ -61,9 +61,9 @@ class CovidAgent(Agent):
         self.recovery_time = poisson.rvs(model.avg_recovery)
         self.prob_contagion = self.model.prob_contagion_base
         # Mortality in vulnerable population appears to be around day 2-3
-        self.mortality_value = 5*mort/model.avg_recovery
+        self.mortality_value = mort/model.avg_recovery
         # Severity appears to appear after day 5
-        self.severity_value = 3*model.prob_severe/model.avg_recovery
+        self.severity_value = model.prob_severe/model.avg_recovery
         self.curr_dwelling = 0
         self.curr_incubation = 0
         self.curr_recovery = 0

@@ -1,0 +1,104 @@
+{
+    "location": "San Jose, Costa Rica",
+    "description": "55% shelter at home, 100% effectiveness, hand washing + social distancing",
+    "prepared-by": "Santiago Nunez-Corrales",
+    "date": "2020.05.10",
+    "model": {
+        "distributions": {
+            "age": {
+                "80+": 0.023,
+                "70-79": 0.03,
+                "60-69": 0.078,
+                "50-59": 0.109,
+                "40-49": 0.128,
+                "30-39": 0.169,
+                "20-29": 0.169,
+                "10-19": 0.148,
+                "00-09": 0.146
+            },
+            "sex": {
+                "male": 0.496,
+                "female": 0.504
+            }
+        },
+        "mortalities": {
+            "age": {
+                "80+": 0.148,
+                "70-79": 0.08,
+                "60-69": 0.036,
+                "50-59": 0.013,
+                "40-49": 0.004,
+                "30-39": 0.002,
+                "20-29": 0.002,
+                "10-19": 0.002,
+                "00-09": 0.0
+            },
+            "sex": {
+                "male": 0.62,
+                "female": 0.38
+            }
+        },
+        "value": {
+            "private": {
+                "susceptible": 1.0,
+                "exposed": 1.0,
+                "asymptomatic": 1.0,
+                "sympdetected": -0.2,
+                "asympdetected": -0.2,
+                "severe": -5.0,
+                "recovered": 0.8,
+                "deceased": 0
+            },
+            "public": {
+                "susceptible": 10.0,
+                "exposed": 10.0,
+                "asymptomatic": -5.0,
+                "sympdetected": -1.0,
+                "asympdetected": -0.2,
+                "severe": -5.0,
+                "recovered": 5.0,
+                "deceased": -5
+            },
+            "test_cost": 200,
+            "alpha_private": 1.0,
+            "alpha_public": 1.0
+        },
+        "policies": {
+            "isolation": {
+                "proportion_isolated": 0.55,
+                "day_start_isolation": 0,
+                "days_isolation_lasts": 365,
+                "prob_isolation_effective": 1.0
+            },
+            "distancing": {
+                "social_distance": 2.3,
+                "day_distancing_start": 0,
+                "days_distancing_lasts": 365
+            },
+            "testing": {
+                "proportion_detected": 0.1,
+                "day_testing_start": 365,
+                "days_testing_lasts": 365,
+                "tracing": false
+            }
+        },
+        "epidemiology": {
+            "num_agents": 1000,
+            "width": 101,
+            "height": 101,
+            "prop_initial_infected": 0.001,
+            "avg_incubation_time": 9,
+            "avg_recovery_time": 20,
+            "proportion_asymptomatic": 0.80,                                                             
+            "proportion_severe": 0.1,
+            "prob_contagion": 0.03
+        }
+    },
+    "ensemble": {
+        "steps": 12000,
+        "runs": 16
+    },
+    "output": {
+        "prefix": "outcomes/cr-high-asymptomatics"
+    }
+}
