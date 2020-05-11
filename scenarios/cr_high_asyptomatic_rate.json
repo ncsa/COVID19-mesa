@@ -96,7 +96,7 @@
     },
     "ensemble": {
         "steps": 12000,
-        "runs": 16
+        "runs": 32
     },
     "output": {
         "prefix": "outcomes/cr-high-asymptomatics"
