@@ -2,12 +2,60 @@
 
 *Santiago Nunez-Corrales, Informatics and NCSA, UIUC (nunezco2@illinois.edu)*
 
-*Eric Jakobsson, Molecular and Cell Bioogy and NCSA, UIUC (jake@illinois.edu)*
+*Eric Jakobsson, Molecular and Cell Biology and NCSA, UIUC (jake@illinois.edu)*
 
 
 A simple simulation to explore contagion by COVID-19 via agent-based modeling (ABM), as well as potential effectiveness of various measures.
 
 **This software is under development rapidly to attempt to respond to the current situation, and should be used bearing this in mind. Any scenarios for specific communities should be considered provisional at all times and revised constantly against the most recent and best curated field evidence.**
+
+## Installation (Linux and friends)
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/snunezcr/COVID19-mesa.git
+```
+
+2. Create, and activate a virtual environment
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+3. Update pip
+
+```bash
+pip install --upgrade pip
+```
+4. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+## Execution
+
+The following requires activating the Python virtual environment of your COVID19-mesa install if it is not previously active:
+
+```bash
+source .venv/bin/activate
+```
+
+To execute the dashboard interface:
+
+```bash
+(.venv) python covidserver.py
+```
+
+To execute a scenario stored in `scenarios/`:
+
+```bash
+(.venv) python model_runner.py [processors] scenarios/[filename]
+```
+
+After execution, a CSV file will be stored.
 
 ## Model features
 
