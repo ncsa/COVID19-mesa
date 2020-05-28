@@ -229,7 +229,6 @@ model_params = {
 
 server = ModularServer(CovidModel,
                        [grid,chart,chart_epidemiology, chart_number],
-                       #[chart_personal_value, chart_public_value],
                        "COVID-19 epidemiological and economic model",
                        model_params
                        )
