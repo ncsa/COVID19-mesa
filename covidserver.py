@@ -157,9 +157,16 @@ chart_public_value = ChartModule([
 
 chart_epidemiology = ChartModule([
                       {"Label": "Rt",
-                      "Color": "Blue"},
-                      #{"Label": "CummulTestCost",
-                      #"Color": "Green"}
+                      "Color": "Blue"
+                      },
+                      ],
+                    data_collector_name='datacollector'
+)
+
+chart_number = ChartModule([
+                      {"Label": "N",
+                      "Color": "Blue"
+                      },
                       ],
                     data_collector_name='datacollector'
 )
@@ -190,13 +197,14 @@ model_params = {
     "sex_mortality": cr_sex_mortality,
     "age_distribution": cr_age_distribution,
     "sex_distribution": cr_sex_distribution,
-    "prop_initial_infected": UserSettableParameter("slider", "Proportion of initially infected", 0.001, 0.0, 0.1
-    , 0.001),
+    "prop_initial_infected": UserSettableParameter("slider", "Proportion of initially infected", 0.001, 0.0, 0.1, 0.001),
+    "rate_inbound": UserSettableParameter("slider", "Inbound infections", 0.001, 0.0, 0.1, 0.001), 
     "avg_incubation_time": UserSettableParameter("slider", "Average incubation time", 5, 2, 24, 1),
     "avg_recovery_time": UserSettableParameter("slider", "Average recovery time", 15, 15, 30, 1),
     "proportion_asymptomatic": UserSettableParameter("slider", "Proportion of asymptomatics", 0.2, 0.0, 1.0, 0.05),
     "proportion_severe": UserSettableParameter("slider", "Proportion of severe cases", 0.13, 0.0, 0.20, 0.01),
     "prob_contagion": UserSettableParameter("slider", "Probability of contagion", 0.03, 0.0, 0.1, 0.005),
+    "proportion_beds_pop": UserSettableParameter("slider", "Proportion of hospital beds per population size", 0.001, 0.0, 0.1, 0.001),
     "proportion_isolated": UserSettableParameter("slider", "Proportion isolated", 0.0, 0.0, 1.0, 0.05),
     "day_start_isolation": UserSettableParameter("slider", "Isolation policy start (days) ", 365, 0, 365, 2),
     "days_isolation_lasts": UserSettableParameter("slider", "Duration of isolation policy ", 365, 0, 365, 2),
@@ -208,6 +216,11 @@ model_params = {
     "day_testing_start": UserSettableParameter("slider", "Generalized testing policy start (days) ", 365, 0, 365, 2),
     "days_testing_lasts": UserSettableParameter("slider", "Duration of generalized testing policy ", 365, 0, 365, 2),
     "tracing": UserSettableParameter("checkbox", "Contact tracing testing", False),
+    "new_agent_proportion": UserSettableParameter("slider", "Proportion of current pop. for massive entry", 0.1, 0.0, 1.0, 0.05),
+    "new_agent_start": UserSettableParameter("slider", "Massive entry start (days) ", 365, 0, 365, 2),
+    "new_agent_lasts": UserSettableParameter("slider", "Duration of massive entry ", 365, 0, 365, 2),
+    "new_agent_age_mean": UserSettableParameter("slider", "Average age group for massive entry ", 2, 0, 8, 1),
+    "new_agent_prop_infected": UserSettableParameter("slider", "Inbound infections", 0.001, 0.0, 0.1, 0.001),
     "stage_value_matrix": cr_value_distibution,
     "test_cost": 200,
     "alpha_private": UserSettableParameter("slider", "Personal value amplifier", 1.0, 0.0, 2.0, 0.1),
@@ -215,7 +228,7 @@ model_params = {
 }
 
 server = ModularServer(CovidModel,
-                       [chart_epidemiology, chart_personal_value, chart_public_value],
+                       [grid,chart,chart_epidemiology, chart_number],
                        #[chart_personal_value, chart_public_value],
                        "COVID-19 epidemiological and economic model",
                        model_params

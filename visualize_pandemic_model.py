@@ -10,8 +10,10 @@ import pandas as pd
 from covidmodel import CovidModel
 import sys
 
-in_file = sys.argv[1]
-out_file = sys.argv[2]
+graph_type = sys.argv[1]
+in_file = sys.argv[2]
+out_file = sys.argv[3]
+
 
 plt.figure(figsize = (11.7, 8.27))
 df0 = pd.read_csv(in_file)
@@ -23,5 +25,6 @@ ax = sns.lineplot(x="Step", y="value", hue="variable", data=df_melt, ci=None)
 ax.legend(title="Model", fontsize='small')
 ax.set_xlabel("Days")
 ax.set_ylabel("Fraction of population")
+ax.set_yscale(graph_type)
 plt.savefig(out_file, dpi=300)
 

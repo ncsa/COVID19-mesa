@@ -11,6 +11,7 @@ from datacollection import DataCollector
 from scipy.stats import poisson, bernoulli
 from enum import Enum
 import numpy as np
+import random
 import sys
 
 
@@ -166,7 +167,7 @@ class CovidAgent(Agent):
             if bernoulli.rvs(0.000018/self.model.dwell_15_day):
                 self.employed = True
 
-         # Social distancing
+        # Social distancing
         if not(self.in_distancing) and (self.astep >= self.model.distancing_start):
             self.prob_contagion = self.dmult() * self.model.prob_contagion_base
             self.in_distancing = True
@@ -200,6 +201,12 @@ class CovidAgent(Agent):
                 (self.stage == Stage.ASYMPTOMATIC):
                 self.isolated = False
                 self.in_isolation = False
+
+        # Using the model, determine if a susceptible individual becomes infected due to
+        # being elsewhere and returning to the community
+        if self.stage == Stage.SUSCEPTIBLE:
+            if bernoulli.rvs(self.model.rate_inbound):
+                self.stage = Stage.EXPOSED
 
         if self.stage == Stage.SUSCEPTIBLE:
             # Important: infected people drive the spread, not
@@ -358,9 +365,13 @@ class CovidAgent(Agent):
                 self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SYMPDETECTED]
 
             if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
-                # Not recovered yet, may pass away depending on prob.
-                if bernoulli.rvs(self.mortality_value):
+                # Misdiagnosed: around 5%
+                if bernoulli.rvs(0.05*self.mortality_value):
                     self.stage = Stage.DECEASED
+                # If hospital beds are saturated, mortality jumps by a factor of 5x
+                elif self.model.max_beds_available < compute_symptdetected_n(self.model):
+                    if bernoulli.rvs(5*self.mortality_value):
+                        self.stage = Stage.DECEASED
                 else:
                     self.curr_recovery = self.curr_recovery + 1
 
@@ -470,6 +481,9 @@ def compute_asymptomatic(model):
 
 def compute_symptdetected(model):
     return count_type(model, Stage.SYMPDETECTED)/model.num_agents
+
+def compute_symptdetected_n(model):
+    return count_type(model, Stage.SYMPDETECTED)
 
 def compute_asymptdetected(model):
     return count_type(model, Stage.ASYMPDETECTED)/model.num_agents
@@ -586,14 +600,18 @@ def compute_eff_reprod_number(model):
     avg_contacts = compute_contacts(model)
     return prob_contagion * avg_contacts * model.avg_incubation
 
+def compute_num_agents(model):
+    return model.num_agents
 
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
-    def __init__(self, num_agents, width, height, age_mortality, sex_mortality, age_distribution, sex_distribution, 
-                 prop_initial_infected, proportion_asymptomatic, proportion_severe, avg_incubation_time, avg_recovery_time,
-                 prob_contagion, proportion_isolated, day_start_isolation, days_isolation_lasts, prob_isolation_effective,
-                 social_distance, day_distancing_start, days_distancing_lasts, proportion_detected, day_testing_start, 
-                 days_testing_lasts, tracing, stage_value_matrix, test_cost, alpha_private, alpha_public, dummy=0):
+    def __init__(self, num_agents, width, height, rate_inbound, age_mortality, 
+                 sex_mortality, age_distribution, sex_distribution, prop_initial_infected, 
+                 proportion_asymptomatic, proportion_severe, avg_incubation_time, avg_recovery_time, prob_contagion,
+                 proportion_isolated, day_start_isolation, days_isolation_lasts, prob_isolation_effective, social_distance,
+                 day_distancing_start, days_distancing_lasts, proportion_detected, day_testing_start, days_testing_lasts, 
+                 new_agent_proportion, new_agent_start, new_agent_lasts, new_agent_age_mean, new_agent_prop_infected,
+                 tracing, stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop, dummy=0):
         self.running = True
         self.num_agents = num_agents
         self.grid = MultiGrid(width, height, True)
@@ -622,7 +640,10 @@ class CovidModel(Model):
         # We use a proxy value to account for social distancing
         self.prob_contagion_base = prob_contagion
 
-        # Probability of contagion due to residual droplets
+        # Proportion of daily incoming infected people from other places
+        self.rate_inbound = rate_inbound/self.dwell_15_day
+
+        # Probability of contagion due to residual droplets: TODO
         self.prob_contagion_places = 0.001
 
         # Probability of being asymptomatic, contagious
@@ -637,6 +658,7 @@ class CovidModel(Model):
         self.testing_rate = proportion_detected/(days_testing_lasts  * self.dwell_15_day)
         self.testing_start = day_testing_start* self.dwell_15_day
         self.testing_end = self.testing_start + days_testing_lasts*self.dwell_15_day
+        self.tracing = tracing
 
         # Same for isolation rate
         self.isolation_rate = proportion_isolated
@@ -649,11 +671,25 @@ class CovidModel(Model):
         self.distancing_start = day_distancing_start*self.dwell_15_day
         self.distancing_end = self.distancing_start + days_distancing_lasts*self.dwell_15_day
 
+        # Introduction of new agents after a specific time
+        self.new_agent_num = int(new_agent_proportion * self.num_agents)
+        self.new_agent_start = new_agent_start*self.dwell_15_day
+        self.new_agent_end = self.new_agent_start + new_agent_lasts*self.dwell_15_day
+        self.new_agent_age_mean = new_agent_age_mean
+        self.new_agent_prop_infected = new_agent_prop_infected
+
+        # Now, a neat python trick: generate the spacing of entries and then build a map
+        times_list = list(np.linspace(self.new_agent_start, self.new_agent_end, self.new_agent_num, dtype=int))
+        self.new_agent_time_map = {x:times_list.count(x) for x in times_list}
+
         # Probability of severity
         self.prob_severe = proportion_severe
 
+        # Number of beds where saturation limit occurs
+        self.max_beds_available = self.num_agents * proportion_beds_pop
+
         # Create agents
-        i = 0
+        self.i = 0
 
         for ag in self.age_distribution:
             for sg in self.sex_distribution:
@@ -661,16 +697,17 @@ class CovidModel(Model):
                 num_agents = int(round(self.num_agents*r))
                 mort = self.age_mortality[ag]*self.sex_mortality[sg]
                 for k in range(num_agents):
-                    a = CovidAgent(i, ag, sg, mort, tracing, self)
+                    a = CovidAgent(self.i, ag, sg, mort, self.tracing, self)
                     self.schedule.add(a)
                     x = self.random.randrange(self.grid.width)
                     y = self.random.randrange(self.grid.height)
                     self.grid.place_agent(a, (x,y))
-                    i = i + 1
+                    self.i = self.i + 1
         
         self.datacollector = DataCollector(
             model_reporters = {
                 "Step": compute_stepno,
+                "N": compute_num_agents,
                 "Susceptible": compute_susceptible,
                 "Exposed": compute_incubating,
                 "Asymptomatic": compute_asymptomatic,
@@ -691,7 +728,7 @@ class CovidModel(Model):
             }
         )
 
-        # Final step: infect a random agent that is not isolated
+        # Final step: infect an initial proportion of random agents
         num_init = int(self.num_agents * prop_initial_infected)
         
         for a in self.schedule.agents:
@@ -703,5 +740,44 @@ class CovidModel(Model):
    
     def step(self):
         self.datacollector.collect(self)
+        
+        print(f"Total agents: {len(self.schedule.agents)}")
+
+        # If new agents enter the population, create them
+        if (self.stepno >= self.new_agent_start) and (self.stepno < self.new_agent_end):
+            # Check if the current step is in the new-agent time map
+            if self.stepno in self.new_agent_time_map.keys():
+                # We repeat the following procedure as many times as the value stored in the map
+
+                for _ in range(0, self.new_agent_time_map[self.stepno]):
+                    # Generate an age group at random using a Poisson distribution centered at the mean
+                    # age for the incoming population
+                    in_range = False
+                    arange = 0
+
+                    while not(in_range):
+                        arange = poisson.rvs(self.new_agent_age_mean)
+                        if arange in range(0, 9):
+                            in_range = True
+                    
+                    ag = AgeGroup(arange)
+                    sg = random.choice(list(SexGroup))
+                    mort = self.age_mortality[ag]*self.sex_mortality[sg]
+
+                    print(f'Agent {self.i}, {ag} {sg} {mort}')
+
+                    a = CovidAgent(self.i, ag, sg, mort, self.tracing, self)
+                    
+                    # Some will be infected
+                    if bernoulli.rvs(self.new_agent_prop_infected):
+                        a.stage = Stage.EXPOSED
+
+                    self.schedule.add(a)
+                    x = self.random.randrange(self.grid.width)
+                    y = self.random.randrange(self.grid.height)
+                    self.grid.place_agent(a, (x,y))
+                    self.i = self.i + 1
+                    self.num_agents = self.num_agents + 1
+        
         self.schedule.step()
         self.stepno = self.stepno + 1
