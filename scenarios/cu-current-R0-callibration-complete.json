@@ -1,8 +1,8 @@
 {
     "location": "Champaign-Urbana",
-    "description": "45% shelter at home",
+    "description": "Callibration run from 0.1% to 1.0% from April 21 to July 8th",
     "prepared-by": "Eric Jakobsson and Santiago Nunez-Corrales",
-    "date": "2020.04.23",
+    "date": "2020.07.15",
     "model": {
         "distributions": {
             "age": {
@@ -65,28 +65,28 @@
         },
         "policies": {
             "isolation": {
-                "proportion_isolated": 0.45,
-                "day_start_isolation": 365,
+                "proportion_isolated": 0.40,
+                "day_start_isolation": 0,
                 "days_isolation_lasts": 365,
                 "prob_isolation_effective": 0.8
             },
             "distancing": {
-                "social_distance": 1.5,
-                "day_distancing_start": 365,
+                "social_distance": 2.22,
+                "day_distancing_start": 10,
                 "days_distancing_lasts": 365
             },
             "testing": {
-                "proportion_detected": 0.1,
+                "proportion_detected": 0.01,
                 "day_testing_start": 365,
                 "days_testing_lasts": 365,
                 "tracing": false
             },
             "massingress": {
                 "new_agent_proportion": 0.3,
-                "new_agent_start": 32,
-                "new_agent_lasts": 15,
+                "new_agent_start": 365,
+                "new_agent_lasts": 365,
                 "new_agent_age_mean": 2,
-                "new_agent_prop_infected": 0.001
+                "new_agent_prop_infected": 0.02
             }
         },
         "epidemiology": {
@@ -95,17 +95,17 @@
             "height": 170,
             "rate_inbound": 0.001,
             "prop_initial_infected": 0.001,
-            "avg_incubation_time": 7,
-            "avg_recovery_time": 15,
-            "proportion_asymptomatic": 0.25,                                                             
+            "avg_incubation_time": 6,
+            "avg_recovery_time": 10,
+            "proportion_asymptomatic": 0.35,                                                             
             "proportion_severe": 0.1,
             "prob_contagion": 0.03,
             "proportion_beds_pop": 0.001
         }
     },
     "ensemble": {
-        "steps": 96,
-        "runs": 30
+        "steps": 7488,
+        "runs": 12
     },
     "output": {
         "prefix": "outcomes/cu-current-R0-callibration"

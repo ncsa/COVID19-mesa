@@ -368,10 +368,6 @@ class CovidAgent(Agent):
                 # Misdiagnosed: around 5%
                 if bernoulli.rvs(0.05*self.mortality_value):
                     self.stage = Stage.DECEASED
-                # If hospital beds are saturated, mortality jumps by a factor of 5x
-                elif self.model.max_beds_available < compute_symptdetected_n(self.model):
-                    if bernoulli.rvs(5*self.mortality_value):
-                        self.stage = Stage.DECEASED
                 else:
                     self.curr_recovery = self.curr_recovery + 1
 
@@ -414,6 +410,10 @@ class CovidAgent(Agent):
                 # Not recovered yet, may pass away depending on prob.
                 if bernoulli.rvs(self.mortality_value):
                     self.stage = Stage.DECEASED
+                # If hospital beds are saturated, mortality jumps by a factor of 5x
+                elif self.model.max_beds_available < compute_symptdetected_n(self.model):
+                    if bernoulli.rvs(5*self.mortality_value):
+                        self.stage = Stage.DECEASED
                 else:
                     self.curr_recovery = self.curr_recovery + 1
             else:
@@ -741,7 +741,8 @@ class CovidModel(Model):
     def step(self):
         self.datacollector.collect(self)
         
-        print(f"Total agents: {len(self.schedule.agents)}")
+        if self.stepno % self.dwell_15_day == 0:
+            print(f'Simulating day {self.stepno // self.dwell_15_day}')
 
         # If new agents enter the population, create them
         if (self.stepno >= self.new_agent_start) and (self.stepno < self.new_agent_end):
@@ -763,9 +764,6 @@ class CovidModel(Model):
                     ag = AgeGroup(arange)
                     sg = random.choice(list(SexGroup))
                     mort = self.age_mortality[ag]*self.sex_mortality[sg]
-
-                    print(f'Agent {self.i}, {ag} {sg} {mort}')
-
                     a = CovidAgent(self.i, ag, sg, mort, self.tracing, self)
                     
                     # Some will be infected
