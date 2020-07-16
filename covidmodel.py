@@ -51,7 +51,7 @@ class ValueGroup(Enum):
 class CovidAgent(Agent):
     """ An agent representing a potential covid case"""
     
-    def __init__(self, unique_id, ageg, sexg, mort, tracing, model):
+    def __init__(self, unique_id, ageg, sexg, mort, model):
         super().__init__(unique_id, model)
         self.stage = Stage.SUSCEPTIBLE
         self.age_group = ageg
@@ -86,7 +86,6 @@ class CovidAgent(Agent):
         # Employment
         self.employed = True
         # Contact tracing: this is only available for symptomatic patients
-        self.tracing = tracing
         self.tested_traced = False
         # All agents 
         self.contacts = set()
@@ -147,7 +146,7 @@ class CovidAgent(Agent):
             return
 
     def add_contact_trace(self, other):
-        if self.tracing:
+        if self.model.tracing:
             self.contacts.add(other)
 
     def step(self):
@@ -349,7 +348,7 @@ class CovidAgent(Agent):
             self.tested = True
 
             # Contact tracing logic: use a negative number to indicate trace exhaustion
-            if self.tracing and self.tracing_counter >= 0:
+            if self.model.tracing_now and self.tracing_counter >= 0:
                 # Test only when the count down has been reached
                 if self.tracing_counter == self.tracing_delay:
                     for t in self.contacts:
@@ -379,7 +378,7 @@ class CovidAgent(Agent):
             self.isolated = True
 
             # Contact tracing logic: use a negative number to indicate trace exhaustion
-            if self.tracing and self.tracing_counter >= 0:
+            if self.model.tracing_now and self.tracing_counter >= 0:
                 # Test only when the count down has been reached
                 if self.tracing_counter == self.tracing_delay:
                     for t in self.contacts:
@@ -411,7 +410,7 @@ class CovidAgent(Agent):
                 if bernoulli.rvs(self.mortality_value):
                     self.stage = Stage.DECEASED
                 # If hospital beds are saturated, mortality jumps by a factor of 5x
-                elif self.model.max_beds_available < compute_symptdetected_n(self.model):
+                elif self.model.max_beds_available < compute_severe_n(self.model):
                     if bernoulli.rvs(5*self.mortality_value):
                         self.stage = Stage.DECEASED
                 else:
@@ -482,8 +481,8 @@ def compute_asymptomatic(model):
 def compute_symptdetected(model):
     return count_type(model, Stage.SYMPDETECTED)/model.num_agents
 
-def compute_symptdetected_n(model):
-    return count_type(model, Stage.SYMPDETECTED)
+def compute_severe_n(model):
+    return count_type(model, Stage.SEVERE)
 
 def compute_asymptdetected(model):
     return count_type(model, Stage.ASYMPDETECTED)/model.num_agents
@@ -659,6 +658,8 @@ class CovidModel(Model):
         self.testing_start = day_testing_start* self.dwell_15_day
         self.testing_end = self.testing_start + days_testing_lasts*self.dwell_15_day
         self.tracing = tracing
+        # We need an additional variable to activate and inactivate automatic contact tracing
+        self.tracing_now = False
 
         # Same for isolation rate
         self.isolation_rate = proportion_isolated
@@ -697,7 +698,7 @@ class CovidModel(Model):
                 num_agents = int(round(self.num_agents*r))
                 mort = self.age_mortality[ag]*self.sex_mortality[sg]
                 for k in range(num_agents):
-                    a = CovidAgent(self.i, ag, sg, mort, self.tracing, self)
+                    a = CovidAgent(self.i, ag, sg, mort, self)
                     self.schedule.add(a)
                     x = self.random.randrange(self.grid.width)
                     y = self.random.randrange(self.grid.height)
@@ -743,6 +744,13 @@ class CovidModel(Model):
         
         if self.stepno % self.dwell_15_day == 0:
             print(f'Simulating day {self.stepno // self.dwell_15_day}')
+
+        # Activate contact tracing only if necessary and turn it off correspondingly at the end
+        if self.tracing and not(self.tracing_now) and (self.stepno >= self.testing_start):
+            self.tracing_now = True
+        
+        if self.tracing_now and (self.stepno > self.testing_end):
+            self.tracing_now = False
 
         # If new agents enter the population, create them
         if (self.stepno >= self.new_agent_start) and (self.stepno < self.new_agent_end):
