@@ -18,7 +18,7 @@ out_file = sys.argv[3]
 plt.figure(figsize = (11.7, 8.27))
 df0 = pd.read_csv(in_file)
 df0["Step"] = df0["Step"]/96
-df = df0.drop(["Unnamed: 0", "CumulPrivValue", "CumulPublValue", "CumulTestCost", "Rt", "Employed", "Unemployed", "Tested", "Traced"], axis=1)
+df = df0.drop(["Unnamed: 0", "N", "CumulPrivValue", "CumulPublValue", "CumulTestCost", "Rt", "Employed", "Unemployed", "Tested", "Traced"], axis=1)
 df_melt = df.melt(id_vars=['Step','Iteration'])
 
 ax = sns.lineplot(x="Step", y="value", hue="variable", data=df_melt, ci=None)

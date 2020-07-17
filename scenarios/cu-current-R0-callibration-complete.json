@@ -6,6 +6,23 @@
     "model": {
         "distributions": {
             "age": {
+                "80+": 0.03,
+                "70-79": 0.04,
+                "60-69": 0.075,
+                "50-59": 0.075,
+                "40-49": 0.07,
+                "30-39": 0.125,
+                "20-29": 0.30,
+                "10-19": 0.20,
+                "00-09": 0.085
+            },
+            "sex": {
+                "male": 0.505,
+                "female": 0.495
+            }
+        },
+        "mortalities": {
+            "age": {
                 "80+": 0.4840,
                 "70-79": 0.2317,
                 "60-69": 0.1592,
@@ -15,23 +32,6 @@
                 "20-29": 0.0037,
                 "10-19": 0.0003,
                 "00-09": 0.0001
-            },
-            "sex": {
-                "male": 0.505,
-                "female": 0.495
-            }
-        },
-        "mortalities": {
-            "age": {
-                "80+": 0.36784,
-                "70-79": 0.08,
-                "60-69": 0.036,
-                "50-59": 0.013,
-                "40-49": 0.004,
-                "30-39": 0.002,
-                "20-29": 0.002,
-                "10-19": 0.002,
-                "00-09": 0.0
             },
             "sex": {
                 "male": 0.618,
@@ -71,7 +71,7 @@
                 "prob_isolation_effective": 0.8
             },
             "distancing": {
-                "social_distance": 2.03,
+                "social_distance": 2.01,
                 "day_distancing_start": 16,
                 "days_distancing_lasts": 365
             },
@@ -98,13 +98,13 @@
             "avg_incubation_time": 6,
             "avg_recovery_time": 10,
             "proportion_asymptomatic": 0.35,                                                             
-            "proportion_severe": 0.017,
+            "proportion_severe": 0.05,
             "prob_contagion": 0.03,
             "proportion_beds_pop": 0.001
         }
     },
     "ensemble": {
-        "steps": 8256,
+        "steps": 8456,
         "runs": 12
     },
     "output": {
