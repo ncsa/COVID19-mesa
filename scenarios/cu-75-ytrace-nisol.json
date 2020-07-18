@@ -67,7 +67,7 @@
             "isolation": {
                 "proportion_isolated": 0.45,
                 "day_start_isolation": 0,
-                "days_isolation_lasts": 365,
+                "days_isolation_lasts": 117,
                 "prob_isolation_effective": 0.8
             },
             "distancing": {
@@ -76,15 +76,15 @@
                 "days_distancing_lasts": 365
             },
             "testing": {
-                "proportion_detected": 0.01,
-                "day_testing_start": 365,
-                "days_testing_lasts": 365,
-                "tracing": false
+                "proportion_detected": 0.75,
+                "day_testing_start": 130,
+                "days_testing_lasts": 7,
+                "tracing": true
             },
             "massingress": {
                 "new_agent_proportion": 0.3,
-                "new_agent_start": 365,
-                "new_agent_lasts": 365,
+                "new_agent_start": 116,
+                "new_agent_lasts": 14,
                 "new_agent_age_mean": 2,
                 "new_agent_prop_infected": 0.02
             }
@@ -105,10 +105,10 @@
         }
     },
     "ensemble": {
-        "steps": 3000,
-        "runs": 12
+        "steps": 14688,
+        "runs": 30
     },
     "output": {
-        "prefix": "outcomes/cu-current-R0-callibration"
+        "prefix": "outcomes/cu-75-ytrace-nisol.csv"
     }
 }
