@@ -71,7 +71,7 @@
                 "prob_isolation_effective": 0.8
             },
             "distancing": {
-                "social_distance": 2.01,
+                "social_distance": 2.02,
                 "day_distancing_start": 16,
                 "days_distancing_lasts": 365
             },
@@ -93,6 +93,7 @@
             "num_agents": 1000,
             "width": 190,
             "height": 225,
+            "repscaling": 100,
             "rate_inbound": 0.003,
             "prop_initial_infected": 0.001,
             "avg_incubation_time": 6,

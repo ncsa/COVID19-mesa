@@ -62,9 +62,9 @@ class CovidAgent(Agent):
         self.recovery_time = poisson.rvs(model.avg_recovery)
         self.prob_contagion = self.model.prob_contagion_base
         # Mortality in vulnerable population appears to be around day 2-3
-        self.mortality_value = mort/model.avg_recovery
+        self.mortality_value = mort/self.model.dwell_15_day
         # Severity appears to appear after day 5
-        self.severity_value = model.prob_severe/model.avg_recovery
+        self.severity_value = model.prob_severe/self.model.dwell_15_day
         self.curr_dwelling = 0
         self.curr_incubation = 0
         self.curr_recovery = 0
@@ -410,9 +410,9 @@ class CovidAgent(Agent):
                 if bernoulli.rvs(self.mortality_value):
                     self.stage = Stage.DECEASED
                 # If hospital beds are saturated, mortality jumps by a factor of 5x
-                elif self.model.max_beds_available < compute_severe_n(self.model):
-                    if bernoulli.rvs(5*self.mortality_value):
-                        self.stage = Stage.DECEASED
+                #elif self.model.max_beds_available < compute_severe_n(self.model):
+                #    if bernoulli.rvs(1.2*self.mortality_value):
+                #        self.stage = Stage.DECEASED
                 else:
                     self.curr_recovery = self.curr_recovery + 1
             else:
@@ -597,14 +597,14 @@ def compute_eff_reprod_number(model):
             break
 
     avg_contacts = compute_contacts(model)
-    return prob_contagion * avg_contacts * model.avg_incubation
+    return model.repscaling * prob_contagion * avg_contacts * model.avg_incubation
 
 def compute_num_agents(model):
     return model.num_agents
 
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
-    def __init__(self, num_agents, width, height, rate_inbound, age_mortality, 
+    def __init__(self, num_agents, width, height, repscaling, rate_inbound, age_mortality, 
                  sex_mortality, age_distribution, sex_distribution, prop_initial_infected, 
                  proportion_asymptomatic, proportion_severe, avg_incubation_time, avg_recovery_time, prob_contagion,
                  proportion_isolated, day_start_isolation, days_isolation_lasts, prob_isolation_effective, social_distance,
@@ -636,8 +636,10 @@ class CovidModel(Model):
 
         # Probability of contagion after exposure in the same cell
         # Presupposes a person centered on a 1.8 meter radius square.
-        # We use a proxy value to account for social distancing
-        self.prob_contagion_base = prob_contagion
+        # We use a proxy value to account for social distancing.
+        # Representativeness modifies the probability of contagion by the scaling factor
+        self.repscaling = (np.log(repscaling)/np.log(1.58489))
+        self.prob_contagion_base = prob_contagion / self.repscaling
 
         # Proportion of daily incoming infected people from other places
         self.rate_inbound = rate_inbound/self.dwell_15_day

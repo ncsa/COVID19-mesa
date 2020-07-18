@@ -96,6 +96,7 @@ model_params = {
     "num_agents": data["model"]["epidemiology"]["num_agents"],
     "width": data["model"]["epidemiology"]["width"],
     "height": data["model"]["epidemiology"]["height"],
+    "repscaling": data["model"]["epidemiology"]["repscaling"],
     "age_mortality": age_mortality,
     "sex_mortality": sex_mortality,
     "age_distribution": age_distribution,

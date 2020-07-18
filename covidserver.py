@@ -193,6 +193,7 @@ model_params = {
     "num_agents": 240,
     "width": 50,
     "height": 50,
+    "repscaling": 1,
     "age_mortality": cr_age_mortality,
     "sex_mortality": cr_sex_mortality,
     "age_distribution": cr_age_distribution,
