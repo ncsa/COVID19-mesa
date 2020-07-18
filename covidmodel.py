@@ -62,9 +62,9 @@ class CovidAgent(Agent):
         self.recovery_time = poisson.rvs(model.avg_recovery)
         self.prob_contagion = self.model.prob_contagion_base
         # Mortality in vulnerable population appears to be around day 2-3
-        self.mortality_value = mort/self.model.dwell_15_day
+        self.mortality_value = mort/(self.model.dwell_15_day*self.recovery_time)
         # Severity appears to appear after day 5
-        self.severity_value = model.prob_severe/self.model.dwell_15_day
+        self.severity_value = model.prob_severe/(self.model.dwell_15_day*self.recovery_time)
         self.curr_dwelling = 0
         self.curr_incubation = 0
         self.curr_recovery = 0
@@ -364,14 +364,10 @@ class CovidAgent(Agent):
                 self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SYMPDETECTED]
 
             if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
-                # Misdiagnosed: around 5%
-                if bernoulli.rvs(0.05*self.mortality_value):
-                    self.stage = Stage.DECEASED
-                else:
-                    self.curr_recovery = self.curr_recovery + 1
+                self.curr_recovery = self.curr_recovery + 1
 
-                    if bernoulli.rvs(self.severity_value):
-                        self.stage = Stage.SEVERE
+                if bernoulli.rvs(self.severity_value):
+                    self.stage = Stage.SEVERE
             else:
                 self.stage = Stage.RECOVERED
         elif self.stage == Stage.ASYMPDETECTED:
