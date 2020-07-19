@@ -770,7 +770,7 @@ class CovidModel(Model):
                     ag = AgeGroup(arange)
                     sg = random.choice(list(SexGroup))
                     mort = self.age_mortality[ag]*self.sex_mortality[sg]
-                    a = CovidAgent(self.i, ag, sg, mort, self.tracing, self)
+                    a = CovidAgent(self.i, ag, sg, mort, self)
                     
                     # Some will be infected
                     if bernoulli.rvs(self.new_agent_prop_infected):
