@@ -71,7 +71,7 @@
                 "prob_isolation_effective": 0.8
             },
             "distancing": {
-                "social_distance": 1.9,
+                "social_distance": 2.07,
                 "day_distancing_start": 365,
                 "days_distancing_lasts": 365
             },
@@ -102,7 +102,7 @@
             "prop_initial_infected": 0.001,
             "avg_incubation_time": 6,
             "avg_recovery_time": 10,
-            "proportion_asymptomatic": 0.35,                                                             
+            "proportion_asymptomatic": 0.35,
             "proportion_severe": 0.001,
             "prob_contagion": 0.03,
             "proportion_beds_pop": 0.001
