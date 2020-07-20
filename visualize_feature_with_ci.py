@@ -14,8 +14,9 @@ from covidmodel import CovidModel
 import sys
 
 feature = sys.argv[1]
-in_file = sys.argv[2]
-out_file = sys.argv[3]
+ymax = float(sys.argv[2])
+in_file = sys.argv[3]
+out_file = sys.argv[4]
 
 plt.figure(figsize = (11.7, 8.27))
 plt.ticklabel_format(style='plain', axis='y')
@@ -29,7 +30,6 @@ df[feature] = df0[feature]#*100
 xmin = 0
 xmax = df["Step"].max()
 ymin = df[feature].min()
-ymax = df[feature].max()
 
 avg = []
 low_ci_95 = []
@@ -58,20 +58,14 @@ df_stats["hci95"] = high_ci_95
 df_stats["lci99"] = low_ci_99
 df_stats["hci99"] = high_ci_99
 
-#print(f"Computing density distribution...")
-
-#X, Y = np.mgrid[xmin:xmax:200j, ymin:ymax:200j]
-#positions = np.vstack([X.ravel(), Y.ravel()])
-#values = np.vstack([df["Step"], df[feature]])
-#kernel = sps.gaussian_kde(values)
-#Z = np.reshape(kernel(positions).T, X.shape)
-
 fig, ax = plt.subplots()
 ax.plot(df_stats["Step"], df_stats["mean"], color="red")
-ax.fill_between(df_stats["Step"], df_stats["lci95"], df_stats["hci95"], color='red', alpha=.1)
-#ax.imshow(np.rot90(Z), cmap=plt.cm.binary, extent=[xmin, xmax, ymin, ymax], aspect="auto", interpolation="lanczos")
+ax.fill_between(df_stats["Step"], df_stats["lci95"], df_stats["hci95"], color='orangered', alpha=.1)
+ax.vlines(116, 0, ymax, colors='darkblue')
+ax.vlines(130, 0, ymax, colors='mediumblue')
+ax.vlines(136, 0, ymax, colors='royalblue')
 ax.set_xlim([xmin, xmax])
 ax.set_ylim([ymin, ymax])
 ax.set_xlabel("Days")
-ax.set_ylabel("Proportion of population")
+ax.set_ylabel("Pop. Fraction")
 plt.savefig(out_file, dpi=300)

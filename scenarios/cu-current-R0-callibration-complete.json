@@ -105,8 +105,8 @@
         }
     },
     "ensemble": {
-        "steps": 3000,
-        "runs": 12
+        "steps": 3840,
+        "runs": 30
     },
     "output": {
         "prefix": "outcomes/cu-current-R0-callibration"
