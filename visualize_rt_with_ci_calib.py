@@ -62,17 +62,15 @@ df_stats["mean"] = avg
 df_stats["lci95"] = low_ci_95
 df_stats["hci95"] = high_ci_95
 df_stats["lci99"] = low_ci_99
-df_stats["hci99"] = high_ci_99
+df_stats["hci99"] =     high_ci_99
 
 fig, ax = plt.subplots()
-ax.plot(df_stats["Step"], df_stats["mean"], color="red")
+ax.plot(df_stats["Step"], df_stats["mean"], color="red", label="$R(t)$")
 ax.fill_between(df_stats["Step"], df_stats["lci95"], df_stats["hci95"], color='red', alpha=.1)
 ax.set_xlim([xmin, xmax])
 ax.set_ylim([xmin, ymax])
 ax.set_xlabel("Days")
-ax.set_ylabel("R(t)")
-ax.set_title("Effective reproductive number")
-ax.hlines(1.71, xmin, xmax, colors='g', linestyles='--')
-ax.hlines(1.20, xmin, xmax, colors='g', linestyles='--')
+ax.hlines(1.71, xmin, xmax, color='gray', linestyles='--')
+ax.hlines(1.1, xmin, xmax, color='gray', linestyles='--')
 ax.legend()
 plt.savefig(out_file, dpi=300)

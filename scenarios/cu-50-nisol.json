@@ -71,7 +71,7 @@
                 "prob_isolation_effective": 0.8
             },
             "distancing": {
-                "social_distance": 1.899,
+                "social_distance": 1.938,
                 "day_distancing_start": 16,
                 "days_distancing_lasts": 365
             },
@@ -113,6 +113,6 @@
         "runs": 30
     },
     "output": {
-        "prefix": "outcomes/cu-50-ytrace-nisol.csv"
+        "prefix": "outcomes/cu-50-nisol.csv"
     }
 }

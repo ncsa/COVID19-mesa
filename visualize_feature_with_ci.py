@@ -15,8 +15,9 @@ import sys
 
 feature = sys.argv[1]
 ymax = float(sys.argv[2])
-in_file = sys.argv[3]
-out_file = sys.argv[4]
+label = sys.argv[3]
+in_file = sys.argv[4]
+out_file = sys.argv[5]
 
 plt.figure(figsize = (11.7, 8.27))
 plt.ticklabel_format(style='plain', axis='y')
