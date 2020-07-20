@@ -78,8 +78,7 @@
             "testing": {
                 "proportion_detected": 0.01,
                 "day_testing_start": 365,
-                "days_testing_lasts": 365,
-                "tracing": false
+                "days_testing_lasts": 365
             },
             "tracing" :{
                 "day_tracing_start": 0,
@@ -104,7 +103,7 @@
             "avg_recovery_time": 10,
             "proportion_asymptomatic": 0.35,
             "proportion_severe": 0.005,
-            "prob_contagion": 0.006,
+            "prob_contagion": 0.004,
             "proportion_beds_pop": 0.001
         }
     },
