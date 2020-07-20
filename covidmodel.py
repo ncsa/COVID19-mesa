@@ -606,7 +606,7 @@ class CovidModel(Model):
                  proportion_isolated, day_start_isolation, days_isolation_lasts, prob_isolation_effective, social_distance,
                  day_distancing_start, days_distancing_lasts, proportion_detected, day_testing_start, days_testing_lasts, 
                  new_agent_proportion, new_agent_start, new_agent_lasts, new_agent_age_mean, new_agent_prop_infected,
-                 tracing, stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop, dummy=0):
+                 day_tracing_start, days_tracing_lasts, stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop, dummy=0):
         self.running = True
         self.num_agents = num_agents
         self.grid = MultiGrid(width, height, True)
@@ -655,8 +655,10 @@ class CovidModel(Model):
         self.testing_rate = proportion_detected/(days_testing_lasts  * self.dwell_15_day)
         self.testing_start = day_testing_start* self.dwell_15_day
         self.testing_end = self.testing_start + days_testing_lasts*self.dwell_15_day
-        self.tracing = tracing
+
         # We need an additional variable to activate and inactivate automatic contact tracing
+        self.tracing_start = day_tracing_start* self.dwell_15_day
+        self.tracing_end = self.tracing_start + days_tracing_lasts*self.dwell_15_day
         self.tracing_now = False
 
         # Same for isolation rate
@@ -744,10 +746,10 @@ class CovidModel(Model):
             print(f'Simulating day {self.stepno // self.dwell_15_day}')
 
         # Activate contact tracing only if necessary and turn it off correspondingly at the end
-        if self.tracing and not(self.tracing_now) and (self.stepno >= self.testing_start):
+        if not(self.tracing_now) and (self.stepno >= self.tracing_start):
             self.tracing_now = True
         
-        if self.tracing_now and (self.stepno > self.testing_end):
+        if self.tracing_now and (self.stepno > self.tracing_end):
             self.tracing_now = False
 
         # If new agents enter the population, create them

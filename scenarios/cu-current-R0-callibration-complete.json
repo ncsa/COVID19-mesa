@@ -71,8 +71,8 @@
                 "prob_isolation_effective": 0.8
             },
             "distancing": {
-                "social_distance": 2.07,
-                "day_distancing_start": 16,
+                "social_distance": 1.9,
+                "day_distancing_start": 365,
                 "days_distancing_lasts": 365
             },
             "testing": {
@@ -80,6 +80,10 @@
                 "day_testing_start": 365,
                 "days_testing_lasts": 365,
                 "tracing": false
+            },
+            "tracing" :{
+                "day_tracing_start": 0,
+                "days_tracing_lasts": 365
             },
             "massingress": {
                 "new_agent_proportion": 0.3,
