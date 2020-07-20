@@ -593,7 +593,7 @@ def compute_eff_reprod_number(model):
             break
 
     avg_contacts = compute_contacts(model)
-    return model.repscaling * prob_contagion * avg_contacts * model.avg_incubation
+    return 0.6432 * model.repscaling * prob_contagion * avg_contacts * model.avg_incubation
 
 def compute_num_agents(model):
     return model.num_agents

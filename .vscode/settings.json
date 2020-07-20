@@ -1,4 +1,4 @@
 {
-    "python.pythonPath": "/home/snunez/Development/COVID19-mesa/.venv/bin/python3",
+    "python.pythonPath": ".venv/bin/python",
     "git.ignoreLimitWarning": true
 }

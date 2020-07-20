@@ -71,15 +71,19 @@
                 "prob_isolation_effective": 0.8
             },
             "distancing": {
-                "social_distance": 2.07,
+                "social_distance": 1.899,
                 "day_distancing_start": 16,
                 "days_distancing_lasts": 365
             },
             "testing": {
-                "proportion_detected": 0.75,
+                "proportion_detected": 0.5,
                 "day_testing_start": 130,
                 "days_testing_lasts": 7,
                 "tracing": true
+            },
+            "tracing" :{
+                "day_tracing_start": 0,
+                "days_tracing_lasts": 365
             },
             "massingress": {
                 "new_agent_proportion": 0.3,
@@ -94,13 +98,13 @@
             "width": 190,
             "height": 225,
             "repscaling": 100,
-            "rate_inbound": 0.003,
+            "rate_inbound": 0.0005,
             "prop_initial_infected": 0.001,
             "avg_incubation_time": 6,
             "avg_recovery_time": 10,
-            "proportion_asymptomatic": 0.35,                                                             
-            "proportion_severe": 0.001,
-            "prob_contagion": 0.03,
+            "proportion_asymptomatic": 0.35,
+            "proportion_severe": 0.005,
+            "prob_contagion": 0.004,
             "proportion_beds_pop": 0.001
         }
     },
@@ -109,6 +113,6 @@
         "runs": 30
     },
     "output": {
-        "prefix": "outcomes/cu-75-ytrace-yisol.csv"
+        "prefix": "outcomes/cu-50-ytrace-yisol.csv"
     }
 }
