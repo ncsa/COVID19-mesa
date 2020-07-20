@@ -103,7 +103,7 @@
             "avg_incubation_time": 6,
             "avg_recovery_time": 10,
             "proportion_asymptomatic": 0.35,
-            "proportion_severe": 0.005,
+            "proportion_severe": 0.05,
             "prob_contagion": 0.004,
             "proportion_beds_pop": 0.001
         }
