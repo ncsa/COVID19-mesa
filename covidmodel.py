@@ -146,7 +146,7 @@ class CovidAgent(Agent):
             return
 
     def add_contact_trace(self, other):
-        if self.model.tracing:
+        if self.model.tracing_now:
             self.contacts.add(other)
 
     def step(self):
