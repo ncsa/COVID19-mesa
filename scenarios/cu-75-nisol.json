@@ -98,7 +98,7 @@
             "width": 190,
             "height": 225,
             "repscaling": 100,
-            "rate_inbound": 0.0005,
+            "rate_inbound": 0.0002,
             "prop_initial_infected": 0.001,
             "avg_incubation_time": 6,
             "avg_recovery_time": 10,
