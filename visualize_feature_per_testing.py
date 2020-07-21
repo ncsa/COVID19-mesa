@@ -15,11 +15,8 @@ from covidmodel import CovidModel
 import sys
 
 feature = sys.argv[1]
-
 start = int(sys.argv[2])
-
 in_file = {}
-
 in_file["25"] = sys.argv[3]
 in_file["50"] = sys.argv[4]
 in_file["75"] = sys.argv[5]

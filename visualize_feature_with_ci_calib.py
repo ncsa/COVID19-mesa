@@ -25,7 +25,7 @@ df0["Step"] = df0["Step"]/96
 
 df = pd.DataFrame()
 df["Step"] = df0["Step"]
-df[feature] = df0[feature]#*100
+df[feature] = df0[feature]
 
 xmin = 0
 xmax = df["Step"].max()
@@ -59,7 +59,7 @@ df_stats["lci99"] = low_ci_99
 df_stats["hci99"] = high_ci_99
 
 fig, ax = plt.subplots()
-ax.plot(df_stats["Step"], df_stats["mean"], color="red", label="Active")
+ax.plot(df_stats["Step"], df_stats["mean"], color="darkred", label="Active")
 ax.fill_between(df_stats["Step"], df_stats["lci95"], df_stats["hci95"], color='orangered', alpha=.1)
 ax.vlines(116, 0, ymax, colors='darkblue')
 ax.vlines(130, 0, ymax, colors='mediumblue')
