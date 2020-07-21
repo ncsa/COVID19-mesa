@@ -71,7 +71,7 @@
                 "prob_isolation_effective": 0.8
             },
             "distancing": {
-                "social_distance": 1.938,
+                "social_distance": 1.89,
                 "day_distancing_start": 16,
                 "days_distancing_lasts": 365
             },
