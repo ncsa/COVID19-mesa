@@ -9,42 +9,63 @@ import scipy.stats as sps
 import seaborn as sns
 import pandas as pd
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
 from covidmodel import CovidModel
 
 import sys
 
 feature = sys.argv[1]
-in_file__nn = sys.argv[2]
-in_file__ny = sys.argv[3]
-in_file__yn = sys.argv[4]
-in_file__yy = sys.argv[5]
-out_file = sys.argv[6]
+
+start = int(sys.argv[2])
+
+in_file = {}
+
+in_file["25"] = sys.argv[3]
+in_file["50"] = sys.argv[4]
+in_file["75"] = sys.argv[5]
+in_file["cf"] = sys.argv[6]
+out_file = sys.argv[7]
+
+cases = ["25", "50", "75", "cf"]
 
 plt.figure(figsize = (11.7, 8.27))
 plt.ticklabel_format(style='plain', axis='y')
 
 df0 = {}
 
-for scn in ["nn", "ny", "yn", "yy"]:
-    df0[scn] = pd.read_csv(in_file__nn)
+for scn in cases:
+    df0[scn] = pd.read_csv(in_file[scn])
     df0[scn]["Step"] = df0[scn]["Step"]/96
 
 df = {}
-xminl = {}
+# Used when there is
+df_temp = {}
+#xminl = start
 xmaxl = {}
 yminl = {}
 ymaxl = {}
 
-for scn in ["nn", "ny", "yn", "yy"]:
+for scn in cases:
     df[scn] = pd.DataFrame()
-    df[scn]["Step"] = df0[scn]["Step"]
-    df[scn][feature] = df0[scn][feature]
-    xminl[scn] = df[scn]["Step"].min()
+
+    if feature == "Rt":
+        for iteration in df0[scn]["Iteration"].unique():
+            df_temp[scn] = pd.DataFrame()
+            df_temp[scn]["Step"] = (df0[scn]["Step"].unique())
+            df_temp[scn]["Rt"] = gaussian_filter1d(df0[scn]["Rt"][df0[scn]["Iteration"] == iteration], 96)
+            df[scn] = df[scn].append(df_temp[scn])
+
+    else:
+        df[scn]["Step"] = df0[scn]["Step"]
+        df[scn][feature] = df0[scn][feature]
+
+    #xminl[scn] = df[scn]["Step"].min()
     xmaxl[scn] = df[scn]["Step"].max()
     yminl[scn] = df[scn][feature].min()
     ymaxl[scn] = df[scn][feature].max()
 
-xmin = min(list(xminl.values()))
+#xmin = min(list(xminl.values()))
+xmin = start
 xmax = max(list(xmaxl.values()))
 ymin = min(list(yminl.values()))
 ymax = max(list(ymaxl.values()))
@@ -56,7 +77,7 @@ low_ci_99 = {}
 high_ci_99 = {}
 df_stats = {}
 
-for scn in ["nn", "ny", "yn", "yy"]:
+for scn in cases:
     print(f"Processing case {scn}")
     avg[scn] = [] 
     low_ci_95[scn] = []
@@ -84,32 +105,40 @@ for scn in ["nn", "ny", "yn", "yy"]:
     df_stats[scn]["hci99"] = high_ci_99[scn]
 
 colpertyp = {}
-colpertyp["nn"] = "darkred"
-colpertyp["ny"] = "red"
-colpertyp["yn"] = "darkblue"
-colpertyp["yy"] = "blue"
+
+colpertyp["25"] = "darkred"
+colpertyp["50"] = "teal"
+colpertyp["75"] = "darkblue"
+colpertyp["cf"] = "purple"
 
 labpertyp = {}
-labpertyp["nn"] = "NT/NI"
-labpertyp["ny"] = "NT/WI"
-labpertyp["yn"] = "WT/NI"
-labpertyp["yy"] = "WT/WI"
+labpertyp["25"] = "25%"
+labpertyp["50"] = "50%"
+labpertyp["75"] = "75%"
+labpertyp["cf"] = "CF"
 
-fig = plt.figure()
-ax = fig.add_subplot(111)
+for scn in cases:
+    plt.plot(df_stats[scn]["Step"], df_stats[scn]["mean"], color=colpertyp[scn], linewidth=1, label=labpertyp[scn])
+    plt.fill_between(df_stats[scn]["Step"], df_stats[scn]["lci95"], df_stats[scn]["hci95"], color=colpertyp[scn], alpha=.1)
 
-ax.plot(df_stats["nn"]["Step"], df_stats["nn"]["mean"], color=colpertyp["nn"], linewidth=1, label=labpertyp["nn"])
-ax.plot(df_stats["ny"]["Step"], df_stats["ny"]["mean"], color=colpertyp["ny"], linewidth=1, label=labpertyp["ny"])
+plt.vlines(116, 0, ymax, colors='gray', linestyle=":")
+plt.vlines(130, 0, ymax, colors='gray', linestyle="-.")
+plt.vlines(136, 0, ymax, colors='gray', linestyle="--")
 
-#plt.legend()
+plt.xlim([xmin, xmax])
+plt.ylim([ymin, ymax])
+plt.xlabel("Days since April 15, 2020")
 
-#ax.fill_between(df_stats["Step"], df_stats["lci95"], df_stats["hci95"], color='red', alpha=.1)
-#ax.imshow(np.rot90(Z), cmap=plt.cm.binary, extent=[xmin, xmax, ymin, ymax], aspect="auto", interpolation="lanczos")
-#plt.xlim([xmin, xmax])
-#plt.ylim([ymin, ymax])
-#plt.xlabel("Days")
-#plt.ylabel("Population fraction")
-plt.legend(loc=2)
+if (feature == "SymptQuarantined") or (feature == "Asymptomatic") or (feature == "Severe"):
+    plt.ylabel("Population Fraction")
+elif feature == "CumulPublValue":
+    plt.ylabel("Public Value")
+elif feature == "CumulPrivValue":
+    plt.ylabel("Private Value")
+elif feature == "Rt":
+    plt.ylabel("$R(T)$")
+else:
+    plt.ylabel("variable")
 
-plt.show()
-#plt.savefig(out_file, dpi=300)
+plt.legend()
+plt.savefig(out_file, dpi=300)

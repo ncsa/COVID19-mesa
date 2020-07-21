@@ -65,7 +65,7 @@ df_stats["lci99"] = low_ci_99
 df_stats["hci99"] =     high_ci_99
 
 fig, ax = plt.subplots()
-ax.plot(df_stats["Step"], df_stats["mean"], color="red", label="$R(t)$")
+ax.plot(df_stats["Step"], df_stats["mean"], color="darkred", label="$R(t)$")
 ax.fill_between(df_stats["Step"], df_stats["lci95"], df_stats["hci95"], color='red', alpha=.1)
 ax.set_xlim([xmin, xmax])
 ax.set_ylim([xmin, ymax])
