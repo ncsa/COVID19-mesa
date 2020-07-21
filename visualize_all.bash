@@ -1,4 +1,14 @@
-#~/bin/bash
+#!/bin/bash
+
+# Santiago Nunez-Corrales and Eric Jakobsson
+# Illinois Informatics and Molecular and Cell Biology
+# University of Illinois at Urbana-Champaign
+# {nunezco,jake}@illinois.edu
+#
+# A simple tunable model for COVID-19 response
+
+# 0. Visualize the population pyramid
+python visualize_pop_pyramid.py
 
 # 1. Visualize the Rt callibration
 python visualize_rt_with_ci_calib.py outcomes/cu-current-R0-callibration.csv rt_calib.png
