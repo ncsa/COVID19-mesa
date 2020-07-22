@@ -97,6 +97,7 @@ model_params = {
     "width": data["model"]["epidemiology"]["width"],
     "height": data["model"]["epidemiology"]["height"],
     "repscaling": data["model"]["epidemiology"]["repscaling"],
+    "kmob": data["model"]["epidemiology"]["kmob"],
     "age_mortality": age_mortality,
     "sex_mortality": sex_mortality,
     "age_distribution": age_distribution,

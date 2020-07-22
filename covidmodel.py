@@ -593,14 +593,14 @@ def compute_eff_reprod_number(model):
             break
 
     avg_contacts = compute_contacts(model)
-    return 0.4781 * model.repscaling * prob_contagion * avg_contacts * model.avg_incubation
+    return model.kmob * model.repscaling * prob_contagion * avg_contacts * model.avg_incubation
 
 def compute_num_agents(model):
     return model.num_agents
 
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
-    def __init__(self, num_agents, width, height, repscaling, rate_inbound, age_mortality, 
+    def __init__(self, num_agents, width, height, kmob, repscaling, rate_inbound, age_mortality, 
                  sex_mortality, age_distribution, sex_distribution, prop_initial_infected, 
                  proportion_asymptomatic, proportion_severe, avg_incubation_time, avg_recovery_time, prob_contagion,
                  proportion_isolated, day_start_isolation, days_isolation_lasts, prob_isolation_effective, social_distance,
@@ -636,6 +636,9 @@ class CovidModel(Model):
         # Representativeness modifies the probability of contagion by the scaling factor
         self.repscaling = (np.log(repscaling)/np.log(1.96587))
         self.prob_contagion_base = prob_contagion / self.repscaling
+
+        # Mobility constant for geographic rescaling
+        self.kmob = kmob
 
         # Proportion of daily incoming infected people from other places
         self.rate_inbound = rate_inbound/self.dwell_15_day
