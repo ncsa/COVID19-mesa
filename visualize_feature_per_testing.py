@@ -15,13 +15,15 @@ from covidmodel import CovidModel
 import sys
 
 feature = sys.argv[1]
-start = int(sys.argv[2])
+start = float(sys.argv[2])
+top = float(sys.argv[3])
+bottom = float(sys.argv[4])
 in_file = {}
-in_file["25"] = sys.argv[3]
-in_file["50"] = sys.argv[4]
-in_file["75"] = sys.argv[5]
-in_file["cf"] = sys.argv[6]
-out_file = sys.argv[7]
+in_file["25"] = sys.argv[5]
+in_file["50"] = sys.argv[6]
+in_file["75"] = sys.argv[7]
+in_file["cf"] = sys.argv[8]
+out_file = sys.argv[9]
 
 cases = ["25", "50", "75", "cf"]
 
@@ -37,10 +39,7 @@ for scn in cases:
 df = {}
 # Used when there is
 df_temp = {}
-#xminl = start
 xmaxl = {}
-yminl = {}
-ymaxl = {}
 
 for scn in cases:
     df[scn] = pd.DataFrame()
@@ -56,16 +55,13 @@ for scn in cases:
         df[scn]["Step"] = df0[scn]["Step"]
         df[scn][feature] = df0[scn][feature]
 
-    #xminl[scn] = df[scn]["Step"].min()
     xmaxl[scn] = df[scn]["Step"].max()
-    yminl[scn] = df[scn][feature].min()
-    ymaxl[scn] = df[scn][feature].max()
 
 #xmin = min(list(xminl.values()))
 xmin = start
 xmax = max(list(xmaxl.values()))
-ymin = min(list(yminl.values()))
-ymax = max(list(ymaxl.values()))
+ymin = bottom
+ymax = top
 
 avg = {}
 low_ci_95 = {}
