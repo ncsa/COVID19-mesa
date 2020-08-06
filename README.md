@@ -9,6 +9,10 @@ A simple simulation to explore contagion by COVID-19 via agent-based modeling (A
 
 **This software is under development rapidly to attempt to respond to the current situation, and should be used bearing this in mind. Any scenarios for specific communities should be considered provisional at all times and revised constantly against the most recent and best curated field evidence.**
 
+Reference publication: 
+
+*Núñez-Corrales, S., & Jakobsson, E. (2020). The Epidemiology Workbench: a Tool for Communities to Strategize in Response to COVID-19 and other Infectious Diseases. [medRxiv](https://www.medrxiv.org/content/10.1101/2020.07.22.20159798v2).*
+
 ## Installation (Linux and friends)
 
 1. Clone the repository:
