@@ -113,6 +113,7 @@ model_params = {
     "proportion_isolated": data["model"]["policies"]["isolation"]["proportion_isolated"],
     "day_start_isolation": data["model"]["policies"]["isolation"]["day_start_isolation"],
     "days_isolation_lasts": data["model"]["policies"]["isolation"]["days_isolation_lasts"],
+    "after_isolation": data["model"]["policies"]["isolation"]["after_isolation"],
     "prob_isolation_effective": data["model"]["policies"]["isolation"]["prob_isolation_effective"],
     "social_distance": data["model"]["policies"]["distancing"]["social_distance"],
     "day_distancing_start": data["model"]["policies"]["distancing"]["day_distancing_start"],

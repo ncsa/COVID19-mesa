@@ -185,15 +185,25 @@ class CovidAgent(Agent):
             self.in_testing = False
 
         # Self isolation is tricker. We only isolate susceptibles, incubating and asymptomatics
-        if not(self.in_isolation) and (self.astep >= self.model.isolation_start):
-            if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
-                (self.stage == Stage.ASYMPTOMATIC):
-                if bool(bernoulli.rvs(self.model.isolation_rate)):
-                    self.isolated = True
-                else:
-                    self.isolated = False
-                self.in_isolation = True
-                
+        if not(self.in_isolation):
+            if (self.astep >= self.model.isolation_start):
+                if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
+                    (self.stage == Stage.ASYMPTOMATIC):
+                    if bool(bernoulli.rvs(self.model.isolation_rate)):
+                        self.isolated = True
+                    else:
+                        self.isolated = False
+                    self.in_isolation = True
+            elif (self.astep >= self.model.isolation_end):
+                if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
+                    (self.stage == Stage.ASYMPTOMATIC):
+                    if bool(bernoulli.rvs(self.model.after_isolation)):
+                        self.isolated = True
+                    else:
+                        self.isolated = False
+                    self.in_isolation = True
+
+                    
         # Using a similar logic, we remove isolation for all relevant agents still locked
         if self.in_isolation and (self.astep >= self.model.isolation_end):
             if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
@@ -603,7 +613,7 @@ class CovidModel(Model):
     def __init__(self, num_agents, width, height, kmob, repscaling, rate_inbound, age_mortality, 
                  sex_mortality, age_distribution, sex_distribution, prop_initial_infected, 
                  proportion_asymptomatic, proportion_severe, avg_incubation_time, avg_recovery_time, prob_contagion,
-                 proportion_isolated, day_start_isolation, days_isolation_lasts, prob_isolation_effective, social_distance,
+                 proportion_isolated, day_start_isolation, days_isolation_lasts, after_isolation, prob_isolation_effective, social_distance,
                  day_distancing_start, days_distancing_lasts, proportion_detected, day_testing_start, days_testing_lasts, 
                  new_agent_proportion, new_agent_start, new_agent_lasts, new_agent_age_mean, new_agent_prop_infected,
                  day_tracing_start, days_tracing_lasts, stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop, dummy=0):
@@ -668,6 +678,7 @@ class CovidModel(Model):
         self.isolation_rate = proportion_isolated
         self.isolation_start = day_start_isolation*self.dwell_15_day
         self.isolation_end = self.isolation_start + days_isolation_lasts*self.dwell_15_day
+        self.after_isolation = after_isolation
         self.prob_isolation_effective = prob_isolation_effective
 
         # Same for social distancing
@@ -681,6 +692,15 @@ class CovidModel(Model):
         self.new_agent_end = self.new_agent_start + new_agent_lasts*self.dwell_15_day
         self.new_agent_age_mean = new_agent_age_mean
         self.new_agent_prop_infected = new_agent_prop_infected
+
+        # Closing of various businesses
+        # TODO: at the moment, we assume that closing businesses decreases the dwell time.
+        # A more proper implementation would a) use a power law distribution for dwell times
+        # and b) assign a background of dwell times first, modifying them upwards later
+        # for all cells.
+        # Alternatively, shutting restaurants corresponds to 15% of interactions in an active day, and bars to a 7%
+        # of those interactions
+
 
         # Now, a neat python trick: generate the spacing of entries and then build a map
         times_list = list(np.linspace(self.new_agent_start, self.new_agent_end, self.new_agent_num, dtype=int))
