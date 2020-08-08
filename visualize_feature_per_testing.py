@@ -120,18 +120,20 @@ plt.vlines(136, 0, ymax, colors='gray', linestyle="--")
 
 plt.xlim([xmin, xmax])
 plt.ylim([ymin, ymax])
-plt.xlabel("Days since April 15, 2020")
+plt.xlabel("Days since April 15, 2020", fontsize=18)
+plt.xticks(fontsize=16)
+plt.yticks(fontsize=16)
+plt.legend(fontsize=16, title="Scenario", title_fontsize=18)
 
 if (feature == "SymptQuarantined") or (feature == "Asymptomatic") or (feature == "Severe"):
-    plt.ylabel("Population Fraction")
+    plt.ylabel("Population Fraction", fontsize=18)
 elif feature == "CumulPublValue":
-    plt.ylabel("Public Value")
+    plt.ylabel("Public Value", fontsize=18)
 elif feature == "CumulPrivValue":
-    plt.ylabel("Private Value")
+    plt.ylabel("Private Value", fontsize=18)
 elif feature == "Rt":
-    plt.ylabel("$R(T)$")
+    plt.ylabel("$R(T)$", fontsize=18)
 else:
-    plt.ylabel("variable")
+    plt.ylabel("variable", fontsize=18)
 
-plt.legend()
 plt.savefig(out_file, dpi=300)
