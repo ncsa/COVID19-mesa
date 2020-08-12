@@ -1,0 +1,120 @@
+{
+    "location": "Champaign-Urbana",
+    "description": "Callibration run from 0.1% to 1.0% from April 21 to July 8th",
+    "prepared-by": "Eric Jakobsson and Santiago Nunez-Corrales",
+    "date": "2020.07.15",
+    "model": {
+        "distributions": {
+            "age": {
+                "80+": 0.03,
+                "70-79": 0.04,
+                "60-69": 0.075,
+                "50-59": 0.075,
+                "40-49": 0.07,
+                "30-39": 0.125,
+                "20-29": 0.30,
+                "10-19": 0.20,
+                "00-09": 0.085
+            },
+            "sex": {
+                "male": 0.505,
+                "female": 0.495
+            }
+        },
+        "mortalities": {
+            "age": {
+                "80+": 0.4840,
+                "70-79": 0.2317,
+                "60-69": 0.1592,
+                "50-59": 0.0817,
+                "40-49": 0.0292,
+                "30-39": 0.0111,
+                "20-29": 0.0037,
+                "10-19": 0.0003,
+                "00-09": 0.0001
+            },
+            "sex": {
+                "male": 0.618,
+                "female": 0.382
+            }
+        },
+        "value": {
+            "private": {
+                "susceptible": 1.0,
+                "exposed": 1.0,
+                "asymptomatic": 1.0,
+                "sympdetected": -0.2,
+                "asympdetected": -0.2,
+                "severe": -5.0,
+                "recovered": 0.8,
+                "deceased": 0
+            },
+            "public": {
+                "susceptible": 10.0,
+                "exposed": 10.0,
+                "asymptomatic": -5.0,
+                "sympdetected": -1.0,
+                "asympdetected": -0.2,
+                "severe": -5.0,
+                "recovered": 5.0,
+                "deceased": -5
+            },
+            "test_cost": 200,
+            "alpha_private": 1.0,
+            "alpha_public": 1.0
+        },
+        "policies": {
+            "isolation": {
+                "proportion_isolated": 0.45,
+                "day_start_isolation": 0,
+                "days_isolation_lasts": 117,
+                "after_isolation": 0.22,
+                "prob_isolation_effective": 0.8
+            },
+            "distancing": {
+                "social_distance": 1.89,
+                "day_distancing_start": 16,
+                "days_distancing_lasts": 365
+            },
+            "testing": {
+                "proportion_detected": 0.5,
+                "day_testing_start": 130,
+                "days_testing_lasts": 11,
+                "tracing": true
+            },
+            "tracing" :{
+                "day_tracing_start": 0,
+                "days_tracing_lasts": 365
+            },
+            "massingress": {
+                "new_agent_proportion": 0.3,
+                "new_agent_start": 116,
+                "new_agent_lasts": 14,
+                "new_agent_age_mean": 2,
+                "new_agent_prop_infected": 0.02
+            }
+        },
+        "epidemiology": {
+            "num_agents": 1000,
+            "width": 190,
+            "height": 225,
+            "repscaling": 100,
+            "kmob": 0.4781,
+            "rate_inbound": 0.0002,
+            "prop_initial_infected": 0.001,
+            "avg_incubation_time": 6,
+            "avg_recovery_time": 10,
+            "proportion_asymptomatic": 0.35,
+            "proportion_severe": 0.05,
+            "prob_contagion": 0.004,
+            "proportion_beds_pop": 0.001
+        }
+    },
+    "ensemble": {
+        "steps": 14688,
+        "runs": 30
+    },
+    "output": {
+        "prefix": "outcomes/cu-50-nisol-phs3-long.csv"
+    }
+}
