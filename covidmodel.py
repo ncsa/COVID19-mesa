@@ -644,7 +644,11 @@ class CovidModel(Model):
         # Presupposes a person centered on a 1.8 meter radius square.
         # We use a proxy value to account for social distancing.
         # Representativeness modifies the probability of contagion by the scaling factor
-        self.repscaling = (np.log(repscaling)/np.log(1.96587))
+        if repscaling < 2:
+            self.repscaling = 1
+        else:
+            self.repscaling = (np.log(repscaling)/np.log(1.96587))
+        
         self.prob_contagion_base = prob_contagion / self.repscaling
 
         # Mobility constant for geographic rescaling

@@ -195,6 +195,7 @@ model_params = {
     "height": 50,
     "repscaling": 1,
     "kmob": 1,
+    "after_isolation": 0.1,
     "age_mortality": cr_age_mortality,
     "sex_mortality": cr_sex_mortality,
     "age_distribution": cr_age_distribution,
@@ -231,7 +232,7 @@ model_params = {
 }
 
 server = ModularServer(CovidModel,
-                       [grid,chart,chart_epidemiology, chart_number],
+                       [grid,chart,chart_epidemiology, chart_number, chart_public_value],
                        "COVID-19 epidemiological and economic model",
                        model_params
                        )
