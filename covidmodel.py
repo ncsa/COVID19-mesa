@@ -595,15 +595,42 @@ def compute_traced(model):
 
 def compute_eff_reprod_number(model):
     prob_contagion = 0.0
+    
+    # Adding logic to better compute R(t)
+    exposed = 0.0
+    asymptomatics = 0.0
+    symptomatics = 0.0
+    
+    exp_time = 0.0
+    asympt_time = 0.0
+    sympt_time = 0.0
 
     for agent in model.schedule.agents:
-        if (agent.stage == Stage.SUSCEPTIBLE) or (agent.stage == Stage.EXPOSED) or \
-            (agent.stage == Stage.ASYMPTOMATIC):
+        if agent.stage == Stage.SUSCEPTIBLE:
+            exposed = exposed + 1
+            exp_time = exp_time + agent.incubation_time
             prob_contagion = agent.prob_contagion
-            break
+        elif agent.stage == Stage.SYMPDETECTED:
+            # NOTE: this part needs to be adapted to model hospital transmission in further detail
+            symptomatics = symptomatics + 1
+            sympt_time = sympt_time + agent.incubation_time
+            prob_contagion = agent.prob_contagion
+        elif agent.state == Stage.ASYMPTOMATIC:
+            asymptomatics = asymptomatics + 1
+            asympt_time = asympt_time + agent.incubation_time + agent.recovery_time
+            prob_contagion = agent.prob_contagion
+        else:
+            continue
+
+    total = exposed + symptomatics + asymptomatics
+
+    if total != 0:
+        infectious_period = (exposed/total)*exp_time + (symptomatics/total)*sympt_time + (asymptomatics/total)*asympt_time
+    else:
+        infectious_period = 0
 
     avg_contacts = compute_contacts(model)
-    return model.kmob * model.repscaling * prob_contagion * avg_contacts * model.avg_incubation
+    return model.kmob * model.repscaling * prob_contagion * avg_contacts * infectious_period
 
 def compute_num_agents(model):
     return model.num_agents
