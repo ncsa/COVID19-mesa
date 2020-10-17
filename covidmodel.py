@@ -615,7 +615,7 @@ def compute_eff_reprod_number(model):
             symptomatics = symptomatics + 1
             sympt_time = sympt_time + agent.incubation_time
             prob_contagion = agent.prob_contagion
-        elif agent.state == Stage.ASYMPTOMATIC:
+        elif agent.stage == Stage.ASYMPTOMATIC:
             asymptomatics = asymptomatics + 1
             asympt_time = asympt_time + agent.incubation_time + agent.recovery_time
             prob_contagion = agent.prob_contagion
