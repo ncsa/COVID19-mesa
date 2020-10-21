@@ -606,7 +606,7 @@ def compute_eff_reprod_number(model):
     sympt_time = 0.0
 
     for agent in model.schedule.agents:
-        if agent.stage == Stage.SUSCEPTIBLE:
+        if agent.stage == Stage.EXPOSED:
             exposed = exposed + 1
             exp_time = exp_time + agent.incubation_time
             prob_contagion = agent.prob_contagion
@@ -624,8 +624,20 @@ def compute_eff_reprod_number(model):
 
     total = exposed + symptomatics + asymptomatics
 
+    # Compute partial contributions
+    times = []
+
+    if exposed != 0:
+        times.append(exp_time/exposed)
+
+    if symptomatics != 0:
+        times.append(sympt_time/symptomatics)
+
+    if asymptomatics != 0:
+        times.append(asympt_time/symptomatics)
+
     if total != 0:
-        infectious_period = (exposed/total)*exp_time + (symptomatics/total)*sympt_time + (asymptomatics/total)*asympt_time
+        infectious_period = np.mean(times)
     else:
         infectious_period = 0
 
