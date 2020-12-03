@@ -354,11 +354,12 @@ class CovidAgent(Agent):
                 self.stage = Stage.ASYMPDETECTED
                 self.tested = True
             else:
-                if self.curr_recovery < self.recovery_time:
-                    if not(self.isolated):
-                        self.move()
-                else:
+                if self.curr_recovery >= self.recovery_time:
                     self.stage = Stage.RECOVERED
+                    
+                if not(self.isolated):
+                    self.move()
+                    
         elif self.stage == Stage.SYMPDETECTED:
             # Once a symptomatic patient has been detected, it does not move and starts
             # the road to severity, recovery or death. We assume that, by reaching a health
