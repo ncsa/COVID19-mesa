@@ -101,6 +101,7 @@ The following individuals have contributed directly and indirectly to rapid deve
 
 * [Tomas de Camino Beck (ULead)](https://cr.linkedin.com/in/tomas-de-camino-beck-ph-d-a64887102), epidemiology and modeling
 * [Tom Pike (Mesa/GMU)](https://github.com/tpike3), Mesa support and Python multiprocessing
+* [Mark Isken (MIS/Oakland State University)](http://www.sba.oakland.edu/faculty/isken/), Model development, testing and application
 * [Rajesh Venkatachalapathy (Portland State University)](https://www.linkedin.com/in/rajesh-venkatachalapathy-8931b1115), agent-based modeling (SPEC)
 * [Srikanth Mudigonda (Saint Louis University)](https://www.slu.edu/online/contact-us/faculty/srikanth-mudigonda.php), agent-based modeling (SPEC)
 * [Milton Friesen (Cardus, U Waterloo)](https://www.cardus.ca/who-we-are/our-team/mfriesen/), agent-based modeling (SPEC)
