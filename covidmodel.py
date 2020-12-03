@@ -302,24 +302,33 @@ class CovidAgent(Agent):
                 self.cumul_private_value = self.cumul_private_value + 0
                 self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.EXPOSED]
 
+            # Assignment is less expensive than comparison
+            do_move = True
+
             # If testing is available and the date is reached, test
             if not(self.tested or self.tested_traced) and bernoulli.rvs(self.test_chance):
                 if bernoulli.rvs(self.model.prob_asymptomatic):
                     self.stage = Stage.ASYMPDETECTED
                 else:
                     self.stage = Stage.SYMPDETECTED
+                    do_move = False
                 
                 self.tested = True
             else:
                 if self.curr_incubation < self.incubation_time:
                     self.curr_incubation = self.curr_incubation + 1
-                    if not(self.isolated):
-                        self.move()
                 else:
                     if bernoulli.rvs(self.model.prob_asymptomatic):
                         self.stage = Stage.ASYMPTOMATIC
                     else:
                         self.stage = Stage.SYMPDETECTED
+                        do_move = False
+
+            # Now, attempt to move
+            if do_move and not(self.isolated):
+                self.move()
+            
+            # Perform the move once the condition has been determined
         elif self.stage == Stage.ASYMPTOMATIC:
             # Asymptomayic patients only roam around, spreading the
             # disease, ASYMPDETECTEDimmune system
