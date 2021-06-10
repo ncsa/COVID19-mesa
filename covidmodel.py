@@ -43,10 +43,14 @@ class SexGroup(Enum):
     FEMALE = 2
 
 
-class ValueGroup(Enum):
+class IOMatrixGroup(Enum):
     PRIVATE = 1
-    PUBLIC = 2 
+    PUBLIC = 2
 
+class IOEconomics(Enum):
+    ALPHAPRIVATE = 1
+    ALPHAPUBLIC = 2
+    TESTCOST = 3
 
 class CovidAgent(Agent):
     """ An agent representing a potential covid case"""
@@ -236,15 +240,15 @@ class CovidAgent(Agent):
             # Isolated people should only be contagious if they do not follow proper
             # shelter-at-home measures
             for c in cellmates:
-                    if c.is_contagious():
-                        c.add_contact_trace(self)
-                        if self.isolated and bernoulli.rvs(1 - self.model.prob_isolation_effective):
-                            self.isolated_but_inefficient = True
-                            infected_contact = True
-                            break
-                        else:
-                            infected_contact = True
-                            break        
+                if c.is_contagious():
+                    c.add_contact_trace(self)
+                    if self.isolated and bernoulli.rvs(1 - self.model.prob_isolation_effective):
+                        self.isolated_but_inefficient = True
+                        infected_contact = True
+                        break
+                    else:
+                        infected_contact = True
+                        break        
             
             # Value is computed before infected stage happens
             isolation_private_divider = 1
@@ -257,12 +261,12 @@ class CovidAgent(Agent):
 
 
                 self.cumul_private_value = self.cumul_private_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.SUSCEPTIBLE])*isolation_private_divider
+                    ((len(cellmates) - 1) * self.model.stage_value_dist[IOMatrixGroup.PRIVATE][Stage.SUSCEPTIBLE])*isolation_private_divider
                 self.cumul_public_value = self.cumul_public_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SUSCEPTIBLE])*isolation_public_divider
+                    ((len(cellmates) - 1) * self.model.stage_value_dist[IOMatrixGroup.PUBLIC][Stage.SUSCEPTIBLE])*isolation_public_divider
             else:
                 self.cumul_private_value = self.cumul_private_value + 0
-                self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SUSCEPTIBLE]
+                self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[IOMatrixGroup.PUBLIC][Stage.SUSCEPTIBLE]
 
             if infected_contact:
                 if self.isolated:
@@ -295,12 +299,12 @@ class CovidAgent(Agent):
                     isolation_public_divider = 0.01
                 
                 self.cumul_private_value = self.cumul_private_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.EXPOSED])*isolation_private_divider
+                    ((len(cellmates) - 1) * self.model.stage_value_dist[IOMatrixGroup.PRIVATE][Stage.EXPOSED])*isolation_private_divider
                 self.cumul_public_value = self.cumul_public_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.EXPOSED])*isolation_public_divider
+                    ((len(cellmates) - 1) * self.model.stage_value_dist[IOMatrixGroup.PUBLIC][Stage.EXPOSED])*isolation_public_divider
             else:
                 self.cumul_private_value = self.cumul_private_value + 0
-                self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.EXPOSED]
+                self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[IOMatrixGroup.PUBLIC][Stage.EXPOSED]
 
             # Assignment is less expensive than comparison
             do_move = True
@@ -343,12 +347,12 @@ class CovidAgent(Agent):
                     isolation_public_divider = 0.01
                 
                     self.cumul_private_value = self.cumul_private_value + \
-                        ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.ASYMPTOMATIC])*isolation_private_divider
+                        ((len(cellmates) - 1) * self.model.stage_value_dist[IOMatrixGroup.PRIVATE][Stage.ASYMPTOMATIC])*isolation_private_divider
                     self.cumul_public_value = self.cumul_public_value + \
-                        ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPTOMATIC])*isolation_public_divider
+                        ((len(cellmates) - 1) * self.model.stage_value_dist[IOMatrixGroup.PUBLIC][Stage.ASYMPTOMATIC])*isolation_public_divider
                 else:
                     self.cumul_private_value = self.cumul_private_value + 0
-                    self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPTOMATIC]
+                    self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[IOMatrixGroup.PUBLIC][Stage.ASYMPTOMATIC]
 
             if not(self.tested or self.tested_traced) and bernoulli.rvs(self.test_chance):
                 self.stage = Stage.ASYMPDETECTED
@@ -379,9 +383,9 @@ class CovidAgent(Agent):
                     self.tracing_counter = self.tracing_counter + 1
             
             self.cumul_private_value = self.cumul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.SYMPDETECTED]
+                self.model.stage_value_dist[IOMatrixGroup.PRIVATE][Stage.SYMPDETECTED]
             self.cumul_public_value = self.cumul_public_value + \
-                self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SYMPDETECTED]
+                self.model.stage_value_dist[IOMatrixGroup.PUBLIC][Stage.SYMPDETECTED]
 
             if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
                 self.curr_recovery = self.curr_recovery + 1
@@ -405,9 +409,9 @@ class CovidAgent(Agent):
                     self.tracing_counter = self.tracing_counter + 1
 
             self.cumul_private_value = self.cumul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.ASYMPDETECTED]
+                self.model.stage_value_dist[IOMatrixGroup.PRIVATE][Stage.ASYMPDETECTED]
             self.cumul_public_value = self.cumul_public_value + \
-                self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPDETECTED]
+                self.model.stage_value_dist[IOMatrixGroup.PUBLIC][Stage.ASYMPDETECTED]
 
             # The road of an asymptomatic patients is similar without the prospect of death
             if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
@@ -416,9 +420,9 @@ class CovidAgent(Agent):
                 self.stage = Stage.RECOVERED
         elif self.stage == Stage.SEVERE:            
             self.cumul_private_value = self.cumul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.SEVERE]
+                self.model.stage_value_dist[IOMatrixGroup.PRIVATE][Stage.SEVERE]
             self.cumul_public_value = self.cumul_public_value + \
-                self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SEVERE]
+                self.model.stage_value_dist[IOMatrixGroup.PUBLIC][Stage.SEVERE]
 
             # Severe patients are in ICU facilities
             if self.curr_recovery < self.recovery_time:
@@ -445,12 +449,12 @@ class CovidAgent(Agent):
                     isolation_public_divider = 0.01
 
                 self.cumul_private_value = self.cumul_private_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.RECOVERED])*isolation_private_divider
+                    ((len(cellmates) - 1) * self.model.stage_value_dist[IOMatrixGroup.PRIVATE][Stage.RECOVERED])*isolation_private_divider
                 self.cumul_public_value = self.cumul_public_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.RECOVERED])*isolation_public_divider
+                    ((len(cellmates) - 1) * self.model.stage_value_dist[IOMatrixGroup.PUBLIC][Stage.RECOVERED])*isolation_public_divider
             else:
                 self.cumul_private_value = self.cumul_private_value + 0
-                self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.RECOVERED]
+                self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[IOMatrixGroup.PUBLIC][Stage.RECOVERED]
 
             # A recovered agent can now move freely within the grid again
             self.curr_recovery = 0
@@ -459,9 +463,9 @@ class CovidAgent(Agent):
             self.move()
         elif self.stage == Stage.DECEASED:
             self.cumul_private_value = self.cumul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.DECEASED]
+                self.model.stage_value_dist[IOMatrixGroup.PRIVATE][Stage.DECEASED]
             self.cumul_public_value = self.cumul_public_value + \
-                self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.DECEASED]
+                self.model.stage_value_dist[IOMatrixGroup.PUBLIC][Stage.DECEASED]
         else:
             # If we are here, there is a problem 
             sys.exit("Unknown stage: aborting.")
@@ -659,63 +663,49 @@ def compute_num_agents(model):
 
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
-    def __init__(self, num_agents, width, height, kmob, repscaling, rate_inbound, age_mortality, 
-                 sex_mortality, age_distribution, sex_distribution, prop_initial_infected, 
-                 proportion_asymptomatic, proportion_severe, avg_incubation_time, avg_recovery_time, prob_contagion,
-                 proportion_isolated, day_start_isolation, days_isolation_lasts, after_isolation, prob_isolation_effective, social_distance,
-                 day_distancing_start, days_distancing_lasts, proportion_detected, day_testing_start, days_testing_lasts, 
-                 new_agent_proportion, new_agent_start, new_agent_lasts, new_agent_age_mean, new_agent_prop_infected,
-                 day_tracing_start, days_tracing_lasts, stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop, dummy=0):
+    def __init__(self, age_mortality, sex_mortality, age_distribution, sex_distribution, epidemiology, policies, io_matrix, io_economics, dummy=0):
         self.running = True
-        self.num_agents = num_agents
-        self.grid = MultiGrid(width, height, True)
         self.schedule = RandomActivation(self)
+        self.stepno = 0
+       
+        # Initialization of distributions
         self.age_mortality = age_mortality
         self.sex_mortality = sex_mortality
         self.age_distribution = age_distribution
         self.sex_distribution = sex_distribution
-        self.stage_value_dist = stage_value_matrix
-        self.test_cost = test_cost
-        self.stepno = 0
-        self.alpha_private = alpha_private
-        self.alpha_public = alpha_public
-
-        # Number of 15 minute dwelling times per day
+    
+        # Dwell times per day and average number of them per agent
         self.dwell_15_day = 96
+    
+        # Epidemiology-driven parameters
+        self.num_agents = epidemiology["num_agents"]
+        self.grid = MultiGrid(epidemiology["width"], epidemiology["height"], True)
+        self.avg_incubation = int(round(epidemiology["avg_incubation_time"] * self.dwell_15_day))
 
-        # Average dwelling units
-        self.avg_dwell = 4
-
-        # The average incubation period is 5 days, which can be changed
-        self.avg_incubation = int(round(avg_incubation_time * self.dwell_15_day))
-
-        # Probability of contagion after exposure in the same cell
-        # Presupposes a person centered on a 1.8 meter radius square.
-        # We use a proxy value to account for social distancing.
-        # Representativeness modifies the probability of contagion by the scaling factor
-        if repscaling < 2:
+        if epidemiology["repscaling"] < 2:
             self.repscaling = 1
         else:
-            self.repscaling = (np.log(repscaling)/np.log(1.96587))
+            self.repscaling = (np.log(epidemiology["repscaling"])/np.log(1.96587))
         
-        self.prob_contagion_base = prob_contagion / self.repscaling
+        self.prob_contagion_base = epidemiology["prob_contagion"] / self.repscaling
+        self.kmob = epidemiology["kmob"]
+        self.avg_dwell = epidemiology["avg_dwell"]
+        self.rate_inbound = epidemiology["rate_inbound"]/self.dwell_15_day
+        self.prob_asymptomatic = epidemiology["proportion_asymptomatic"]
+        self.avg_recovery = epidemiology["avg_recovery_time"] * self.dwell_15_day
+        self.prob_severe = epidemiology["proportion_severe"]
+        self.max_beds_available = self.num_agents * epidemiology["proportion_beds_pop"]
+        self.num_init = int(self.num_agents * epidemiology["prop_initial_infected"])
 
-        # Mobility constant for geographic rescaling
-        self.kmob = kmob
-
-        # Proportion of daily incoming infected people from other places
-        self.rate_inbound = rate_inbound/self.dwell_15_day
-
-        # Probability of contagion due to residual droplets: TODO
-        self.prob_contagion_places = 0.001
-
-        # Probability of being asymptomatic, contagious
-        # and only detectable by testing
-        self.prob_asymptomatic = proportion_asymptomatic
-
-        # Average recovery time
-        self.avg_recovery = avg_recovery_time * self.dwell_15_day
-
+        # Economic model
+        self.test_cost = io_economics["test_cost"]
+        self.alpha_private = io_economics["alpha_private"]
+        self.alpha_public = io_economics["alpha_public"]
+        
+        # Handling of measures. We index every measure by its moment in time when it is expected to be triggered.
+        self.measures = {}
+        self.index_policies(policies, self.measures)
+                
         # Proportion of detection. We use the rate as reference and
         # activate testing at the rate and specified dates
         self.testing_rate = proportion_detected/(days_testing_lasts  * self.dwell_15_day)
@@ -746,24 +736,9 @@ class CovidModel(Model):
         self.new_agent_age_mean = new_agent_age_mean
         self.new_agent_prop_infected = new_agent_prop_infected
 
-        # Closing of various businesses
-        # TODO: at the moment, we assume that closing businesses decreases the dwell time.
-        # A more proper implementation would a) use a power law distribution for dwell times
-        # and b) assign a background of dwell times first, modifying them upwards later
-        # for all cells.
-        # Alternatively, shutting restaurants corresponds to 15% of interactions in an active day, and bars to a 7%
-        # of those interactions
-
-
         # Now, a neat python trick: generate the spacing of entries and then build a map
         times_list = list(np.linspace(self.new_agent_start, self.new_agent_end, self.new_agent_num, dtype=int))
         self.new_agent_time_map = {x:times_list.count(x) for x in times_list}
-
-        # Probability of severity
-        self.prob_severe = proportion_severe
-
-        # Number of beds where saturation limit occurs
-        self.max_beds_available = self.num_agents * proportion_beds_pop
 
         # Create agents
         self.i = 0
@@ -805,11 +780,9 @@ class CovidModel(Model):
             }
         )
 
-        # Final step: infect an initial proportion of random agents
-        num_init = int(self.num_agents * prop_initial_infected)
-        
+        # Final step: infect an initial proportion of random agents  
         for a in self.schedule.agents:
-            if num_init < 0:
+            if self.num_init < 0:
                 break
             else:
                 a.stage = Stage.EXPOSED
@@ -863,3 +836,21 @@ class CovidModel(Model):
         
         self.schedule.step()
         self.stepno = self.stepno + 1
+
+    def index_policies(self, policies, index):
+        pass
+
+    def apply_measure(self, measure):
+        pass
+    
+    def __dispatch_isolation_change(self, measure):
+        pass
+    
+    def __dispatch_distancing_change(self, measure):
+        pass
+    
+    def __dispatch_testing_change(self, measure):
+        pass
+    
+    def __dispatch_tracing_change(self, measure):
+        pass

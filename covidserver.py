@@ -13,7 +13,7 @@ from covidmodel import CovidModel
 from covidmodel import Stage
 from covidmodel import AgeGroup
 from covidmodel import SexGroup
-from covidmodel import ValueGroup
+from covidmodel import IOMatrixGroup
 
 # Specific model data
 
@@ -56,7 +56,7 @@ cr_sex_distribution = {
 
 # Value distribution per stage per interaction (micro vs macroeconomics)
 cr_value_distibution = {
-    ValueGroup.PRIVATE: {
+    IOMatrixGroup.PRIVATE: {
         Stage.SUSCEPTIBLE: 1.0,
         Stage.EXPOSED: 1.0,
         Stage.SYMPDETECTED: -0.2,
@@ -66,7 +66,7 @@ cr_value_distibution = {
         Stage.RECOVERED: 0.8,
         Stage.DECEASED: 0
     },
-    ValueGroup.PUBLIC: {
+    IOMatrixGroup.PUBLIC: {
         Stage.SUSCEPTIBLE: 10.0,
         Stage.EXPOSED: 10.0,
         Stage.SYMPDETECTED: -5.0,

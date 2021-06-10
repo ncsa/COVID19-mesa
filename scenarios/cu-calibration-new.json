@@ -75,6 +75,16 @@
                 }
             },
             {
+                "type": "isolation",
+                "when": 60,
+                "params": {
+                    "proportion_isolated": 0.0,
+                    "day_start_isolation": 0,
+                    "days_isolation_lasts": 365,
+                    "prob_isolation_effective": 0.8
+                }
+            },
+            {
                 "type": "distancing",
                 "when": 16,
                 "params": {
@@ -103,6 +113,14 @@
                     "new_agent_prop_infected": 0.02
                 }
             }
+            ,
+            {
+                "type": "vaccination",
+                "when": 365,
+                "params": {
+                    "vaccination_proportion": 0.4
+                }
+            }
         ],
         "epidemiology": {
             "num_agents": 1000,
@@ -110,14 +128,18 @@
             "height": 225,
             "repscaling": 100,
             "kmob": 0.4781,
+            "avg_dwell": 4,
             "rate_inbound": 0.0002,
             "prop_initial_infected": 0.001,
             "avg_incubation_time": 6,
             "avg_recovery_time": 10,
             "proportion_asymptomatic": 0.35,
             "proportion_severe": 0.05,
-            "prob_contagion": 0.004,
-            "proportion_beds_pop": 0.001
+            "prob_contagion": 0.04,
+            "proportion_beds_pop": 0.001,
+            "vaccination_params": {
+                
+            }
         }
     },
     "ensemble": {
