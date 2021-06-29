@@ -47,7 +47,7 @@
                 "asympdetected": -0.2,
                 "severe": -5.0,
                 "recovered": 0.8,
-                "deceased": 0
+                "deceased": 0,
             },
             "public": {
                 "susceptible": 10.0,
@@ -61,13 +61,14 @@
             },
             "test_cost": 200,
             "alpha_private": 1.0,
-            "alpha_public": 1.0
+            "alpha_public": 1.0,
         },
         "policies": {
             "isolation": {
                 "proportion_isolated": 0.45,
                 "day_start_isolation": 0,
                 "days_isolation_lasts": 365,
+                "after_isolation": 10,
                 "prob_isolation_effective": 0.8
             },
             "distancing": {
@@ -85,11 +86,18 @@
                 "days_tracing_lasts": 365
             },
             "massingress": {
-                "new_agent_proportion": 0.3,
-                "new_agent_start": 365,
-                "new_agent_lasts": 365,
-                "new_agent_age_mean": 2,
-                "new_agent_prop_infected": 0.02
+              "new_agent_proportion": 0.3,
+              "new_agent_start": 365,
+              "new_agent_lasts": 365,
+              "new_agent_age_mean": 2,
+              "new_agent_prop_infected": 0.02
+            },
+            "vaccine_rollout": {
+              "day_vaccination_begin": 5,
+              "day_vaccination_end": 100,
+              "effective_period": 10,
+              "effectiveness": 0.95,
+              "distribution_rate":4
             }
         },
         "epidemiology": {
@@ -112,7 +120,7 @@
         "steps": 3840,
         "runs": 30
     },
-    "output": {
-        "prefix": "outcomes/cu-current-R0-callibration"
-    }
+  "output": {
+    "prefix": "outcomes/cu-current-R0-callibration"
+  }
 }

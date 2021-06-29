@@ -132,6 +132,11 @@ model_params = {
     "test_cost": data["model"]["value"]["test_cost"],
     "alpha_private": data["model"]["value"]["alpha_private"],
     "alpha_public": data["model"]["value"]["alpha_public"],
+    "day_vaccination_begin": data["model"]["policies"]["vaccine_rollout"]["day_vaccination_begin"],
+    "day_vaccination_end": data["model"]["policies"]["vaccine_rollout"]["day_vaccination_end"],
+    "effective_period": data["model"]["policies"]["vaccine_rollout"]["effective_period"],
+    "effectiveness": data["model"]["policies"]["vaccine_rollout"]["effectiveness"],
+    "distribution_rate": data["model"]["policies"]["vaccine_rollout"]["distribution_rate"]
 }
 
 var_params = {"dummy": range(25,50,25)}

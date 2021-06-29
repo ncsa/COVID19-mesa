@@ -83,8 +83,10 @@ def agent_portrayal(agent):
                  "Filled": "true",
                  "Layer": 0,
                  "r": 0.5}
-
-    if agent.stage == Stage.SUSCEPTIBLE:
+    if agent.vaccinated:
+        portrayal["Color"] = "lime"
+        portrayal["Layer"] = 0
+    elif agent.stage == Stage.SUSCEPTIBLE:
         portrayal["Color"] = "blue"
         portrayal["Layer"] = 0
     elif agent.stage == Stage.EXPOSED:
@@ -117,7 +119,7 @@ def agent_portrayal(agent):
 
     return portrayal
 
-grid = CanvasGrid(agent_portrayal, 50, 50, 400, 400)
+grid = CanvasGrid(agent_portrayal, 50, 50, 800, 800)
 
 chart = ChartModule([{"Label": "Susceptible",
                       "Color": "Blue"},
@@ -137,8 +139,57 @@ chart = ChartModule([{"Label": "Susceptible",
                       "Color": "Black"},
                       {"Label": "Isolated",
                       "Color": "Gray"},
-                      ],
+                     {"Label": "Vaccinated",
+                      "Color": "Gold"}
+                     ],
                     data_collector_name='datacollector')
+
+
+vaccinated_chart = ChartModule([{"Label": "V_Susceptible",
+                      "Color": "Blue"},
+                      {"Label": "V_Exposed",
+                      "Color": "Red"},
+                      {"Label": "V_Asymptomatic",
+                      "Color": "Brown"},
+                      {"Label": "V_SymptQuarantined",
+                      "Color": "Yellow"},
+                      {"Label": "V_AsymptQuarantined",
+                      "Color": "Cyan"},
+                      {"Label": "V_Recovered",
+                      "Color": "Green"},
+                      {"Label": "V_Severe",
+                      "Color": "Magenta"},
+                      {"Label": "V_Deceased",
+                      "Color": "Black"},
+                      {"Label": "V",
+                      "Color": "Lime"}
+                     ],
+                    data_collector_name='vaccinedatacollector')
+
+vaccinated_age_chart = ChartModule([{"Label": "C00to09",
+                      "Color": "Blue"},
+                      {"Label": "C10to19",
+                      "Color": "Red"},
+                      {"Label": "C20to29",
+                      "Color": "Brown"},
+                      {"Label": "C30to39",
+                      "Color": "Yellow"},
+                      {"Label": "C40to49",
+                      "Color": "Cyan"},
+                      {"Label": "C50to59",
+                      "Color": "Green"},
+                      {"Label": "C60to69",
+                      "Color": "Magenta"},
+                      {"Label": "C70to79",
+                      "Color": "Black"},
+                      {"Label": "C80toXX",
+                      "Color": "Gray"},
+                      {"Label": "V",
+                      "Color": "Lime"}
+                     ],
+                    data_collector_name='vaccineagegroupdatacollector')
+
+
 
 chart_personal_value = ChartModule([{"Label": "CumulPrivValue",
                       "Color": "Black"}
@@ -188,6 +239,12 @@ chart_tested = ChartModule([
                       ],
                     data_collector_name='datacollector'
 )
+chart_vaccines = ChartModule([
+                      {"Label": "Vaccines",
+                      "Color": "Green"},
+                    ],
+                    data_collector_name='datacollector'
+)
 
 model_params = {
     "num_agents": 240,
@@ -229,10 +286,15 @@ model_params = {
     "test_cost": 200,
     "alpha_private": UserSettableParameter("slider", "Personal value amplifier", 1.0, 0.0, 2.0, 0.1),
     "alpha_public": UserSettableParameter("slider", "Public value amplifier", 1.0, 0.0, 2.0, 0.1),
+    "day_vaccination_begin": UserSettableParameter("slider", "day_vaccination_begin", 5, 0, 100, 1),
+    "day_vaccination_end": UserSettableParameter("slider", "day_vaccination_end", 40, 300, 2000, 1),
+    "effective_period": UserSettableParameter("slider", "effective_period", 10, 10, 365, 5),
+    "effectiveness": UserSettableParameter("slider", "effectiveness", 0.9, 0.0, 1.0, 0.01),
+    "distribution_rate": UserSettableParameter("slider", "distribution rate", 20, 0, 100, 1)
 }
 
 server = ModularServer(CovidModel,
-                       [grid,chart,chart_epidemiology, chart_number, chart_public_value],
+                       [grid,chart,chart_epidemiology,vaccinated_chart,vaccinated_age_chart],
                        "COVID-19 epidemiological and economic model",
                        model_params
                        )
