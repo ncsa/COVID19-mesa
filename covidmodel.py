@@ -180,7 +180,6 @@ class CovidAgent(Agent):
 
     def should_be_vaccinated(self):
         if self.general_vaccination_chance():
-
             if self.age_group == AgeGroup.C80toXX and self.model.vaccination_stage == VaccinationStage.C80toXX:
                 update_vaccination_stage(self.model)
                 return True
@@ -253,11 +252,14 @@ class CovidAgent(Agent):
         #Will process based on whether all older agents in an older group are vaccinated
         if not(self.vaccinated) and self.model.vaccinating_now:
             if self.should_be_vaccinated() and self.model.vaccine_count > 0:
-                self.vaccinated = True
-                self.vaccination_day = self.model.stepno
-                self.safetymultiplier = 1 - self.model.effectiveness
-                self.model.vaccine_count = self.model.vaccine_count - 1
-                self.model.vaccinated_count = self.model.vaccinated_count + 1
+                if not (bernoulli.rvs(0.01)):  # Chance that someone doesnt show up for the vaccine/ vaccine expires.
+                    self.vaccinated = True
+                    self.vaccination_day = self.model.stepno
+                    self.safetymultiplier = 1 - self.model.effectiveness
+                    self.model.vaccine_count = self.model.vaccine_count - 1
+                    self.model.vaccinated_count = self.model.vaccinated_count + 1
+                else:
+                    self.model.vaccine_count = self.model.vaccine_count - 1
 
 
         # Self isolation is tricker. We only isolate susceptibles, incubating and asymptomatics
@@ -625,7 +627,7 @@ def compute_deceased(model):
 
 
 def V_compute_susceptible(model):
-    return V_count_type(model, Stage.EXPOSED )
+    return V_count_type(model, Stage.SUSCEPTIBLE)
 
 def V_compute_incubating(model):
     return V_count_type(model, Stage.EXPOSED)
@@ -776,6 +778,13 @@ def compute_age_group_count(model,agegroup):
             count = count + 1
     return count
 
+def compute_eligible_age_group_count(model,agegroup):
+    count = 0
+    for agent in model.schedule.agents:
+        if agent.age_group == agegroup and (agent.stage == Stage.SUSCEPTIBLE or agent.stage == Stage.EXPOSED or agent.stage == Stage.ASYMPTOMATIC):
+            count = count + 1
+    return count
+
 
 def compute_vaccinated_in_groupAgeGroupC00to09(model):
     vaccinated_count = 0
@@ -843,21 +852,21 @@ def compute_vaccinated_in_groupAgeGroupC80toXX(model):
 
 def update_vaccination_stage(model):
     initial_stage = model.vaccination_stage
-    if compute_vaccinated_in_group(model, AgeGroup.C80toXX) >= compute_age_group_count(model, AgeGroup.C80toXX):
+    if compute_vaccinated_in_group(model, AgeGroup.C80toXX) >= compute_eligible_age_group_count(model, AgeGroup.C80toXX):
         model.vaccination_stage = VaccinationStage.C70to79
-        if compute_vaccinated_in_group(model, AgeGroup.C70to79) >= compute_age_group_count(model, AgeGroup.C70to79):
+        if compute_vaccinated_in_group(model, AgeGroup.C70to79) >= compute_eligible_age_group_count(model, AgeGroup.C70to79):
             model.vaccination_stage = VaccinationStage.C60to69
-            if compute_vaccinated_in_group(model, AgeGroup.C60to69) >= compute_age_group_count(model, AgeGroup.C60to69):
+            if compute_vaccinated_in_group(model, AgeGroup.C60to69) >= compute_eligible_age_group_count(model, AgeGroup.C60to69):
                 model.vaccination_stage = VaccinationStage.C50to59
-                if compute_vaccinated_in_group(model, AgeGroup.C50to59) >= compute_age_group_count(model, AgeGroup.C50to59):
+                if compute_vaccinated_in_group(model, AgeGroup.C50to59) >= compute_eligible_age_group_count(model, AgeGroup.C50to59):
                     model.vaccination_stage = VaccinationStage.C40to49
-                    if compute_vaccinated_in_group(model, AgeGroup.C40to49) >= compute_age_group_count(model, AgeGroup.C40to49):
+                    if compute_vaccinated_in_group(model, AgeGroup.C40to49) >= compute_eligible_age_group_count(model, AgeGroup.C40to49):
                         model.vaccination_stage = VaccinationStage.C30to39
-                        if compute_vaccinated_in_group(model, AgeGroup.C30to39) >= compute_age_group_count(model, AgeGroup.C30to39):
+                        if compute_vaccinated_in_group(model, AgeGroup.C30to39) >= compute_eligible_age_group_count(model, AgeGroup.C30to39):
                             model.vaccination_stage = VaccinationStage.C20to29
-                            if compute_vaccinated_in_group(model, AgeGroup.C20to29) >= compute_age_group_count(model, AgeGroup.C20to29):
+                            if compute_vaccinated_in_group(model, AgeGroup.C20to29) >= compute_eligible_age_group_count(model, AgeGroup.C20to29):
                                 model.vaccination_stage = VaccinationStage.C10to19
-                                if compute_vaccinated_in_group(model, AgeGroup.C10to19) >= compute_age_group_count(model,
+                                if compute_vaccinated_in_group(model, AgeGroup.C10to19) >= compute_eligible_age_group_count(model,
                                                                                                           AgeGroup.C10to19):
                                     model.vaccination_stage = VaccinationStage.C00to09
     else:
@@ -972,7 +981,7 @@ class CovidModel(Model):
             self.vaccination_chance = 0.5
 
         # Number of 15 minute dwelling times per day
-        self.dwell_15_day = 24
+        self.dwell_15_day = 96
 
         # Average dwelling units
         self.avg_dwell = 4
@@ -1105,7 +1114,7 @@ class CovidModel(Model):
             model_reporters={
                 "Step": compute_stepno,
                 "V": compute_vaccinated_count,
-                "V_Succeptible": V_compute_susceptible,
+                "V_Susceptible": V_compute_susceptible,
                 "V_Exposed": V_compute_incubating,
                 "V_Asymptomatic": V_compute_asymptomatic,
                 "V_SymptQuarantined": V_compute_symptdetected,
