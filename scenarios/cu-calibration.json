@@ -97,7 +97,8 @@
               "day_vaccination_end": 100,
               "effective_period": 10,
               "effectiveness": 0.95,
-              "distribution_rate":4
+              "distribution_rate":4,
+              "cost_per_vaccine":200
             }
         },
         "epidemiology": {

@@ -20,6 +20,7 @@ import sys
 num_procs = int(sys.argv[1])
 file_params = sys.argv[2]
 
+
 # Read JSON file
 with open(file_params) as f:
   data = json.load(f)
@@ -136,7 +137,8 @@ model_params = {
     "day_vaccination_end": data["model"]["policies"]["vaccine_rollout"]["day_vaccination_end"],
     "effective_period": data["model"]["policies"]["vaccine_rollout"]["effective_period"],
     "effectiveness": data["model"]["policies"]["vaccine_rollout"]["effectiveness"],
-    "distribution_rate": data["model"]["policies"]["vaccine_rollout"]["distribution_rate"]
+    "distribution_rate": data["model"]["policies"]["vaccine_rollout"]["distribution_rate"],
+    "cost_per_vaccine":data["model"]["policies"]["vaccine_rollout"]["cost_per_vaccine"]
 }
 
 var_params = {"dummy": range(25,50,25)}
@@ -152,7 +154,7 @@ if __name__ == "__main__":
         nr_processes=num_procs,
         fixed_parameters=model_params,
         variable_parameters=var_params,
-        iterations=num_iterations,
+        iterations=num_procs,
         max_steps=num_steps,
         model_reporters={
                     "Step": compute_stepno,

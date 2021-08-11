@@ -1,0 +1,8 @@
+python model_runner.py 10 scenarios/vaccination_scenarios/Test_B/cu-vaccination-test-1000-stdM.json
+python model_runner.py 10 scenarios/vaccination_scenarios/Test_B/cu-vaccination-test-1000-heavyM.json
+python visualize_feature_with_ci.py Test_B outcomes/vaccination_outputs/Test_B/cu-vaccination-test-1000-stdM.csv visualization/Test_B/cu-vaccination-test-1000-stdM.png
+python visualize_feature_with_ci.py Test_B outcomes/vaccination_outputs/Test_B/cu-vaccination-test-1000-heavyM.csv visualization/Test_B/cu-vaccination-test-1000-heavyM.png
+python model_runner.py 10 scenarios/vaccination_scenarios/Test_B/cu-vaccination-test-2000-heavyM.json
+python visualize_feature_with_ci.py Test_B outcomes/vaccination_outputs/Test_B/cu-vaccination-test-2000-heavyM.csv visualization/Test_Bcu-vaccination-test-2000-heavyM.png
+python model_runner.py 10 scenarios/vaccination_scenarios/Test_B/cu-vaccination-test-2000-heavyM.json
+python visualize_feature_with_ci.py Test_B outcomes/vaccination_outputs/Test_B/cu-vaccination-test-2000-heavyM.csv visualization/Test_B/cu-vaccination-test-2000-heavyM.png

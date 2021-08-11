@@ -1,0 +1,18 @@
+{
+  "location": "Champaign-Urbana",
+  "description": "COVID19-variant data",
+  "prepared-by": "Angelo Santos",
+  "date": "2020.07.15",
+  "variant": {
+    "Standard": {
+      "Name": "Standard",
+      "Appearance": 1000,
+      "Contagtion_Multiplier": 1,
+      "Vaccine_Multiplier": 1,
+      "Asymtpomatic_Multiplier": 1,
+      "Mortality_Multiplier": 1,
+      "Reinfection": false
+    }
+  }
+}
+

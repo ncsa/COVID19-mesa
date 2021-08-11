@@ -1,0 +1,89 @@
+Conventions for scenario naming
+cu - Champaign-Urbana
+vaccination-test -> Test Type
+#### -> number of agents
+
+
+stdM -> Standard Model:
+	Parameters:
+	    "rate_inbound": 0.0002,
+	    "prop_initial_infected": 0.004,
+            "avg_incubation_time": 3,
+            "avg_recovery_time": 11,
+            "proportion_asymptomatic": 0.35,
+            "proportion_severe": 0.08,
+            "prob_contagion": 0.009,
+            "proportion_beds_pop": 0.001
+
+
+heavyM -> Heavy Model:
+	Parameters:
+	    "rate_inbound": 0.0004,
+	    "prop_initial_infected": 0.006,
+            "avg_incubation_time": 3,
+            "avg_recovery_time": 11,
+            "proportion_asymptomatic": 0.25,
+            "proportion_severe": 0.12,
+            "prob_contagion": 0.0130,
+            "proportion_beds_pop": 0.001
+
+
+All models have testing implemented on Day 14
+Would be cool to run the model multiple times with variable parameters for cost to vaccinate and test. 
+Eg, a town has $1,000,000 how does it effectively use the money to prevent deaths.
+
+	||||||||Each Test is run through stdM and heavyM conventions||||||| 
+Test A:
+Vaccination Rollout Happens rapidly and is effective.
+	"vaccine_rollout": {
+              "day_vaccination_begin": 60,
+              "day_vaccination_end": 700,
+              "effective_period": 10,
+              "effectiveness": 0.95,
+              "distribution_rate":8
+              "cost_per_vaccine":400
+            }
+
+Test B:
+Vaccination Rollout Happens rapidly but is not as effective
+	"vaccine_rollout": {
+              "day_vaccination_begin": 60,
+              "day_vaccination_end": 700,
+              "effective_period": 10,
+              "effectiveness": 0.55,
+              "distribution_rate":8
+              "cost_per_vaccine":200
+            }
+
+Test C:
+Vaccination Rollout Happens slowly but is effective.
+	"vaccine_rollout": {
+              "day_vaccination_begin": 300,
+              "day_vaccination_end": 700,
+              "effective_period": 10,
+              "effectiveness": 0.95,
+              "distribution_rate":8
+              "cost_per_vaccine":200
+            }
+
+Test D:
+Vaccination Rollout never occurs
+	"vaccine_rollout": {
+              "day_vaccination_begin": 700,
+              "day_vaccination_end": 700,
+              "effective_period": 10,
+              "effectiveness": 0.00,
+              "distribution_rate":0
+              "cost_per_vaccine":0
+            }
+
+Test E:
+Vaccination Rollout happens slowly and is effective but little are available.
+	"vaccine_rollout": {
+              "day_vaccination_begin": 300,
+              "day_vaccination_end": 700,
+              "effective_period": 2,
+              "effectiveness": 0.95,
+              "distribution_rate":5
+              "cost_per_vaccine":200
+            }

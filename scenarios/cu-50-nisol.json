@@ -68,6 +68,7 @@
                 "proportion_isolated": 0.45,
                 "day_start_isolation": 0,
                 "days_isolation_lasts": 117,
+                "after_isolation": 10,
                 "prob_isolation_effective": 0.8
             },
             "distancing": {
@@ -91,6 +92,13 @@
                 "new_agent_lasts": 14,
                 "new_agent_age_mean": 2,
                 "new_agent_prop_infected": 0.02
+            },
+            "vaccine_rollout": {
+              "day_vaccination_begin": 5,
+              "day_vaccination_end": 100,
+              "effective_period": 10,
+              "effectiveness": 0.95,
+              "distribution_rate":4
             }
         },
         "epidemiology": {

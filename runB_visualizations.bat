@@ -1,0 +1,4 @@
+py visualize_agent_status_group.py outcomes/Vaccination_Test_2/Test_A
+py visualize_vaccination_age_group.py outcomes/Vaccination_Test_2/Test_A
+py visualize_deceased_group.py outcomes/Vaccination_Test_2/Test_A
+py visualize_severe_group.py outcomes/Vaccination_Test_2/Test_A
