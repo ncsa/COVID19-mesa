@@ -4,7 +4,6 @@
 
 *Eric Jakobsson, Molecular and Cell Biology and NCSA, UIUC (jake@illinois.edu)*
 
-
 A simple simulation to explore contagion by COVID-19 via agent-based modeling (ABM), as well as potential effectiveness of various measures.
 
 **This software is under development rapidly to attempt to respond to the current situation, and should be used bearing this in mind. Any scenarios for specific communities should be considered provisional at all times and revised constantly against the most recent and best curated field evidence.**

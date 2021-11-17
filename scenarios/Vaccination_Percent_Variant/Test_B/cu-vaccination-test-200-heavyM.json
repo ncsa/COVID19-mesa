@@ -76,53 +76,54 @@
                 "day_distancing_start": 16,
                 "days_distancing_lasts": 365
             },
-            "testing": {
-                "proportion_detected": 0.2,
-                "day_testing_start": 130,
-                "days_testing_lasts": 500,
-                "tracing": true
-            },
-            "tracing" :{
-                "day_tracing_start": 0,
-                "days_tracing_lasts": 365
-            },
+          "testing": {
+            "proportion_detected": 0.2,
+            "day_testing_start": 28,
+            "days_testing_lasts": 500,
+            "tracing": true
+          },
+          "tracing": {
+            "day_tracing_start": 100,
+            "days_tracing_lasts": 700
+          },
             "massingress": {
                 "new_agent_proportion": 0.3,
-                "new_agent_start": 116,
+                "new_agent_start": 1000,
                 "new_agent_lasts": 14,
                 "new_agent_age_mean": 2,
                 "new_agent_prop_infected": 0.02
             },
-            "vaccine_rollout": {
-              "day_vaccination_begin": 2,
-              "day_vaccination_end": 700,
-              "effective_period": 10,
-              "effectiveness": 0.80,
-              "distribution_rate":20,
-              "cost_per_vaccine":200
-            }
+          "vaccine_rollout": {
+            "day_vaccination_begin": 30,
+            "day_vaccination_end": 700,
+            "effective_period": 10,
+            "effectiveness": 0.5,
+            "distribution_rate": 2,
+            "cost_per_vaccine": 400,
+            "vaccination_percent": 0.5
+          }
         },
-        "epidemiology": {
-            "num_agents": 2000,
-            "width": 190,
-            "height": 225,
-            "repscaling": 100,
-            "kmob": 0.4781,
-            "rate_inbound": 0.0002,
-            "prop_initial_infected": 0.2,
-            "avg_incubation_time": 6,
-            "avg_recovery_time": 10,
-            "proportion_asymptomatic": 0.35,
-            "proportion_severe": 0.08,
-            "prob_contagion": 0.0085,
-            "proportion_beds_pop": 0.001
-        }
-    },
+      "epidemiology": {
+        "num_agents": 200,
+        "width": 55,
+        "height": 55,
+        "repscaling": 1,
+        "kmob": 0.4781,
+        "rate_inbound": 0.01,
+        "prop_initial_infected": 0.01,
+        "avg_incubation_time": 5,
+        "avg_recovery_time": 14,
+        "proportion_asymptomatic": 0.3,
+        "proportion_severe": 0.12,
+        "prob_contagion": 0.018,
+        "proportion_beds_pop": 0.01
+      }
+      },
     "ensemble": {
-        "steps": 1000,
-        "runs": 2
+        "steps": 50000,
+        "runs": 10
     },
-    "output": {
-        "prefix": "outcomes/Debugging/Test_Runtime/cu-vaccination-test-lowrun_B"
-    }
+  "output": {
+    "prefix": "outcomes/Vaccination_Percentage_Variant/Test_B/cu-vaccination-test-200-heavyM"
+  }
 }

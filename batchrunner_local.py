@@ -12,6 +12,7 @@ import pandas as pd
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 import os
+import multiprocessing
 
 import random
 
@@ -156,10 +157,11 @@ class FixedBatchRunner:
                     pbar.update()
 
     @staticmethod
-    def run_wrapper(iter_args):
+    def run_wrapper(iter_args, return_dict):
         model_i = iter_args[0]
         kwargs = iter_args[1]
         max_steps = iter_args[2]
+        # iter_args[1].update({'iteration': iter_args[3]})
         iteration = iter_args[3]
 
         def run_iteration(model_i, kwargs, max_steps, iteration):
@@ -168,16 +170,16 @@ class FixedBatchRunner:
             while model.running and model.schedule.steps < max_steps:
                 model.step()
 
-            #add iteration number to dictionary to make unique_key
-            kwargs["iteration"] = iteration
+            dfs = []
+            for data in model.data_lists:
+                dfs.append(model.data_coll)
+            return_dict[iteration] = [model.retrieve_model_Data(), model.retrieve_agent_Data()]
+            # if model.datacollector:
+            #     return model.datacollector.get_model_vars_dataframe()
+            # else:
+            #     return kwargs, "no datacollector in model"
 
-
-            if model.datacollector:
-                return kwargs, model.datacollector.get_model_vars_dataframe()
-            else:
-                return kwargs, "no datacollector in model"
-
-        return run_iteration(model_i, kwargs, max_steps, iteration)
+        run_iteration(model_i, kwargs, max_steps, iteration)
 
 
     def run_model(self, model):
@@ -408,6 +410,7 @@ class BatchRunnerMP(BatchRunner):
         super().__init__(model_cls, **kwargs)
         self.pool = Pool(self.processes)
 
+
     def run_all(self):
         """
         Run the model at all parameter combinations and store results,
@@ -418,6 +421,7 @@ class BatchRunnerMP(BatchRunner):
         # register the process pool and init a queue
         #results = []
         results = {}
+
         #with tqdm(total_iterations, disable=not self.display_progress) as pbar:
             #for i, kwargs in enumerate(all_kwargs):
             #    param_values = all_param_values[i]
@@ -425,12 +429,27 @@ class BatchRunnerMP(BatchRunner):
                     # make a new process and add it to the queue
             #with self.pool as p:
         if self.processes > 1:
-            for params, model_data in self.pool.imap_unordered(self.run_wrapper, run_iter_args):
-                results[str(params)] = model_data
+            #Boots to the ground multiprocessing, if you believe the pool is more efficient then omit all of these changes.
+            #I just had an issue on Windows 10 where if I tried using a nested multiprocess (i.e running different types of scenarios in parallel)
+            manager = multiprocessing.Manager()
+            return_dict = manager.dict()
+            processes = []
+            for parameter in run_iter_args:
+                process = multiprocessing.Process(target=self.run_wrapper, args=(parameter,return_dict))
+                process.start()
+                processes.append(process)
+
+            for process in processes:
+                process.join()
+
+            results = return_dict
+            # for params, model_data in self.pool.imap_unordered(self.run_wrapper, run_iter_args):
+            #     results[str(params)] = model_data
+
         #For debugging model due to difficulty of getting errors during multiprocessing
         else:
             for run in run_iter_args:
-                params, model_data = self.run_wrapper(run)
+                model_data, agent_data = self.run_wrapper(run)
                 #params, model_data = self.run_wrapper(run)
                 #no need for a dictionary since one set of results
                 results[str(params)] = model_data

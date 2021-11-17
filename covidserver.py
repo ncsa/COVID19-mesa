@@ -132,7 +132,9 @@ def agent_portrayal(agent):
 
 grid = CanvasGrid(agent_portrayal, 50, 50, 800, 800)
 
-chart = ChartModule([{"Label": "SUSCEPTIBLE",
+chart = ChartModule([{"Label": "N",
+                      "Color": "Darkblue"},
+                      {"Label": "SUSCEPTIBLE",
                       "Color": "Blue"},
                       {"Label": "EXPOSED",
                       "Color": "Red"},
@@ -151,7 +153,9 @@ chart = ChartModule([{"Label": "SUSCEPTIBLE",
                       {"Label": "Isolated",
                       "Color": "Gray"},
                      {"Label": "Vaccinated",
-                      "Color": "Gold"}
+                      "Color": "Gold"},
+                     {"Label": "Vaccine_Willing",
+                      "Color": "Lime"}
                      ],
                     data_collector_name='datacollector')
 
@@ -387,6 +391,7 @@ model_params = {
     "effectiveness": UserSettableParameter("slider", "effectiveness", 0.9, 0.0, 1.0, 0.01),
     "distribution_rate": UserSettableParameter("slider", "distribution rate", 20, 0, 100, 1),
     "cost_per_vaccine": UserSettableParameter("slider", "cost_per_vaccine", 200, 10, 1000, 10),
+    "vaccination_percent": UserSettableParameter("slider", "vaccination_percent", 0.5, 0, 1, 0.01),
     "variant_data": virus_param_list
 }
 server = ModularServer(CovidModel,

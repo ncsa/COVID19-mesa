@@ -44,7 +44,7 @@ for file_params in filenames_list:
 indexes = [range(len(data_list))]
 virus_data = json.load(virus_data_file)
 
-def runModelScenario(data,index,contagtion):
+def runModelScenario(data,index,v_percent):
 
     print(f"Location: { data['location'] }")
     print(f"Description: { data['description'] }")
@@ -52,7 +52,7 @@ def runModelScenario(data,index,contagtion):
     print(f"Date: { data['date'] }")
     print("")
     print("Attempting to configure model from file...")
-    print (contagtion)
+    print (v_percent)
     # Observed distribution of mortality rate per age
     age_mortality = {
         AgeGroup.C80toXX: data["model"]["mortalities"]["age"]["80+"],
@@ -130,7 +130,7 @@ def runModelScenario(data,index,contagtion):
         "avg_recovery_time": data["model"]["epidemiology"]["avg_recovery_time"],
         "proportion_asymptomatic": data["model"]["epidemiology"]["proportion_asymptomatic"],
         "proportion_severe": data["model"]["epidemiology"]["proportion_asymptomatic"],
-        "prob_contagion": contagtion,
+        "prob_contagion": data["model"]["epidemiology"]["prob_contagion"],
         "proportion_beds_pop": data["model"]["epidemiology"]["proportion_beds_pop"],
         "proportion_isolated": data["model"]["policies"]["isolation"]["proportion_isolated"],
         "day_start_isolation": data["model"]["policies"]["isolation"]["day_start_isolation"],
@@ -159,7 +159,8 @@ def runModelScenario(data,index,contagtion):
         "effective_period": data["model"]["policies"]["vaccine_rollout"]["effective_period"],
         "effectiveness": data["model"]["policies"]["vaccine_rollout"]["effectiveness"],
         "distribution_rate": data["model"]["policies"]["vaccine_rollout"]["distribution_rate"],
-        "cost_per_vaccine":data["model"]["policies"]["vaccine_rollout"]["cost_per_vaccine"]
+        "cost_per_vaccine":data["model"]["policies"]["vaccine_rollout"]["cost_per_vaccine"],
+        "vaccination_percent": v_percent
     }
     virus_param_list = []
     for virus in virus_data["variant"]:
@@ -210,18 +211,18 @@ def runModelScenario(data,index,contagtion):
     file_out = data["output"]["prefix"]
 
     dfs = pd.concat(ldfs)
-    dfs.to_csv(file_out + str(contagtion) + ".csv")
+    dfs.to_csv(file_out + str(v_percent) + ".csv")
     print(f"Simulation {index} completed without errors.")
 
 
 if __name__ == '__main__':
     processes = []
     for index,data in enumerate(data_list):
-        for i in range(-2,8,1):
+        for i in range(-4,4,1):
 
-            contagtion = data["model"]["epidemiology"]["prob_contagion"] + i/(500)
-            print(f"i: {i}  contagtion: {contagtion}")
-            p = multiprocessing.Process(target=runModelScenario, args=[data, index,contagtion])
+            v_percent = data["model"]["policies"]["vaccine_rollout"]["vaccination_percent"] + i/(10)
+            print(f"i: {i}  vaccination_percent: {v_percent}")
+            p = multiprocessing.Process(target=runModelScenario, args=[data, index,v_percent])
             p.start()
             processes.append(p)
 

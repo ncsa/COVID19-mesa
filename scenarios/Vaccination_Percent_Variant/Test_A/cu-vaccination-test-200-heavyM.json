@@ -99,7 +99,8 @@
         "effective_period": 10,
         "effectiveness": 0.95,
         "distribution_rate": 2,
-        "cost_per_vaccine": 400
+        "cost_per_vaccine": 400,
+        "vaccination_percent": 0.5
       }
     },
     "epidemiology": {
@@ -123,6 +124,6 @@
         "runs": 10
     },
   "output": {
-    "prefix": "outcomes/Vaccination_Test_3/Test_A/cu-vaccination-test-200-heavyM"
+    "prefix": "outcomes/Vaccination_Percentage_Variant/Test_A/cu-vaccination-test-200-heavyM"
   }
 }

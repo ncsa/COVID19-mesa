@@ -6,13 +6,13 @@
 # A simple tunable model for COVID-19 response
 from batchrunner_local import BatchRunnerMP
 from multiprocessing import freeze_support
-from covidmodel import CovidModel
-from covidmodel import CovidModel
-from covidmodel import Stage
-from covidmodel import AgeGroup
-from covidmodel import SexGroup
-from covidmodel import ValueGroup
-from covidmodel import *
+from covidmodelcheckpoint import CovidModel
+from covidmodelcheckpoint import CovidModel
+from covidmodelcheckpoint import Stage
+from covidmodelcheckpoint import AgeGroup
+from covidmodelcheckpoint import SexGroup
+from covidmodelcheckpoint import ValueGroup
+from covidmodelcheckpoint import *
 import pandas as pd
 import json
 import sys
@@ -20,31 +20,13 @@ import concurrent.futures
 import multiprocessing
 import os
 import glob
+import timeit
+import re
 
 
 
-directory_list = []
-filenames_list = []
-virus_data_file = open(str(sys.argv[1]))
-for argument in sys.argv[2:]:
-    directory_list.append(argument)
+def runModelScenario(data, index,virus_data):
 
-for directory in directory_list:
-    file_list = glob.glob(f"{directory}/*.json")
-    for file in file_list:
-        filenames_list.append(file)
-
-# Read JSON file
-data_list = []
-for file_params in filenames_list:
-    with open(file_params) as f:
-        data = json.load(f)
-        data_list.append(data)
-
-indexes = [range(len(data_list))]
-virus_data = json.load(virus_data_file)
-
-def runModelScenario(data,index):
     print(f"Location: { data['location'] }")
     print(f"Description: { data['description'] }")
     print(f"Prepared by: { data['prepared-by'] }")
@@ -158,7 +140,15 @@ def runModelScenario(data,index):
         "effectiveness": data["model"]["policies"]["vaccine_rollout"]["effectiveness"],
         "distribution_rate": data["model"]["policies"]["vaccine_rollout"]["distribution_rate"],
         "cost_per_vaccine":data["model"]["policies"]["vaccine_rollout"]["cost_per_vaccine"],
-        "vaccination_percent": data["model"]["policies"]["vaccine_rollout"]["vaccination_percent"]
+        "vaccination_percent": data["model"]["policies"]["vaccine_rollout"]["vaccination_percent"],
+        "step_count": data["ensemble"]["steps"],
+        "load_from_file": data["model"]["initialization"]["load_from_file"],
+        "loading_file_path": data["model"]["initialization"]["loading_file_path"],
+        "starting_step": data["model"]["initialization"]["starting_step"],
+        "agent_storage": data["output"]["agent_storage"],
+        "model_storage": data["output"]["model_storage"],
+        "agent_increment":  data["output"]["agent_increment"],
+        "model_increment":  data["output"]["model_increment"]
     }
     virus_param_list = []
     for virus in virus_data["variant"]:
@@ -174,7 +164,7 @@ def runModelScenario(data,index):
         nr_processes=num_iterations,
         fixed_parameters=model_params,
         variable_parameters=var_params,
-        iterations=num_iterations,
+        iterations= num_iterations,
         max_steps=num_steps,
         model_reporters={
                     "Step": compute_stepno,
@@ -185,39 +175,112 @@ def runModelScenario(data,index):
                     "Employed": compute_employed,
                     "Unemployed": compute_unemployed
                 },
+        agent_reporters={},
         display_progress=True)
 
     print("Parametrization complete:")
     print("")
-    print(f"Running file {filenames_list[index]}")
     print("")
-    print(f"Executing an ensemble of size {num_iterations} using {num_steps} steps with {num_iterations} machine cores...")
-    cm_runs = batch_run.run_all()
+    print(f"Executing an ensemble of size {num_iterations} using {num_steps} steps with {num_iterations} machine cores for agents...")
 
+    cm_runs = batch_run.run_all()
     print("")
     print("Saving results to file...")
 
-    ldfs = []
-    i = 0
+    model_ldfs = []
+    agent_ldfs = []
 
+
+    time_A = timeit.default_timer()
+    i = 0
     for cm in cm_runs.values():
-        cm["Iteration"] = i
-        ldfs.append(cm)
+        cm[0]["Iteration"] = i
+        cm[1]["Iteration"] = i
+        model_ldfs.append(cm[0])
+        agent_ldfs.append(cm[1])
         i = i + 1
 
-    file_out = data["output"]["prefix"]
+    model_dfs = pd.concat(model_ldfs)
+    agent_dfs = pd.concat(agent_ldfs)
+    model_save_file = data["output"]["model_save_file"]
+    agent_save_file = data["output"]["agent_save_file"]
 
-    dfs = pd.concat(ldfs)
-    dfs.to_csv(file_out + ".csv")
-    print(f"Simulation {index} completed without errors.")
+    #TODO-create the nomenclature for the nature of the save file for both model and agent data. (Very important for organizing test runs for different policy evaluations)
+    model_dfs.to_csv(model_save_file)
+    agent_dfs.to_csv(agent_save_file)
+    time_B = timeit.default_timer()
+    return (time_B - time_A)
+
+
+    #The model_data and agent_data can now be saved into seperate locations and is determined by ->
+    # if(data["model"]["initialization"]["load_from_file"]):
+    #     path = data["model"]["initialization"]["loading_file_path"]
+    #     print(path)
+    #     iteration = path.replace(".csv", "")
+    #     iteration = int(iteration[len(iteration)-1])
+    #     path = path.replace(".csv", str(iteration+1)+ ".csv" )
+    #     dfs.to_csv(path)
+    #     print(f"Saved file to {path}")
+    # else:
+    #     dfs.to_csv(file_out_A)
+    #
+    #
+    # print(f"Simulation {index} completed without errors.")
 
 
 if __name__ == '__main__':
-    processes = []
-    for index,data in enumerate(data_list):
-        p = multiprocessing.Process(target=runModelScenario, args=[data, index])
-        p.start()
-        processes.append(p)
+    directory_list = []
+    filenames_list = []
+    begin = int(sys.argv[1])
+    end = int(sys.argv[2])
+    print(sys.argv[4:])
+    print(begin, end)
+    virus_data_file = open(str(sys.argv[3]))
+    for argument in sys.argv[4:]:
+        directory_list.append(str(argument))
 
-    for process in processes:
+    for directory in directory_list:
+        file_list = glob.glob(f"{directory}/*.json")
+        for file in file_list:
+            filenames_list.append(file)
+    # Read JSON file
+    data_list = []
+    name = ""
+    for file_params in filenames_list:
+        with open(file_params) as f:
+            data = json.load(f)
+            data_list.append(data)
+
+    indexes = [range(len(data_list))]
+    virus_data = json.load(virus_data_file)
+
+    total_iterations = 0
+    parameters = []
+    for index, data in enumerate(data_list):
+        parameter = []
+        total_iterations += data["ensemble"]["runs"]
+        parameter.append(data)
+        parameter.append(index)
+        parameter.append(virus_data)
+        parameters.append(parameter)
+
+    manager = multiprocessing.Manager()
+    return_dict = manager.dict()
+    processes = []
+    for parameter in parameters:
+        process = multiprocessing.Process(target = runModelScenario, args = parameter)
+        process.start()
+        processes.append(process)
+
+    for _ in range(len(processes)):
         process.join()
+
+
+
+
+
+
+
+
+
+
