@@ -233,8 +233,10 @@ if __name__ == '__main__':
     filenames_list = []
     begin = int(sys.argv[1])
     end = int(sys.argv[2])
-    print(sys.argv[4:])
     print(begin, end)
+
+    print(sys.argv[4:])
+
     virus_data_file = open(str(sys.argv[3]))
     for argument in sys.argv[4:]:
         directory_list.append(str(argument))
@@ -252,6 +254,7 @@ if __name__ == '__main__':
             data_list.append(data)
 
     indexes = [range(len(data_list))]
+
     virus_data = json.load(virus_data_file)
 
     total_iterations = 0

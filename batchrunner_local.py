@@ -161,9 +161,8 @@ class FixedBatchRunner:
         model_i = iter_args[0]
         kwargs = iter_args[1]
         max_steps = iter_args[2]
-        # iter_args[1].update({'iteration': iter_args[3]})
+        iter_args[1].update({'iteration': iter_args[3]}) #Adds the iteration specific to my program. If this is affecting the main please email me at angelos4@illinois.edu so I dont change the original file.
         iteration = iter_args[3]
-
         def run_iteration(model_i, kwargs, max_steps, iteration):
             #instantiate version of model with correct parameters
             model = model_i(**kwargs)
@@ -171,11 +170,12 @@ class FixedBatchRunner:
                 model.step()
 
             dfs = []
-            for data in model.data_lists:
-                dfs.append(model.data_coll)
+            # for data in model.data_lists:
+            #     dfs.append(model.data_coll)
             return_dict[iteration] = [model.retrieve_model_Data(), model.retrieve_agent_Data()]
             # if model.datacollector:
             #     return model.datacollector.get_model_vars_dataframe()
+
             # else:
             #     return kwargs, "no datacollector in model"
 
@@ -448,12 +448,12 @@ class BatchRunnerMP(BatchRunner):
 
         #For debugging model due to difficulty of getting errors during multiprocessing
         else:
-            for run in run_iter_args:
-                model_data, agent_data = self.run_wrapper(run)
+            return_dict = {}
+            for parameter in run_iter_args:
+                self.run_wrapper(parameter,return_dict)
                 #params, model_data = self.run_wrapper(run)
                 #no need for a dictionary since one set of results
-                results[str(params)] = model_data
-
+        results = return_dict
         return results
 
         # empty the queue

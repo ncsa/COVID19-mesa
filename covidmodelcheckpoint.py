@@ -5,7 +5,7 @@
 
 # A simple tunable model for COVID-19 response
 import timeit
-
+import time as tim
 import mesa.batchrunner
 from mesa import Agent, Model
 from mesa.time import RandomActivation
@@ -15,6 +15,7 @@ from scipy.stats import poisson, bernoulli
 from enum import Enum
 import numpy as np
 import random
+import random
 import sys
 import psutil as psu
 import timeit as time
@@ -22,6 +23,7 @@ import os
 import pandas as pd
 from functools import partial
 import types
+from dataclasses import dataclass
 
 class Stage(Enum):
     SUSCEPTIBLE = 1
@@ -777,21 +779,33 @@ class CovidAgent(Agent):
         self.astep = self.astep + 1
 
     def move(self):
-        # If dwelling has not been exhausted, do not move
-        if self.curr_dwelling > 0:
-            self.curr_dwelling = self.curr_dwelling - 1
+        method = 1
+        if method == 0:
+            # If dwelling has not been exhausted, do not move
+            if self.curr_dwelling > 0:
+                self.curr_dwelling = self.curr_dwelling - 1
 
-        # If dwelling has been exhausted, move and replenish the dwell
-        else:
-            possible_steps = self.model.grid.get_neighborhood(
-                self.pos,
-                moore=True,
-                include_center=False
-            )
-            new_position = self.random.choice(possible_steps)
+            # If dwelling has been exhausted, move and replenish the dwell
+            else:
+                possible_steps = self.model.grid.get_neighborhood(
+                    self.pos,
+                    moore=True,
+                    include_center=False
+                )
+                new_position = self.random.choice(possible_steps)
 
-            self.model.grid.move_agent(self, new_position)
-            self.curr_dwelling = poisson.rvs(self.model.avg_dwell)
+                self.model.grid.move_agent(self, new_position)
+                self.curr_dwelling = poisson.rvs(self.model.avg_dwell)
+
+        elif method == 1:#Distinguishing the methods for agent movements by coded parameter above.
+            x ,y = self.pos
+            movement_options = self.model.grid.movement_options[x][y]
+            choice = random.choices(movement_options[0], weights=tuple(movement_options[1]), k=1)
+            choice = choice[0]
+            new_x = x + choice[0]
+            new_y = y + choice[1]
+            self.model.grid.move_agent(self, (new_x, new_y))
+
 
 
 ########################################
@@ -1145,6 +1159,150 @@ def compute_fully_vaccinated_count(model):
 def get_agent_data(agent, param_name):
     return agent.__dict__[param_name]
 
+"""Generates a matrix containing directional vectors determining movement accross the 
+    Input consists of a grid the same with dimensions (width x height) containing points with (pos,(dipole?, (vector or value)))
+    Algorithm consists of iterating through each object within the input list and generating components of each part of the grid based on their components
+"""
+
+@dataclass
+class Attraction_Item:
+    pos: tuple #(x,y)
+    dipole: bool
+    #vector: list #normalized unit
+    value: float #Magnitude
+
+def generate_random_map(width, height):
+    map = []
+    for i in range(int(100)):
+        x = random.randint(0, width-1)
+        y = random.randint(0, height-1)
+        value = random.randint(-1, 1)
+        map.append(Attraction_Item((x,y),False,value))
+    print("Map Generated")
+    return map
+
+def normalize(vector): #Normalize N-D vector. Find a library for this as well.
+    norm = np.linalg.norm(vector)
+    if norm == 0:
+        return vector
+    return vector / norm
+
+
+def find_theta(unit_vector):#Basically arctan of a vector w/r to a circle. Find in a library or something
+    if len(unit_vector) != 2:
+        raise IndexError("vector a expected to be length 2")
+    x = unit_vector[0]
+    y = unit_vector[1]
+    rad = np.arctan2(y, x)
+    degrees = np.int(rad*180/np.pi)
+    if degrees < 0:
+        degrees = 360 - degrees
+    return degrees
+
+
+
+def find_probability_2D(unit_vector):#Given a 2-D vector, find the probability of movement within a moore neighborhood of size 1.
+    """ Conditions for a probability of 1 in each tile.
+                    [[-0.5, 0.5],[0.0, 1.0],[0.5, 0.5]],
+                    [[-1.0, 0.0],[0.0, 0.0],[1.0, 0.0]],
+                    [[-0.5,-0.5],[0.0,-1.0],[0.5,-0.5]]   """
+    adjacency = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+    quarter_distance = np.sqrt(2)/2
+    theta = find_theta(unit_vector)
+    if unit_vector[0] >= 0:  # We are on the right hand side of the circle
+        if unit_vector[1] >= 0:  # We are on the upper right half of the circle
+            if unit_vector[1] >= quarter_distance:  # We are in octant 1
+                adjacency[0][1] = (theta - 1 * 45)/ 45  # P(2)
+                adjacency[0][2] = 1 - adjacency[0][1] # P(1)
+            else:  # We are in octant 0
+                adjacency[0][2] = (theta - 0 * 45) / 45 # P(1)
+                adjacency[1][2] = 1 - adjacency[0][2] # P(0)
+
+        else:  # We are on the bottom right
+            if unit_vector[0] >= quarter_distance:  # We are in octant 7
+                adjacency[1][2] = (theta - 7 * 45) / 45   # P(0)
+                adjacency[2][2] = 1 - adjacency[1][2]  # P(7)
+            else:  # We are in octant 6
+                adjacency[2][2] = (theta - 6 * 45) / 45  # P(7)
+                adjacency[2][1] = 1 - adjacency[2][2]  # P(6)
+
+    else:  # We are on the left side
+        if unit_vector[1] >= 0:  # We are on the uppper left half of the circle
+            if unit_vector[1] >= quarter_distance:  # We are in octant 2
+                adjacency[0][0] = (theta - 2 * 45) / 45   # P(3)
+                adjacency[0][1] = 1 - adjacency[0][0]  # P(2)
+            else:  # We are in octant 3
+                adjacency[1][0] = (theta - 3 * 45) / 45   # P(4)
+                adjacency[0][0] = 1 - adjacency[1][0]  # P(3)
+
+        else:  # We are on the bottom left
+            if unit_vector[1] >= (-1 * quarter_distance):  # We are in octant 4
+                adjacency[2][0] = (theta - 4 * 45) / 45  # P(5)
+                adjacency[1][0] = 1 - adjacency[2][0]  # P(4)
+            else:  # We are in octant 5
+                adjacency[2][1] = (theta - 5 * 45) / 45  # P(6)
+                adjacency[2][0] = 1 - adjacency[2][0]  # P(5)
+    return adjacency
+
+def generate_vspace(input, width, height):
+    space = []
+    for x in range(width):
+        col = []
+        for y in range(height):
+            col.append([0,0,0])#Third component being the current affinity value,  probability of keeping still relative to other vectors
+        space.append(col)
+
+    """Generating vectors"""
+    for item in input:
+        for x in range(width):
+            for y in range(height):
+                x_, y_ = item.pos
+
+                if item.dipole == False:  # If it is a unit charge
+                    if x_ != x or y_ != y:
+                        # Calculate vector between current point and the charge point for each point then normalize
+                        # Peform the charge calculation based on the value for the magnitude and multiply
+                        x_component = x_ - x
+                        y_component = y_ - y
+                        unit_vector = normalize([x_component,y_component])
+                        distance = np.abs(x_component**2) + np.abs(y_component**2)
+                        magnitude = item.value/distance
+                        vector = unit_vector * magnitude
+                        #Adding the effects of the vector with magnitude to the positional vector
+                        space[x][y][0] += vector[0]
+                        space[x][y][1] += vector[1]
+                    else:
+                        space[x][y][2] = item.value
+                if item.dipole == True:
+                    print("Not available yet")
+
+    print("Vectors Generated")
+    """Generating movement probabilities"""
+    probability_space = []
+    for x in range(width):
+        col = []
+        for y in range(height):
+            if space[x][y][2] > 0: #We are on a source or sink we have a probability of staying on the current spot
+                unit_vector = normalize(space[x][y])
+                unit_2D = normalize([unit_vector[0],unit_vector[1]])
+                direction = find_probability_2D(unit_2D)
+                stationary_chance = unit_vector[2] / (unit_vector[0] + unit_vector[1] + unit_vector[2])
+                movement_chance = 1 - stationary_chance
+                for row in direction:
+                    for unit in row:
+                        unit = unit * movement_chance
+                direction[1][1] = stationary_chance
+                col.append(direction)
+
+            else:
+                unit_vector = normalize([space[x][y][0],space[x][y][1]])
+                direction = find_probability_2D(unit_vector)
+                col.append(direction)
+        probability_space.append(col)
+    print("Probabilities Generated")
+    return probability_space
+
+
 
 class CovidModel(Model):
 
@@ -1159,14 +1317,18 @@ class CovidModel(Model):
                  day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data, step_count, load_from_file,
                  loading_file_path, starting_step, agent_storage, model_storage, agent_increment, model_increment, iteration, dummy=0):
 
-        print("Made it to the model")
         self.iteration = iteration
-        print(iteration)
         self.max_steps  = step_count
         self.running = True
         self.starting_step = starting_step
         self.num_agents = num_agents
         self.grid = MultiGrid(width, height, True)
+        #Testing the effect of adding a vector space to the grid
+        #Generate map based on random input or systematic fashion to study the effect of a pandemic with known initial conditions.
+        map = generate_random_map(width, height)
+        self.vspace = generate_vspace(map, self.grid.width, self.grid.height)#Generating the vector space following the dimensions of the grid
+        self.grid.apply_vspace(self.vspace)
+
         self.schedule = RandomActivation(self)
         self.age_mortality = age_mortality
         self.sex_mortality = sex_mortality
@@ -1206,7 +1368,7 @@ class CovidModel(Model):
         self.effectiveness = effectiveness
         self.distribution_rate = distribution_rate
         self.vaccine_count = 0 #Stores the total number of vaccines available within the model.
-        self.vaccinated_count = 0 #Stores the number of 1'st dose agents within the model. TODO clarify what this is (Where it is updated).
+        self.vaccinated_count = 0 #Stores the number of 1'st dose agents within the model.
         self.vaccination_percent = vaccination_percent #Percent of vaccine willing agents.
 
         # Keeps track of how many doses of the vaccine are required
@@ -1425,7 +1587,6 @@ class CovidModel(Model):
                 if (param_name == 'model'):
                     continue
                 value = get_agent_data(agent,param_name)
-                print(param_name, ":::::::", value, "::::::::", type(value))
 
 
         #DECLARING ALL MODEL REPORTERS.
@@ -1511,11 +1672,17 @@ class CovidModel(Model):
         model_reporters_dict.update(variant_data_collection_dict)
         model_reporters_dict.update(prices_dict)
 
+        self.datacollector = None
+
+
         self.model_reporters = model_reporters_dict
         self.model_vars = {}
         if(self.model_storage > 0): #We don't consider the ModelReporters method if were not tracking all the data across every step. And we create the equivalent here.
             for name, reporter in self.model_reporters.items():
                 self.model_vars[name] = []
+
+        elif(self.model_storage == - 1):#Special case to use the traditional datacollector
+            self.datacollector = DataCollector(model_reporters=model_reporters_dict)
 
         #For storing agent data we dont use ModelReporters at all, so we will have to do it ourselves when we reach the step(model). So we just initialize the reporters here
         self.agent_reporters = {}
@@ -1549,7 +1716,6 @@ class CovidModel(Model):
         return pd.DataFrame(self.agent_vars)
 
     def step(self):
-
         #Collecting the data using the DataCollector() method in mesa and timing it for runtime analysis.
         data_time_A = timeit.default_timer()
 

@@ -10,11 +10,11 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.UserParam import UserSettableParameter
 import sys
 import json
-from covidmodel import CovidModel
-from covidmodel import Stage
-from covidmodel import AgeGroup
-from covidmodel import SexGroup
-from covidmodel import ValueGroup
+from covidmodelcheckpoint import CovidModel
+from covidmodelcheckpoint import Stage
+from covidmodelcheckpoint import AgeGroup
+from covidmodelcheckpoint import SexGroup
+from covidmodelcheckpoint import ValueGroup
 
 # Specific model data
 
@@ -92,45 +92,59 @@ cr_value_distibution = {
 def agent_portrayal(agent):
     portrayal = {"Shape": "circle",
                  "Filled": "true",
-                 "Layer": 0,
+                 "Layer": 1,
                  "r": 0.5}
     if agent.vaccinated:
         portrayal["Color"] = "lime"
-        portrayal["Layer"] = 0
+        portrayal["Layer"] = 1
     elif agent.stage == Stage.SUSCEPTIBLE:
         portrayal["Color"] = "blue"
-        portrayal["Layer"] = 0
+        portrayal["Layer"] = 1
     elif agent.stage == Stage.EXPOSED:
         portrayal["Color"] = "red"
-        portrayal["Layer"] = 0
+        portrayal["Layer"] = 1
     elif agent.stage == Stage.ASYMPTOMATIC:
         portrayal["Color"] = "brown"
-        portrayal["Layer"] = 0
+        portrayal["Layer"] = 1
     elif agent.stage == Stage.SYMPDETECTED:
         portrayal["Color"] = "yellow"
-        portrayal["Layer"] = 0
+        portrayal["Layer"] = 1
     elif agent.stage == Stage.ASYMPDETECTED:
         portrayal["Color"] = "cyan"
-        portrayal["Layer"] = 0
+        portrayal["Layer"] = 1
     elif agent.stage == Stage.SEVERE:
         portrayal["Color"] = "magenta"
-        portrayal["Layer"] = 0
+        portrayal["Layer"] = 1
     elif agent.stage == Stage.RECOVERED:
         portrayal["Color"] = "green"
-        portrayal["Layer"] = 0
+        portrayal["Layer"] = 1
     elif agent.stage == Stage.DECEASED:
         portrayal["Color"] = "black"
-        portrayal["Layer"] = 0
+        portrayal["Layer"] = 1
     elif agent.locked:
         portrayal["Color"] = "gray"
-        portrayal["Layer"] = 0
+        portrayal["Layer"] = 1
     else:
         portrayal["Color"] = "gray"
-        portrayal["Layer"] = 0
+        portrayal["Layer"] = 1
 
     return portrayal
 
-grid = CanvasGrid(agent_portrayal,None, 50, 50, 800, 800)
+def space_portrayal(options):
+    portrayal = {"Shape": "square",
+                 "Filled": "true",
+                 "Layer": 0,
+                 "r": 0.98}
+    if len(options) > 2:
+        portrayal["Color"] = "white"
+        portrayal["Layer"] = 0
+    else:
+        portrayal["Color"] = "black"
+        portrayal["Layer"] = 0
+
+
+
+grid = CanvasGrid(agent_portrayal, None , 50, 50, 800, 800)
 
 chart = ChartModule([{"Label": "N",
                       "Color": "Darkblue"},
@@ -392,7 +406,16 @@ model_params = {
     "distribution_rate": UserSettableParameter("slider", "distribution rate", 20, 0, 100, 1),
     "cost_per_vaccine": UserSettableParameter("slider", "cost_per_vaccine", 200, 10, 1000, 10),
     "vaccination_percent": UserSettableParameter("slider", "vaccination_percent", 0.5, 0, 1, 0.01),
-    "variant_data": virus_param_list
+    "variant_data": virus_param_list,
+    "step_count": UserSettableParameter("slider", "vaccination_percent", 192, 0, 9600, 96),
+    "load_from_file": False,
+    "loading_file_path": None,
+    "starting_step": 0,
+    "agent_storage": 0,
+    "model_storage": -1,
+    "agent_increment":0,
+    "model_increment":1,
+    "iteration":1
 }
 server = ModularServer(CovidModel,
                        [grid,chart,chart_epidemiology,chart_cumulative_effectiveness,vaccinated_age_group,Achart,Bchart,Dchart],

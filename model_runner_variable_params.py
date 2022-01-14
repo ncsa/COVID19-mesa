@@ -218,7 +218,7 @@ def runModelScenario(data,index,v_percent):
 if __name__ == '__main__':
     processes = []
     for index,data in enumerate(data_list):
-        for i in range(-4,4,1):
+        for i in range(0,1,1):
 
             v_percent = data["model"]["policies"]["vaccine_rollout"]["vaccination_percent"] + i/(10)
             print(f"i: {i}  vaccination_percent: {v_percent}")
