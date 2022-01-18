@@ -9,7 +9,7 @@ import time as tim
 import mesa.batchrunner
 from mesa import Agent, Model
 from mesa.time import RandomActivation
-from mesa.space import MultiGrid
+from space_local import MultiGrid
 from datacollection import DataCollector
 from scipy.stats import poisson, bernoulli
 from enum import Enum
@@ -1176,7 +1176,7 @@ def generate_random_map(width, height):
     for i in range(int(100)):
         x = random.randint(0, width-1)
         y = random.randint(0, height-1)
-        value = random.randint(-1, 1)
+        value = random.randint(0, 100)
         map.append(Attraction_Item((x,y),False,value))
     print("Map Generated")
     return map
@@ -1220,11 +1220,12 @@ def find_probability_2D(unit_vector):#Given a 2-D vector, find the probability o
 
         else:  # We are on the bottom right
             if unit_vector[0] >= quarter_distance:  # We are in octant 7
-                adjacency[1][2] = (theta - 7 * 45) / 45   # P(0)
-                adjacency[2][2] = 1 - adjacency[1][2]  # P(7)
+                adjacency[2][2] = (theta - 360) / 45   # P(0)
+                adjacency[1][2] = 1 - adjacency[2][2]  # P(7)
             else:  # We are in octant 6
-                adjacency[2][2] = (theta - 6 * 45) / 45  # P(7)
-                adjacency[2][1] = 1 - adjacency[2][2]  # P(6)
+                adjacency[2][1] = (theta - 360 - 1 * 45) / 45  # P(7)
+                adjacency[2][2] = 1 - adjacency[2][1]  # P(6)
+
 
     else:  # We are on the left side
         if unit_vector[1] >= 0:  # We are on the uppper left half of the circle
@@ -1237,20 +1238,23 @@ def find_probability_2D(unit_vector):#Given a 2-D vector, find the probability o
 
         else:  # We are on the bottom left
             if unit_vector[1] >= (-1 * quarter_distance):  # We are in octant 4
-                adjacency[2][0] = (theta - 4 * 45) / 45  # P(5)
-                adjacency[1][0] = 1 - adjacency[2][0]  # P(4)
+                adjacency[1][0] = (theta - 360 - 3 * 45) / 45  # P(5)
+                adjacency[2][0] = 1 - adjacency[1][0]  # P(4)
             else:  # We are in octant 5
-                adjacency[2][1] = (theta - 5 * 45) / 45  # P(6)
-                adjacency[2][0] = 1 - adjacency[2][0]  # P(5)
+                adjacency[2][0] = (theta - 360 - 2 * 45) / 45  # P(6)
+                adjacency[2][1] = 1 - adjacency[2][0]  # P(5)
+
     return adjacency
 
 def generate_vspace(input, width, height):
     space = []
+    unit_space = []
     for x in range(width):
         col = []
         for y in range(height):
             col.append([0,0,0])#Third component being the current affinity value,  probability of keeping still relative to other vectors
         space.append(col)
+        unit_space.append(col)
 
     """Generating vectors"""
     for item in input:
@@ -1283,24 +1287,31 @@ def generate_vspace(input, width, height):
         col = []
         for y in range(height):
             if space[x][y][2] > 0: #We are on a source or sink we have a probability of staying on the current spot
+                spac = space[x][y]
                 unit_vector = normalize(space[x][y])
                 unit_2D = normalize([unit_vector[0],unit_vector[1]])
+                unit_space[x][y] = unit_2D
                 direction = find_probability_2D(unit_2D)
-                stationary_chance = unit_vector[2] / (unit_vector[0] + unit_vector[1] + unit_vector[2])
+                stationary_chance = np.abs(unit_vector[2] / (np.abs(unit_vector[0]) + np.abs(unit_vector[1]) + np.abs(unit_vector[2])))
                 movement_chance = 1 - stationary_chance
+                new_direction = []
                 for row in direction:
+                    new_row = []
                     for unit in row:
-                        unit = unit * movement_chance
-                direction[1][1] = stationary_chance
-                col.append(direction)
+                        new_row.append(unit*movement_chance)
+                    new_direction.append(new_row)
+                new_direction[1][1] = stationary_chance
+                # print(direction, new_direction, movement_chance)
+                col.append(new_direction)
 
             else:
                 unit_vector = normalize([space[x][y][0],space[x][y][1]])
+                unit_space[x][y] = unit_vector
                 direction = find_probability_2D(unit_vector)
                 col.append(direction)
         probability_space.append(col)
     print("Probabilities Generated")
-    return probability_space
+    return probability_space, unit_space
 
 
 
@@ -1326,8 +1337,8 @@ class CovidModel(Model):
         #Testing the effect of adding a vector space to the grid
         #Generate map based on random input or systematic fashion to study the effect of a pandemic with known initial conditions.
         map = generate_random_map(width, height)
-        self.vspace = generate_vspace(map, self.grid.width, self.grid.height)#Generating the vector space following the dimensions of the grid
-        self.grid.apply_vspace(self.vspace)
+        self.vspace, self.unit_space = generate_vspace(map, self.grid.width, self.grid.height)#Generating the vector space following the dimensions of the grid
+        self.grid.apply_vspace(self.vspace, self.unit_space)
 
         self.schedule = RandomActivation(self)
         self.age_mortality = age_mortality
@@ -1673,16 +1684,14 @@ class CovidModel(Model):
         model_reporters_dict.update(prices_dict)
 
         self.datacollector = None
-
-
         self.model_reporters = model_reporters_dict
         self.model_vars = {}
         if(self.model_storage > 0): #We don't consider the ModelReporters method if were not tracking all the data across every step. And we create the equivalent here.
             for name, reporter in self.model_reporters.items():
                 self.model_vars[name] = []
 
-        elif(self.model_storage == - 1):#Special case to use the traditional datacollector
-            self.datacollector = DataCollector(model_reporters=model_reporters_dict)
+        elif(self.model_storage == -1):#Special case to use the traditional datacollector
+            self.datacollector = DataCollector(model_reporters=model_reporters_dict, agent_reporters=None, tables=None)
 
         #For storing agent data we dont use ModelReporters at all, so we will have to do it ourselves when we reach the step(model). So we just initialize the reporters here
         self.agent_reporters = {}
@@ -1718,6 +1727,8 @@ class CovidModel(Model):
     def step(self):
         #Collecting the data using the DataCollector() method in mesa and timing it for runtime analysis.
         data_time_A = timeit.default_timer()
+        if (self.model_storage == -1 and self.schedule.steps < self.max_steps-1):
+            self.datacollector.collect(self)
 
         # This is the equivalent to datacollector.collect(self) except it is done within the model.
         if (self.model_storage == 1 and self.schedule.steps < self.max_steps-1):

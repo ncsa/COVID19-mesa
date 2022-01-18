@@ -4,7 +4,7 @@
 # {nunezco,jake}@illinois.edu
 
 # A simple tunable model for COVID-19 response
-from mesa.visualization.modules import CanvasGrid
+from CanvasGridVisualization_local import CanvasGrid
 from mesa.visualization.modules import ChartModule
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.UserParam import UserSettableParameter
@@ -15,6 +15,7 @@ from covidmodelcheckpoint import Stage
 from covidmodelcheckpoint import AgeGroup
 from covidmodelcheckpoint import SexGroup
 from covidmodelcheckpoint import ValueGroup
+import numpy as np
 
 # Specific model data
 
@@ -24,7 +25,7 @@ virus_param_list = []
 for virus in virus_data["variant"]:
     virus_param_list.append(virus_data["variant"][virus])
 print(virus_param_list)
-
+max_hex = 2**24
 
 
 
@@ -92,59 +93,88 @@ cr_value_distibution = {
 def agent_portrayal(agent):
     portrayal = {"Shape": "circle",
                  "Filled": "true",
-                 "Layer": 1,
+                 "Layer": 3,
                  "r": 0.5}
     if agent.vaccinated:
         portrayal["Color"] = "lime"
-        portrayal["Layer"] = 1
+        portrayal["Layer"] = 3
     elif agent.stage == Stage.SUSCEPTIBLE:
         portrayal["Color"] = "blue"
-        portrayal["Layer"] = 1
+        portrayal["Layer"] =  3
     elif agent.stage == Stage.EXPOSED:
         portrayal["Color"] = "red"
-        portrayal["Layer"] = 1
+        portrayal["Layer"] =  3
     elif agent.stage == Stage.ASYMPTOMATIC:
         portrayal["Color"] = "brown"
-        portrayal["Layer"] = 1
+        portrayal["Layer"] = 3
     elif agent.stage == Stage.SYMPDETECTED:
         portrayal["Color"] = "yellow"
-        portrayal["Layer"] = 1
+        portrayal["Layer"] = 3
     elif agent.stage == Stage.ASYMPDETECTED:
         portrayal["Color"] = "cyan"
-        portrayal["Layer"] = 1
+        portrayal["Layer"] = 3
     elif agent.stage == Stage.SEVERE:
         portrayal["Color"] = "magenta"
-        portrayal["Layer"] = 1
+        portrayal["Layer"] = 3
     elif agent.stage == Stage.RECOVERED:
         portrayal["Color"] = "green"
-        portrayal["Layer"] = 1
+        portrayal["Layer"] = 3
     elif agent.stage == Stage.DECEASED:
         portrayal["Color"] = "black"
-        portrayal["Layer"] = 1
+        portrayal["Layer"] = 3
     elif agent.locked:
         portrayal["Color"] = "gray"
-        portrayal["Layer"] = 1
+        portrayal["Layer"] = 3
     else:
         portrayal["Color"] = "gray"
-        portrayal["Layer"] = 1
+        portrayal["Layer"] = 3
 
     return portrayal
 
 def space_portrayal(options):
-    portrayal = {"Shape": "square",
+    space = {"Shape": "rect",
                  "Filled": "true",
-                 "Layer": 0,
-                 "r": 0.98}
-    if len(options) > 2:
-        portrayal["Color"] = "white"
-        portrayal["Layer"] = 0
+                 "Layer": 1,
+                 "w": 0.98,
+                 "h":0.98}
+    direction = {"Shape": "arrowHead",
+                 "Filled": "true",
+                 "Layer": 2,
+                 "scale": 0.0,
+                 "Color": "black"}
+    vector = options[2]
+    if len(options[1]) > 2:
+        stationary_chance  = 0
+        for index, item in enumerate(options[0]):
+            if item == (0,0):
+                stationary_chance = options[1][index]
+        hexidec = f"{hex(int(max_hex * stationary_chance))}"
+        hexi = hexidec.replace("0x", "")
+        if (len(hexi) < 6):
+            hexi = "0" + hexi
+        HTMLcol = "#" + hexi
+
+        space["Color"] = HTMLcol.upper()
+        if (len(HTMLcol.upper())<7):
+            print(stationary_chance, hexidec, HTMLcol, HTMLcol.upper(), options)
+        space["Layer"] = 0
     else:
-        portrayal["Color"] = "black"
-        portrayal["Layer"] = 0
+        space["Color"] = "white"
+        space["Layer"] = 0
 
+    # unit = (0,0)
+    # for index, item in enumerate(options[0]):
+    #     if not(item[0] == 0 and item[1] == 0):
+    #         if(item[0] == 0 and item[1] != 0):
+    #             unit = item
+    #         elif(item[1] == 0 and item[0] != 0):
+    #             unit = item
+    #
+    # direction["heading_x"] = unit[0]
+    # direction["heading_y"] = unit[1]
+    return space, None
 
-
-grid = CanvasGrid(agent_portrayal, None , 50, 50, 800, 800)
+grid = CanvasGrid(agent_portrayal,space_portrayal , 50, 50, 800, 800)
 
 chart = ChartModule([{"Label": "N",
                       "Color": "Darkblue"},
