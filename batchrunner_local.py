@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
 """
 Batchrunner
 ===========
-
 A single class to manage a batch run or parameter sweep of a given model.
-
 """
 import copy
 from itertools import product, count
@@ -15,6 +12,7 @@ import os
 import multiprocessing
 
 import random
+
 
 class ParameterError(TypeError):
     MESSAGE = (
@@ -45,26 +43,24 @@ class FixedBatchRunner:
     agent-level reporters, dictionaries mapping a variable name to a function
     which collects some data from the model or its agents at the end of the run
     and stores it.
-
     Note that by default, the reporters only collect data at the *end* of the
     run. To get step by step data, simply have a reporter store the model's
     entire DataCollector object.
     """
 
     def __init__(
-        self,
-        model_cls,
-        parameters_list=None,
-        fixed_parameters=None,
-        iterations=1,
-        max_steps=1000,
-        model_reporters=None,
-        agent_reporters=None,
-        display_progress=True,
+            self,
+            model_cls,
+            parameters_list=None,
+            fixed_parameters=None,
+            iterations=1,
+            max_steps=1000,
+            model_reporters=None,
+            agent_reporters=None,
+            display_progress=True,
     ):
         """ Create a new BatchRunner for a given model with the given
         parameters.
-
         Args:
             model_cls: The class of model to batch-run.
             parameters_list: A list of dictionaries of parameter sets.
@@ -91,7 +87,6 @@ class FixedBatchRunner:
                 collected at the level of each agent present in the model at
                 the end of the run.
             display_progress: Display progresss bar with time estimation?
-
         """
         self.model_cls = model_cls
 
@@ -116,7 +111,6 @@ class FixedBatchRunner:
 
     def _make_model_args(self):
         """Prepare all combinations of parameter values for `run_all`
-
         Returns:
             Tuple with the form:
             (total_iterations, all_kwargs, all_param_values)
@@ -129,7 +123,7 @@ class FixedBatchRunner:
             for params in self.parameters_list:
                 kwargs = params.copy()
                 kwargs.update(self.fixed_parameters)
-                #run each iterations specific number of times
+                # run each iterations specific number of times
                 for iter in range(self.iterations):
                     kwargs_repeated = kwargs.copy()
                     all_kwargs.append([self.model_cls, kwargs_repeated, self.max_steps, iter])
@@ -142,7 +136,7 @@ class FixedBatchRunner:
         total_iterations *= count
 
         return all_kwargs, total_iterations
-        #return (total_iterations, all_kwargs, all_param_values)
+        # return (total_iterations, all_kwargs, all_param_values)
 
     def run_all(self):
         """ Run the model at all parameter combinations and store results. """
@@ -161,38 +155,31 @@ class FixedBatchRunner:
         model_i = iter_args[0]
         kwargs = iter_args[1]
         max_steps = iter_args[2]
-        iter_args[1].update({'iteration': iter_args[3]}) #Adds the iteration specific to my program. If this is affecting the main please email me at angelos4@illinois.edu so I dont change the original file.
+        iter_args[1].update({'iteration': iter_args[3]})
         iteration = iter_args[3]
+
         def run_iteration(model_i, kwargs, max_steps, iteration):
-            #instantiate version of model with correct parameters
+            # instantiate version of model with correct parameters
             model = model_i(**kwargs)
             while model.running and model.schedule.steps < max_steps:
                 model.step()
 
-            dfs = []
-            # for data in model.data_lists:
-            #     dfs.append(model.data_coll)
             return_dict[iteration] = [model.retrieve_model_Data(), model.retrieve_agent_Data()]
             # if model.datacollector:
             #     return model.datacollector.get_model_vars_dataframe()
-
             # else:
             #     return kwargs, "no datacollector in model"
 
         run_iteration(model_i, kwargs, max_steps, iteration)
 
-
     def run_model(self, model):
         """ Run a model object to completion, or until reaching max steps.
-
         If your model runs in a non-standard way, this is the method to modify
         in your subclass.
-
         """
         while model.running and model.schedule.steps < self.max_steps:
             model.step()
-            count+=1
-
+            count += 1
 
     def collect_model_vars(self, model):
         """ Run reporters and collect model-level variables. """
@@ -215,17 +202,13 @@ class FixedBatchRunner:
     def get_model_vars_dataframe(self):
         """ Generate a pandas DataFrame from the model-level variables
         collected.
-
         """
         return self._prepare_report_table(self.model_vars)
-
     def get_agent_vars_dataframe(self):
         """ Generate a pandas DataFrame from the agent-level variables
         collected.
-
         """
         return self._prepare_report_table(self.agent_vars, extra_cols=["AgentId"])
-
     def _prepare_report_table(self, vars_dict, extra_cols=None):
         """
         Creates a dataframe from collected records and sorts it using 'Run'
@@ -236,13 +219,11 @@ class FixedBatchRunner:
         for params in self.parameters_list:
             index_cols |= params.keys()
         index_cols = list(index_cols) + extra_cols
-
         records = []
         for param_key, values in vars_dict.items():
             record = dict(zip(index_cols, param_key))
             record.update(values)
             records.append(record)
-
         df = pd.DataFrame(records)
         rest_cols = set(df.columns) - set(index_cols)
         ordered = df[index_cols + list(sorted(rest_cols))]
@@ -250,12 +231,12 @@ class FixedBatchRunner:
         if self._include_fixed:
             for param in self.fixed_parameters.keys():
                 val = self.fixed_parameters[param]
-
                 # avoid error when val is an iterable
                 vallist = [val for i in range(ordered.shape[0])]
                 ordered[param] = vallist
         return ordered
     '''
+
 
 # This is kind of a useless class, but it does carry the 'source' parameters with it
 class ParameterProduct:
@@ -266,19 +247,18 @@ class ParameterProduct:
             )
             self._product = product(*self.param_lists)
         else:
-            self.param_names =  None
+            self.param_names = None
             self.param_lists = None
-
 
     def __iter__(self):
         return self
-
 
     def __next__(self):
         if self.param_names != None:
             return dict(zip(self.param_names, next(self._product)))
         else:
             return []
+
 
 # Roughly inspired by sklearn.model_selection.ParameterSampler.  Does not handle
 # distributions, only lists.
@@ -317,27 +297,24 @@ class BatchRunner(FixedBatchRunner):
     agent-level reporters, dictionaries mapping a variable name to a function
     which collects some data from the model or its agents at the end of the run
     and stores it.
-
     Note that by default, the reporters only collect data at the *end* of the
     run. To get step by step data, simply have a reporter store the model's
     entire DataCollector object.
-
     """
 
     def __init__(
-        self,
-        model_cls,
-        variable_parameters=None,
-        fixed_parameters=None,
-        iterations=1,
-        max_steps=1000,
-        model_reporters=None,
-        agent_reporters=None,
-        display_progress=True,
+            self,
+            model_cls,
+            variable_parameters=None,
+            fixed_parameters=None,
+            iterations=1,
+            max_steps=1000,
+            model_reporters=None,
+            agent_reporters=None,
+            display_progress=True,
     ):
         """ Create a new BatchRunner for a given model with the given
         parameters.
-
         Args:
             model_cls: The class of model to batch-run.
             variable_parameters: Dictionary of parameters to lists of values.
@@ -364,7 +341,6 @@ class BatchRunner(FixedBatchRunner):
                 collected at the level of each agent present in the model at
                 the end of the run.
             display_progress: Display progresss bar with time estimation?
-
         """
         super().__init__(
             model_cls,
@@ -392,7 +368,6 @@ class BatchRunnerMP(BatchRunner):
     def __init__(self, model_cls, nr_processes=None, **kwargs):
         """ Create a new BatchRunnerMP for a given model with the given
         parameters.
-
         Args:
             model_cls: The class of model to batch-run.
             nr_processes: the number of separate processes the BatchRunner
@@ -400,16 +375,15 @@ class BatchRunnerMP(BatchRunner):
             kwargs: the kwargs required for the parent BatchRunner class
         """
         if nr_processes == None:
-            #identifies the number of processors available on users machine
+            # identifies the number of processors available on users machine
             available_processors = cpu_count()
             self.processes = available_processors
-            print ("Your system has {} available processors.".format(self.processes))
+            print("Your system has {} available processors.".format(self.processes))
         else:
             self.processes = nr_processes
 
         super().__init__(model_cls, **kwargs)
         self.pool = Pool(self.processes)
-
 
     def run_all(self):
         """
@@ -419,23 +393,23 @@ class BatchRunnerMP(BatchRunner):
         run_count = count()
         run_iter_args, total_iterations = self._make_model_args()
         # register the process pool and init a queue
-        #results = []
+        # results = []
         results = {}
 
-        #with tqdm(total_iterations, disable=not self.display_progress) as pbar:
-            #for i, kwargs in enumerate(all_kwargs):
-            #    param_values = all_param_values[i]
-            #    for _ in range(self.iterations):
-                    # make a new process and add it to the queue
-            #with self.pool as p:
+        # with tqdm(total_iterations, disable=not self.display_progress) as pbar:
+        # for i, kwargs in enumerate(all_kwargs):
+        #    param_values = all_param_values[i]
+        #    for _ in range(self.iterations):
+        # make a new process and add it to the queue
+        # with self.pool as p:
         if self.processes > 1:
-            #Boots to the ground multiprocessing, if you believe the pool is more efficient then omit all of these changes.
-            #I just had an issue on Windows 10 where if I tried using a nested multiprocess (i.e running different types of scenarios in parallel)
+            # Boots to the ground multiprocessing, if you believe the pool is more efficient then omit all of these changes.
+            # I just had an issue on Windows 10 where if I tried using a nested multiprocess (i.e running different types of scenarios in parallel)
             manager = multiprocessing.Manager()
             return_dict = manager.dict()
             processes = []
             for parameter in run_iter_args:
-                process = multiprocessing.Process(target=self.run_wrapper, args=(parameter,return_dict))
+                process = multiprocessing.Process(target=self.run_wrapper, args=(parameter, return_dict))
                 process.start()
                 processes.append(process)
 
@@ -446,14 +420,14 @@ class BatchRunnerMP(BatchRunner):
             # for params, model_data in self.pool.imap_unordered(self.run_wrapper, run_iter_args):
             #     results[str(params)] = model_data
 
-        #For debugging model due to difficulty of getting errors during multiprocessing
+        # For debugging model due to difficulty of getting errors during multiprocessing
         else:
-            return_dict = {}
-            for parameter in run_iter_args:
-                self.run_wrapper(parameter,return_dict)
-                #params, model_data = self.run_wrapper(run)
-                #no need for a dictionary since one set of results
-        results = return_dict
+            for run in run_iter_args:
+                model_data, agent_data = self.run_wrapper(run)
+                # params, model_data = self.run_wrapper(run)
+                # no need for a dictionary since one set of results
+                results[str(params)] = model_data
+
         return results
 
         # empty the queue
@@ -464,7 +438,6 @@ class BatchRunnerMP(BatchRunner):
             for model_vars, agent_vars in list(task):
                 results.append((model_vars, agent_vars))
             pbar.update()
-
         # store the results
         for model_vars, agent_vars in results:
             if self.model_reporters:
@@ -474,7 +447,6 @@ class BatchRunnerMP(BatchRunner):
                 for agent_key, reports in agent_vars.items():
                     self.agent_vars[agent_key] = reports
 
-        
         with tqdm(total_iterations, disable=not self.display_progress) as pbar:
             for i, kwargs in enumerate(all_kwargs):
                 param_values = all_param_values[i]
@@ -483,7 +455,6 @@ class BatchRunnerMP(BatchRunner):
                     job_queue.append((kwargs, param_values, next(run_count)))
                     #start dictionary to store results
                     #results[next(run_count)] =[param_values]
-
             # empty the queue
             results = []
             print (len(job_queue))

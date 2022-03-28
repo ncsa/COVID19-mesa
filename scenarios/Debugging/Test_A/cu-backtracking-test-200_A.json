@@ -126,7 +126,7 @@
     }
   },
     "ensemble": {
-        "steps": 200,
+        "steps": 250,
         "runs": 2
     },
   "output": {

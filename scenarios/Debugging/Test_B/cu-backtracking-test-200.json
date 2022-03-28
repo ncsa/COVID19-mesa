@@ -110,7 +110,7 @@
       }
     },
     "epidemiology": {
-      "num_agents": 200,
+      "num_agents": 1000,
       "width": 50,
       "height": 50,
       "repscaling": 1,
@@ -121,12 +121,12 @@
       "avg_recovery_time": 14,
       "proportion_asymptomatic": 0.3,
       "proportion_severe": 0.12,
-      "prob_contagion": 0.7,
-      "proportion_beds_pop": 0.01
+      "prob_contagion": 0.01,
+      "proportion_beds_pop": 0.005
     }
   },
     "ensemble": {
-        "steps": 200,
+        "steps": 10000,
         "runs": 2
     },
   "output": {

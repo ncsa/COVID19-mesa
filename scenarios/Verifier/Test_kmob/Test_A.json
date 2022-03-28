@@ -110,9 +110,9 @@
       }
     },
     "epidemiology": {
-      "num_agents": 200,
-      "width": 50,
-      "height": 50,
+      "num_agents": 300,
+      "width": 40,
+      "height": 40,
       "repscaling": 1,
       "kmob": 0.4781,
       "rate_inbound": 0.01,
@@ -121,20 +121,20 @@
       "avg_recovery_time": 14,
       "proportion_asymptomatic": 0.3,
       "proportion_severe": 0.12,
-      "prob_contagion": 0.7,
+      "prob_contagion": 0.5,
       "proportion_beds_pop": 0.01
     }
   },
     "ensemble": {
-        "steps": 200,
-        "runs": 2
+        "steps": 20000,
+        "runs": 8
     },
   "output": {
     "agent_storage": 0,
     "model_storage": 1,
     "agent_increment": 1,
     "model_increment": 1,
-    "model_save_file": "scenarios/Debugging/Test_A/cu-backtracking-test-200-index-0-model.csv",
-    "agent_save_file": "scenarios/Debugging/Test_A/cu-backtracking-test-200-index-0-agents.csv"
+    "model_save_file": "scenarios/Verifier/Test_kmob/Test_A.csv",
+    "agent_save_file": "scenarios/Verifier/Test_A/cu-backtracking-test-200-index-0-agents.csv"
   }
 }

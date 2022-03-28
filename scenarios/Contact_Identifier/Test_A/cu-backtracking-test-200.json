@@ -73,7 +73,7 @@
       "isolation": {
         "proportion_isolated": 0.20,
         "day_start_isolation": 10,
-        "days_isolation_lasts": 100,
+        "days_isolation_lasts": 500,
         "after_isolation": 10,
         "prob_isolation_effective": 0.6
       },
@@ -84,12 +84,12 @@
       },
       "testing": {
         "proportion_detected": 0.2,
-        "day_testing_start": 28,
+        "day_testing_start": 500,
         "days_testing_lasts": 500,
         "tracing": true
       },
       "tracing": {
-        "day_tracing_start": 100,
+        "day_tracing_start": 500,
         "days_tracing_lasts": 700
       },
       "massingress": {
@@ -126,15 +126,15 @@
     }
   },
     "ensemble": {
-        "steps": 200,
-        "runs": 2
+        "steps": 10000,
+        "runs": 10
     },
   "output": {
     "agent_storage": 0,
-    "model_storage": 1,
+    "model_storage": 2,
     "agent_increment": 1,
-    "model_increment": 1,
-    "model_save_file": "scenarios/Debugging/Test_A/cu-backtracking-test-200-index-0-model.csv",
-    "agent_save_file": "scenarios/Debugging/Test_A/cu-backtracking-test-200-index-0-agents.csv"
+    "model_increment": 96,
+    "model_save_file": "scenarios/Contact_Identifier/Results/Contact_Test-model",
+    "agent_save_file": "scenarios/Contact_Identifier/Results/Contact_Test-agent"
   }
 }

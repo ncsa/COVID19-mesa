@@ -87,12 +87,15 @@ class CanvasGrid(VisualizationElement):
             for y in range(model.grid.height):
                 if self.space_portrayal:
                     space, direction = self.space_portrayal(model.grid.movement_options[x][y])
-                    space["x"] = x
-                    space["y"] = y
-                    # direction["y"] = y
-                    # direction["x"] = x
-                    grid_state[space["Layer"]].append(space)
-                    # grid_state[direction["Layer"]].append(direction)
+                    if space != None:
+                        space["x"] = x
+                        space["y"] = y
+                        grid_state[space["Layer"]].append(space)
+                    if direction != None:
+                        direction["y"] = y
+                        direction["x"] = x
+                        grid_state[direction["Layer"]].append(direction)
+
                 cell_objects = model.grid.get_cell_list_contents([(x, y)])
                 for obj in cell_objects:
                     portrayal = self.portrayal_method(obj)

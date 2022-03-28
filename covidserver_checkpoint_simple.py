@@ -10,11 +10,11 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.UserParam import UserSettableParameter
 import sys
 import json
-from covidmodelcheckpoint import CovidModel
-from covidmodelcheckpoint import Stage
-from covidmodelcheckpoint import AgeGroup
-from covidmodelcheckpoint import SexGroup
-from covidmodelcheckpoint import ValueGroup
+from covidmodelcheckpoint_simple import CovidModel
+from covidmodelcheckpoint_simple import Stage
+from covidmodelcheckpoint_simple import AgeGroup
+from covidmodelcheckpoint_simple import SexGroup
+from covidmodelcheckpoint_simple import ValueGroup
 import numpy as np
 
 # Specific model data
@@ -70,25 +70,21 @@ cr_sex_distribution = {
 cr_value_distibution = {
     ValueGroup.PRIVATE: {
         Stage.SUSCEPTIBLE: 1.0,
-        Stage.EXPOSED: 1.0,
-        Stage.SYMPDETECTED: -0.2,
-        Stage.ASYMPTOMATIC: 1.0,
-        Stage.ASYMPDETECTED: -0.2,
-        Stage.SEVERE: -5.0,
+        Stage.INFECTED: 1.0,
         Stage.RECOVERED: 0.8,
         Stage.DECEASED: 0
     },
     ValueGroup.PUBLIC: {
         Stage.SUSCEPTIBLE: 10.0,
-        Stage.EXPOSED: 10.0,
-        Stage.SYMPDETECTED: -5.0,
-        Stage.ASYMPTOMATIC: 10.0,
-        Stage.ASYMPDETECTED: -1.0,
-        Stage.SEVERE: -30.0,
+        Stage.INFECTED: 10.0,
         Stage.RECOVERED: 5,
         Stage.DECEASED: -5
     }
 }
+
+
+
+
 
 def agent_portrayal(agent):
     portrayal = {"Shape": "circle",
@@ -104,18 +100,9 @@ def agent_portrayal(agent):
     elif agent.stage == Stage.EXPOSED:
         portrayal["Color"] = "red"
         portrayal["Layer"] =  3
-    elif agent.stage == Stage.ASYMPTOMATIC:
-        portrayal["Color"] = "brown"
-        portrayal["Layer"] = 3
-    elif agent.stage == Stage.SYMPDETECTED:
-        portrayal["Color"] = "yellow"
-        portrayal["Layer"] = 3
-    elif agent.stage == Stage.ASYMPDETECTED:
-        portrayal["Color"] = "cyan"
-        portrayal["Layer"] = 3
-    elif agent.stage == Stage.SEVERE:
-        portrayal["Color"] = "magenta"
-        portrayal["Layer"] = 3
+    elif agent.stage == Stage.INFECTED:
+        portrayal["Color"] = "purple"
+        portrayal["Layer"] =  3
     elif agent.stage == Stage.RECOVERED:
         portrayal["Color"] = "green"
         portrayal["Layer"] = 3
@@ -181,28 +168,18 @@ grid = CanvasGrid(agent_portrayal,space_portrayal , 50, 50, 800, 800)
 
 chart = ChartModule([{"Label": "N",
                       "Color": "Darkblue"},
-                      {"Label": "SUSCEPTIBLE",
+                      {"Label": "Susceptible",
                       "Color": "Blue"},
-                      {"Label": "EXPOSED",
+                      {"Label": "Exposed",
                       "Color": "Red"},
-                      {"Label": "ASYMPTOMATIC",
-                      "Color": "Brown"},
-                      {"Label": "SYMPDETECTED",
-                      "Color": "Yellow"},
-                      {"Label": "ASYMPDETECTED",
-                      "Color": "Cyan"},
-                      {"Label": "RECOVERED",
+                      {"Label": "Infected",
+                      "Color": "Purple"},
+                      {"Label": "Recovered",
                       "Color": "Green"},
-                      {"Label": "SEVERE",
-                      "Color": "Magenta"},
-                      {"Label": "DECEASED",
+                      {"Label": "Deceased",
                       "Color": "Black"},
-                      {"Label": "Isolated",
-                      "Color": "Gray"},
                      {"Label": "Generally_Infected",
-                      "Color": "Gold"},
-                     {"Label": "Generally_Vaccinated",
-                      "Color": "Lime"}
+                      "Color": "Magenta"}
                      ],
                     data_collector_name='datacollector')
 
@@ -454,7 +431,7 @@ model_params = {
     "vector_movement":False
 }
 server = ModularServer(CovidModel,
-                       [grid,chart,chart_epidemiology,chart_personal_value, chart_cumulative_effectiveness,vaccinated_age_group,Achart,Bchart,Dchart],
+                       [grid,chart,chart_personal_value],
                        "COVID-19 epidemiological and economic model",
                        model_params
                        )

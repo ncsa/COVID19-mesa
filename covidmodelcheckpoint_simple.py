@@ -28,12 +28,9 @@ from dataclasses import dataclass
 class Stage(Enum):
     SUSCEPTIBLE = 1
     EXPOSED = 2
-    ASYMPTOMATIC = 3
-    SYMPDETECTED = 4
-    ASYMPDETECTED = 5
-    SEVERE = 6
-    RECOVERED = 7
-    DECEASED = 8
+    INFECTED = 3
+    RECOVERED = 4
+    DECEASED = 5
 
 
 class AgeGroup(Enum):
@@ -79,14 +76,14 @@ class CovidAgent(Agent):
             self.sex_group = parameters[2]
             self.vaccine_willingness = bernoulli.rvs(self.model.vaccination_percent)
             # These are fixed values associated with properties of individuals
-            self.incubation_time = poisson.rvs(model.avg_incubation)
-            self.dwelling_time = poisson.rvs(model.avg_dwell)
-            self.recovery_time = poisson.rvs(model.avg_recovery)
-            self.prob_contagion = self.model.prob_contagion_base
+            self.incubation_time = poisson.rvs(model.avg_incubation) #Time from being in the exposed stage to the infectious stage.
+            self.dwelling_time = poisson.rvs(model.avg_dwell) # ????
+            self.recovery_time = poisson.rvs(model.avg_recovery) #Time from being the the infectious stage to the recovered stage.
+            self.prob_contagion = self.model.prob_contagion_base #Probablility of contagtion wrt to scaling of the model
             # Mortality in vulnerable population appears to be around day 2-3
-            self.mortality_value = parameters[3]
+            self.mortality_value = parameters[3] #Difference for mortality and severity values unclearish for the simple model
             # Severity appears to appear after day 5
-            self.severity_value = model.prob_severe/(self.model.dwell_15_day*self.recovery_time)
+            self.severity_value = model.prob_severe/(self.model.dwell_15_day*self.recovery_time) #Transition to the severe stage
             self.curr_dwelling = 0
             self.curr_incubation = 0
             self.curr_recovery = 0
@@ -189,7 +186,7 @@ class CovidAgent(Agent):
         print(f'{self.unique_id} {self.age_group} {self.sex_group} is alive')
 
     def is_contagious(self):
-        return (self.stage == Stage.EXPOSED) or (self.stage == Stage.ASYMPTOMATIC) or (self.stage == Stage.SYMPDETECTED)
+        return (self.stage == Stage.INFECTED)
 
     def dmult(self):
         # In this function, we simulate aerosol effects exhibited by droplets due to
@@ -224,7 +221,7 @@ class CovidAgent(Agent):
         # We may have an already tested but it had a posterior contact and became infected
         if self.stage == Stage.SUSCEPTIBLE:
             self.tested_traced = True
-        elif self.stage == Stage.EXPOSED:
+        elif self.stage == Stage.INFECTED:
             self.tested_traced = True
 
             if bernoulli.rvs(self.model.prob_asymptomatic):
@@ -253,7 +250,7 @@ class CovidAgent(Agent):
     def general_vaccination_chance(self):
         eligible_count = compute_age_group_count(self.model, self.age_group)
         vaccination_chance = 1/eligible_count
-        if self.stage == Stage.ASYMPTOMATIC or self.stage == Stage.SUSCEPTIBLE or self.stage == Stage.EXPOSED:
+        if self.stage == Stage.ASYMPTOMATIC or self.stage == Stage.SUSCEPTIBLE or self.stage == Stage.INFECTED:
             if bernoulli.rvs(vaccination_chance):
                 return True
             return False
@@ -294,112 +291,8 @@ class CovidAgent(Agent):
         return False
 
     def step(self):
-        # We compute unemployment in general as a probability of 0.00018 per day.
-        # In 60 days, this is equivalent to a probability of 1% unemployment filings.
-        if self.employed:
-            if self.isolated:
-                if bernoulli.rvs(32*0.00018/self.model.dwell_15_day):
-                    self.employed = False
-            else:
-                if bernoulli.rvs(8*0.00018/self.model.dwell_15_day):
-                    self.employed = False
 
-        # We also compute the probability of re-employment, which is at least ten times
-        # as smaller in a crisis.
-        if not(self.employed):
-            if bernoulli.rvs(0.000018/self.model.dwell_15_day):
-                self.employed = True
-
-
-       # Social distancing
-        if not(self.in_distancing) and (self.astep >= self.model.distancing_start):
-            self.prob_contagion = self.dmult() * self.model.prob_contagion_base
-            self.in_distancing = True
-
-        if self.in_distancing and (self.astep >= self.model.distancing_end):
-            self.prob_contagion = self.model.prob_contagion_base
-            self.in_distancing = False
-
-        # Testing
-        if not(self.in_testing) and (self.astep >= self.model.testing_start):
-            self.test_chance = self.model.testing_rate
-            self.in_testing = True
-
-        if self.in_testing and (self.astep >= self.model.testing_end):
-            self.test_chance = 0
-            self.in_testing = False
-
-
-        #Implementing the vaccine
-        #Will process based on whether all older agents in an older group are vaccinated
-        if (not(self.vaccinated) or self.dosage_eligible) and self.model.vaccinating_now and (not(self.fully_vaccinated) and (self.vaccine_count < self.model.vaccine_dosage)):
-            if self.should_be_vaccinated() and self.model.vaccine_count > 0 and self.vaccine_willingness:
-                if not (bernoulli.rvs(0.1)):  # Chance that someone doesnt show up for the vaccine/ vaccine expires.
-                    self.vaccinated = True
-                    self.vaccination_day = self.model.stepno
-                    self.vaccine_count = self.vaccine_count + 1
-                    self.dosage_eligible = False
-                    self.model.vaccine_count = self.model.vaccine_count - 1
-                    self.model.vaccinated_count = self.model.vaccinated_count + 1
-
-                else:
-                    other_agent = self.random.choice(self.model.schedule.agents)
-                    while not(other_agent.dosage_eligible and other_agent.vaccine_willingness):
-                        other_agent = self.random.choice(self.model.schedule.agents)
-                    other_agent.vaccinated = True
-                    other_agent.vaccination_day = self.model.stepno
-                    other_agent.vaccine_count = other_agent.vaccine_count +1
-                    other_agent.dosage_eligible = False
-                    self.model.vaccinated_count = self.model.vaccinated_count + 1
-                    self.model.vaccine_count = self.model.vaccine_count - 1
-
-
-        # Self isolation is tricker. We only isolate susceptibles, incubating and asymptomatics
-        if not(self.in_isolation):
-            if (self.astep >= self.model.isolation_start):
-                if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
-                    (self.stage == Stage.ASYMPTOMATIC):
-                    if bool(bernoulli.rvs(self.model.isolation_rate)):
-                        self.isolated = True
-                    else:
-                        self.isolated = False
-                    self.in_isolation = True
-            elif (self.astep >= self.model.isolation_end):
-                if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
-                    (self.stage == Stage.ASYMPTOMATIC):
-                    if bool(bernoulli.rvs(self.model.after_isolation)):
-                        self.isolated = True
-                    else:
-                        self.isolated = False
-                    self.in_isolation = True
-
-                    
-        # Using a similar logic, we remove isolation for all relevant agents still locked
-        if self.in_isolation and (self.astep >= self.model.isolation_end):
-            if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
-                (self.stage == Stage.ASYMPTOMATIC):
-                self.isolated = False
-                self.in_isolation = False
-
-
-        #Implementing the current safety factor for maximum effectiveness
-
-        vaccination_time = self.model.stepno - self.vaccination_day
-        #In this model I will assume that the vaccine is only half as effective once 2 weeks have passed given one dose.
-        effective_date = self.model.dwell_15_day * 14
-        if (vaccination_time < effective_date) and self.vaccinated == True:
-            self.safetymultiplier = 1 - (self.model.effectiveness_per_dosage * (vaccination_time/effective_date)) - self.current_effectiveness #Error the vaccination will go to 0 once it is done.
-        else:
-            self.current_effectiveness = self.model.effectiveness_per_dosage * self.vaccine_count
-            self.safetymultiplier = 1 - self.current_effectiveness * self.model.variant_data_list[self.variant]["Vaccine_Multiplier"]
-            if (self.vaccine_count < self.model.vaccine_dosage):
-                self.dosage_eligible = True  # Once this number is false, the person is eligible and is not fully vaccinated.
-            elif self.fully_vaccinated == False:
-                self.dosage_eligible = False
-                self.fully_vaccinated = True
-                self.model.fully_vaccinated_count = self.model.fully_vaccinated_count + 1
-
-        #Computing daily and unique contacts:
+        #Calculating the contact frequencies.
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
         for c in cellmates:
             if c.unique_id not in self.daily_contact_dict and c.unique_id != self.unique_id:
@@ -410,365 +303,42 @@ class CovidAgent(Agent):
                 self.unique_contact_dict[c.unique_id] = True
 
 
-
-        # Using the model, determine if a susceptible individual becomes infected due to
-        # being elsewhere and returning to the community
         if self.stage == Stage.SUSCEPTIBLE:
-            #             if bernoulli.rvs(self.model.rate_inbound):
-            #                 self.stage = Stage.EXPOSED
-            #                 self.model.generally_infected = self.model.generally_infected + 1
-            #
-            #         if self.stage == Stage.SUSCEPTIBLE:
-            #             # Important: infected people drive the spread, not
-            #             # the number of healthy ones
-            #
-            #             # If testing is available and the date is reached, test
-            #             # Testing of a healthy person should maintain them as
-            # still susceptible.
-            # We take care of testing probability at the top level step
-            # routine to avoid this repeated computation
-
-
-            if not(self.tested or self.tested_traced) and bernoulli.rvs(self.test_chance):
-                self.tested = True
-                self.model.cumul_test_cost = self.model.cumul_test_cost + self.model.test_cost
-
-
-            # First opportunity to get infected: contact with others
-            # in near proximity
+            #If susceptible, check for infected adjacent agents.
             cellmates = self.model.grid.get_cell_list_contents([self.pos])
             infected_contact = False
-            # Isolated people should only be contagious if they do not follow proper
-            # shelter-at-home measures
-
-            #Future implementaions would allow for multiple strains of the virus to stack on top of the same agent if exposed more than once but there is not much research showing what would really happen or what
-            #values we would have to account for
-            variant = "Standard"
             for c in cellmates:
-                    if c.is_contagious() and self.variant_immune[c.variant] == False: #If they are contagious and the agent is not immune to the opposing strain
-                        c.add_contact_trace(self)
-                        if self.isolated: #If the agent is isolating
-                            if bernoulli.rvs(1 - self.model.prob_isolation_effective):#Checks if isolation was effective
-                                self.isolated_but_inefficient = True
-                                infected_contact = True
-                                variant = c.variant
-                                break
-                            else:
-                                self.isolated_but_inefficient = False
-                        else: #If the agent is not isolating they come in contact
-                            infected_contact = True
-                            variant = c.variant
-                            break #We break here to imply that the current variant will dominate
+                if c.is_contagious():
+                    infected_contact = True
 
-
-            # Value is computed before infected stage happens
-            isolation_private_divider = 1
-            isolation_public_divider = 1
-
-
-            if self.employed:
-                if self.isolated:
-                    isolation_private_divider = 0.3
-                    isolation_public_divider = 0.01
-
-
-                self.cumul_private_value = self.cumul_private_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.SUSCEPTIBLE])*isolation_private_divider
-                self.cumul_public_value = self.cumul_public_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SUSCEPTIBLE])*isolation_public_divider
-            else:
-                self.cumul_private_value = self.cumul_private_value + 0
-                self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SUSCEPTIBLE]
-
-            #Beginning the calculation of infection chance
-            current_prob = self.prob_contagion * self.model.variant_data_list[variant]["Contagtion_Multiplier"]
-            #If the agent was vaccinated, multiply the chance of infection by the safety multiplier
-            if self.vaccinated:
-                current_prob = current_prob * self.safetymultiplier
-            #State change determination
             if infected_contact:
-                if self.isolated:
-                    if bernoulli.rvs(current_prob) and not(bernoulli.rvs(self.model.prob_isolation_effective)):#If isolation was ineffective
-                        self.stage = Stage.EXPOSED
-                        self.variant = variant
-                        self.model.generally_infected = self.model.generally_infected + 1
-                else:
-                    if bernoulli.rvs(current_prob):
-                        #Added vaccination account after being exposed to determine exposure.
-                        self.stage = Stage.EXPOSED
-                        self.variant = variant
-                        self.model.generally_infected = self.model.generally_infected + 1
-
-
-            # Second opportunity to get infected: residual droplets in places
-            # TODO
-
-            #REMOVE for testing contact
-            # if not(self.isolated):
-            #     self.move()
+                if bernoulli.rvs(self.prob_contagion):
+                    self.stage = Stage.EXPOSED
+                    self.model.generally_infected = self.model.generally_infected + 1
             self.move()
-
         elif self.stage == Stage.EXPOSED:
-            # Susceptible patients only move and spread the disease.
-            # If the incubation time is reached, it is immediately 
-            # considered as detected since it is severe enough.
-
-            # We compute the private value as usual
-            cellmates = self.model.grid.get_cell_list_contents([self.pos])
-
-            isolation_private_divider = 1
-            isolation_public_divider = 1
-
-            if self.employed:
-                if self.isolated:
-                    isolation_private_divider = 0.3
-                    isolation_public_divider = 0.01
-                
-                self.cumul_private_value = self.cumul_private_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.EXPOSED])*isolation_private_divider
-                self.cumul_public_value = self.cumul_public_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.EXPOSED])*isolation_public_divider
-            else:
-                self.cumul_private_value = self.cumul_private_value + 0
-                self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.EXPOSED]
-
-            # Assignment is less expensive than comparison
-            do_move = True
-
-            current_prob_asymptomatic = self.model.prob_asymptomatic * self.model.variant_data_list[self.variant]["Asymtpomatic_Multiplier"]
-            if self.vaccinated:#Recheck these calculations but p_asymp is higher when vaccinated
-                current_prob_asymptomatic = 1-(1-self.model.prob_asymptomatic) * self.safetymultiplier #Probability of asymptomatic becomes 1-(probability of symptomatic)*safety_multiplier
-
-
-            # If testing is available and the date is reached, test
-            if not(self.tested or self.tested_traced) and bernoulli.rvs(self.test_chance):
-                if bernoulli.rvs(current_prob_asymptomatic):
-                    self.stage = Stage.ASYMPDETECTED
-                else:
-                    self.stage = Stage.SYMPDETECTED
-                    do_move = False
-                
-                self.tested = True
-                self.model.cumul_test_cost = self.model.cumul_test_cost + self.model.test_cost
-            else:
-                if self.curr_incubation < self.incubation_time:
-                    self.curr_incubation = self.curr_incubation + 1
-                else:
-                    if bernoulli.rvs(current_prob_asymptomatic):
-                        self.stage = Stage.ASYMPTOMATIC
-                    else: #QUEST For model verification, does it consider the sympdetected case?
-                        self.stage = Stage.SYMPDETECTED
-                        do_move = False
-
-            # Now, attempt to move
-            #REMOVE for testing contact
-            # if do_move and not(self.isolated):
-            #     self.move()
+            #After being in the Susceptible stage and exposed to someone in the infectious stage, there will be a dwelling time.
+            if self.curr_incubation >= self.incubation_time:
+                self.stage = Stage.INFECTED
+            self.curr_incubation += 1
             self.move()
-            
-            # Perform the move once the condition has been determined
-        elif self.stage == Stage.ASYMPTOMATIC:
-            # Asymptomayic patients only roam around, spreading the
-            # disease, ASYMPDETECTEDimmune system
-            cellmates = self.model.grid.get_cell_list_contents([self.pos])
 
-            isolation_private_divider = 1
-            isolation_public_divider = 1
-
-            if self.employed:
-                if self.isolated:
-                    isolation_private_divider = 0.3
-                    isolation_public_divider = 0.01
-                
-                    self.cumul_private_value = self.cumul_private_value + \
-                        ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.ASYMPTOMATIC])*isolation_private_divider
-                    self.cumul_public_value = self.cumul_public_value + \
-                        ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPTOMATIC])*isolation_public_divider
-                else:
-                    self.cumul_private_value = self.cumul_private_value + 0
-                    self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPTOMATIC]
-
-            if not(self.tested or self.tested_traced) and bernoulli.rvs(self.test_chance):
-                self.stage = Stage.ASYMPDETECTED
-                self.tested = True
-                self.model.cumul_test_cost = self.model.cumul_test_cost + self.model.test_cost
-
+        elif self.stage == Stage.INFECTED:
+            #Infected case, check for recovery or mortality.
             if self.curr_recovery >= self.recovery_time:
                 self.stage = Stage.RECOVERED
-                self.variant_immune[self.variant] = True
-            else:
-                self.curr_recovery  += 1
-
-            #REMOVE for testing contact
-            # if not (self.isolated):
-            #     self.move()
+            elif bernoulli.rvs(self.model.prob_death): #Figure out the death probability wrt to SIRD model.
+                self.stage = Stage.DECEASED
+            self.curr_recovery += 1
             self.move()
-                    
-        elif self.stage == Stage.SYMPDETECTED:
-            # Once a symptomatic patient has been detected, it does not move and starts
-            # the road to severity, recovery or death. We assume that, by reaching a health
-            # unit, they are tested as positive.
-            self.isolated = True
-            self.tested = True
-
-            current_severe_chance = self.mortality_value * self.model.variant_data_list[self.variant]["Mortality_Multiplier"] * (1/(self.model.dwell_15_day))
-            if (self.vaccinated):
-                current_severe_chance = current_severe_chance * self.safetymultiplier
-
-
-            # Contact tracing logic: use a negative number to indicate trace exhaustion
-            if self.model.tracing_now and self.tracing_counter >= 0:
-                # Test only when the count down has been reached
-                if self.tracing_counter == self.tracing_delay:
-                    for t in self.contacts:
-                        t.test_contact_trace()
-
-                    self.tracing_counter = -1
-                else:
-                    self.tracing_counter = self.tracing_counter + 1
-            
-            self.cumul_private_value = self.cumul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.SYMPDETECTED]
-            self.cumul_public_value = self.cumul_public_value + \
-                self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SYMPDETECTED]
-
-            if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
-                self.curr_recovery = self.curr_recovery + 1
-
-                if bernoulli.rvs(current_severe_chance): #QUEST :For the chance of being severely ill, is it done once when the recovery counter is complete?
-                    self.stage = Stage.SEVERE
-            else:
-                self.stage = Stage.RECOVERED
-                self.variant_immune[self.variant] = True
-
-            #REMOVE: For testing we enable movement
-            self.move()
-
-        elif self.stage == Stage.ASYMPDETECTED:
-            self.isolated = True
-
-            # Contact tracing logic: use a negative number to indicate trace exhaustion
-            if self.model.tracing_now and self.tracing_counter >= 0:
-                # Test only when the count down has been reached
-                if self.tracing_counter == self.tracing_delay:
-                    for t in self.contacts:
-                        t.test_contact_trace()
-
-                    self.tracing_counter = -1
-                else:
-                    self.tracing_counter = self.tracing_counter + 1
-
-            self.cumul_private_value = self.cumul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.ASYMPDETECTED]
-            self.cumul_public_value = self.cumul_public_value + \
-                self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPDETECTED]
-
-            # The road of an asymptomatic patients is similar without the prospect of death
-            if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
-               self.curr_recovery = self.curr_recovery + 1
-            else:
-                self.stage = Stage.RECOVERED
-                self.variant_immune[self.variant] = True
-
-        elif self.stage == Stage.SEVERE:            
-            self.cumul_private_value = self.cumul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.SEVERE]
-            self.cumul_public_value = self.cumul_public_value + \
-                self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SEVERE]
-
-            # Severe patients are in ICU facilities
-            if self.curr_recovery < self.recovery_time:
-                # Not recovered yet, may pass away depending on prob.
-                if self.model.bed_count > 0 and self.occupying_bed == False:
-                    self.occupying_bed = True
-                    self.model.bed_count -= 1
-                if self.occupying_bed == False:
-                    if bernoulli(1/(self.recovery_time)): #Chance that someone dies at this stage is current_time/time that they should recover. This ensures that they may die at a point during recovery.
-                        self.stage = Stage.DECEASED
-                # else:
-                #     if bernoulli(0 * 1/self.recovery_time): #Chance that someone dies on the bed is 42% less likely so I will also add that they have a 1/recovery_time chance of dying
-                #         self.stage = Stage.DECEASED
-                #         self.occupying_bed == False
-                #         self.model.bed_count += 1
-                self.curr_recovery = self.curr_recovery + 1
-            else:
-                self.stage = Stage.RECOVERED
-                self.variant_immune[self.variant] = True
-                if (self.occupying_bed == True):
-                    self.occupying_bed == False
-                    self.model.bed_count += 1
-
-
 
         elif self.stage == Stage.RECOVERED:
-            cellmates = self.model.grid.get_cell_list_contents([self.pos])
-            
-            if self.employed:
-                isolation_private_divider = 1
-                isolation_public_divider = 1
-
-                if self.isolated:
-                    isolation_private_divider = 0.3
-                    isolation_public_divider = 0.01
-
-                self.cumul_private_value = self.cumul_private_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.RECOVERED])*isolation_private_divider
-                self.cumul_public_value = self.cumul_public_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.RECOVERED])*isolation_public_divider
-            else:
-                self.cumul_private_value = self.cumul_private_value + 0
-                self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.RECOVERED]
-
-
-            # A recovered agent can now move freely within the grid again
-            self.curr_recovery = 0
-            self.isolated = False
-            self.isolated_but_inefficient = False
-
-            infected_contact = False
-            variant = "Standard"
-            for c in cellmates:
-                    if c.is_contagious() and self.model.variant_data_list[c.variant]["Reinfection"] == True and self.variant_immune[c.variant] == False:
-                        c.add_contact_trace(self)
-                        if self.isolated: #If the agent is isolating
-                            if bernoulli.rvs(1 - self.model.prob_isolation_effective):#Checks if isolation was effective
-                                self.isolated_but_inefficient = True
-                                infected_contact = True
-                                variant = c.variant
-                                break
-                            else:
-                                self.isolated_but_inefficient = False
-                        else: #If the agent is not isolating they come in contact
-                            infected_contact = True
-                            variant = c.variant
-                            break
-
-
-            current_prob = self.prob_contagion * self.model.variant_data_list[variant]["Contagtion_Multiplier"]
-            if self.vaccinated:
-                current_prob = current_prob * self.safetymultiplier
-            if infected_contact:
-                if self.isolated:
-                    if bernoulli.rvs(current_prob) and not (bernoulli.rvs(self.model.prob_isolation_effective)):
-                        if self.unique_id == 0:
-                            print("Agent got infected here")
-                        self.stage = Stage.EXPOSED
-                        self.variant = variant
-                else:
-                    if bernoulli.rvs(current_prob):
-                        if self.unique_id == 0:
-                            print("Agent got infected here")
-                        # Added vaccination account after being exposed to determine exposure.
-                        self.stage = Stage.EXPOSED
-                        self.variant = variant
+            #Recovered case, just move
             self.move()
-
         elif self.stage == Stage.DECEASED:
-            self.cumul_private_value = self.cumul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.DECEASED]
-            self.cumul_public_value = self.cumul_public_value + \
-                self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.DECEASED]
+            self.stage = Stage.DECEASED
         else:
+            print(self.stage)
             # If we are here, there is a problem 
             sys.exit("Unknown stage: aborting.")
 
@@ -1027,7 +597,7 @@ def compute_age_group_count(model,agegroup):
 def compute_eligible_age_group_count(model,agegroup):
     count = 0
     for agent in model.schedule.agents:
-        if (agent.age_group == agegroup) and (agent.stage == Stage.SUSCEPTIBLE or agent.stage == Stage.EXPOSED or agent.stage == Stage.ASYMPTOMATIC) and agent.dosage_eligible and agent.vaccine_willingness:
+        if (agent.age_group == agegroup) and (agent.stage == Stage.SUSCEPTIBLE or agent.stage == Stage.INFECTED or agent.stage == Stage.ASYMPTOMATIC) and agent.dosage_eligible and agent.vaccine_willingness:
             count = count + 1
     return count
 
@@ -1073,6 +643,41 @@ def compute_traced(model):
     return tested
 
 
+def compute_exposed(model):
+    count = 0
+    for agent in model.schedule.agents:
+        if agent.stage == Stage.EXPOSED:
+            count += 1
+    return count
+
+def compute_deceased(model):
+    count = 0
+    for agent in model.schedule.agents:
+        if agent.stage == Stage.DECEASED:
+            count += 1
+    return count
+
+def compute_susceptible(model):
+    count = 0
+    for agent in model.schedule.agents:
+        if agent.stage == Stage.SUSCEPTIBLE:
+            count += 1
+    return count
+
+def compute_infected(model):
+    count = 0
+    for agent in model.schedule.agents:
+        if agent.stage == Stage.INFECTED:
+            count += 1
+    return count
+
+def compute_recovered(model):
+    count = 0
+    for agent in model.schedule.agents:
+        if agent.stage == Stage.RECOVERED:
+            count += 1
+    return count
+
 def compute_total_processor_usage(model):
     if model.stepno % model.dwell_15_day == 0:
         processes = psu.cpu_percent(1, True)
@@ -1094,11 +699,44 @@ def compute_processor_usage(model, processoridx):
     else:
         return 0
 
+def compute_eff_reprod_number_simple(model):
+    prob_contagion = 0.0
+
+    # Adding logic to better compute R(t)
+    INFECTED = 0.0
+
+    exp_time = 0.0
+
+    for agent in model.schedule.agents:
+        if agent.stage == Stage.INFECTED:
+            INFECTED = INFECTED + 1
+            exp_time = exp_time + agent.incubation_time
+            prob_contagion = agent.prob_contagion
+            prob_contagion = agent.prob_contagion
+
+    total = INFECTED
+
+    # Compute partial contributions
+    times = []
+
+    if INFECTED != 0:
+        times.append(exp_time / INFECTED)
+
+    if total != 0:
+        infectious_period = np.mean(times)
+    else:
+        infectious_period = 0
+
+    avg_contacts = compute_contacts(model)
+    return prob_contagion * avg_contacts * infectious_period / model.num_agents
+
+
+
 def compute_eff_reprod_number(model):
     prob_contagion = 0.0
     
     # Adding logic to better compute R(t)
-    exposed = 0.0
+    INFECTED = 0.0
     asymptomatics = 0.0
     symptomatics = 0.0
     
@@ -1107,8 +745,8 @@ def compute_eff_reprod_number(model):
     sympt_time = 0.0
 
     for agent in model.schedule.agents:
-        if agent.stage == Stage.EXPOSED:
-            exposed = exposed + 1
+        if agent.stage == Stage.INFECTED:
+            INFECTED = INFECTED + 1
             exp_time = exp_time + agent.incubation_time
             prob_contagion = agent.prob_contagion
         elif agent.stage == Stage.SYMPDETECTED:
@@ -1123,13 +761,13 @@ def compute_eff_reprod_number(model):
         else:
             continue
 
-    total = exposed + symptomatics + asymptomatics
+    total = INFECTED + symptomatics + asymptomatics
 
     # Compute partial contributions
     times = []
 
-    if exposed != 0:
-        times.append(exp_time/exposed)
+    if INFECTED != 0:
+        times.append(exp_time/INFECTED)
 
     if symptomatics != 0:
         times.append(sympt_time/symptomatics)
@@ -1342,7 +980,7 @@ class CovidModel(Model):
         self.starting_step = starting_step
         self.num_agents = num_agents
         self.grid = MultiGrid(width, height, True)
-
+        self.prob_death = proportion_severe/(avg_recovery_time*96)
         self.vector_movement = vector_movement
         #Testing the effect of adding a vector space to the grid
         #Generate map based on random input or systematic fashion to study the effect of a pandemic with known initial conditions.
@@ -1604,25 +1242,7 @@ class CovidModel(Model):
                 self.schedule.add(a)
                 self.grid.place_agent(a, eval(position))
 
-
-            print("Confirmation that the code works by finding the values and datatypes of the agent's variables: (Comment this block out if you are sure everythings working.)")
-            agent = (self.schedule.agents)[0]
-            for param_name in self.agent_parameter_names:
-                if (param_name == 'model'):
-                    continue
-                value = get_agent_data(agent,param_name)
-
-
         #DECLARING ALL MODEL REPORTERS.
-
-        #Wonky attempt at modelling CPU usage within the model.
-        #TODO Delete everything related to this method. It literally freezes the model every time.
-        processes = psu.cpu_percent(1, True)
-        processes_dict = {}
-        for idx, process in enumerate(processes):
-            processor_name = "Processor " + str(idx)
-            processes_dict[processor_name] = [compute_processor_usage, [self, idx]]
-        processes_dict["Total_Processore_Use"] = compute_total_processor_usage
 
         #Reporting the different age group vaccination data.
         age_vaccination_dict = {}
@@ -1681,6 +1301,12 @@ class CovidModel(Model):
                 "Data_Time" : compute_datacollection_time,
                 "Step_Time" : compute_step_time,
                 "Generally_Infected": compute_generally_infected,
+                "Susceptible": compute_susceptible,
+                "Deceased": compute_deceased,
+                "Recovered": compute_recovered,
+                "Infected": compute_infected,
+                "Exposed": compute_exposed,
+                "R_0": compute_eff_reprod_number_simple,
                 "Fully_Vaccinated" : compute_fully_vaccinated_count,
                 "Vaccine_1" : compute_vaccinated_1,
                 "Vaccine_2" : compute_vaccinated_2,
@@ -1690,13 +1316,12 @@ class CovidModel(Model):
         }
 
         model_reporters_dict = {}
-        # model_reporters_dict.update(processes_dict)
         model_reporters_dict.update(general_reporters_dict)
-        model_reporters_dict.update(agent_status_dict)
-        model_reporters_dict.update(age_vaccination_dict)
-        model_reporters_dict.update(vaccinated_status_dict)
-        model_reporters_dict.update(variant_data_collection_dict)
-        model_reporters_dict.update(prices_dict)
+        # model_reporters_dict.update(agent_status_dict)
+        # model_reporters_dict.update(age_vaccination_dict)
+        # model_reporters_dict.update(vaccinated_status_dict)
+        # model_reporters_dict.update(variant_data_collection_dict)
+        # model_reporters_dict.update(prices_dict)
 
         self.datacollector = None
         self.model_reporters = model_reporters_dict
@@ -1729,7 +1354,6 @@ class CovidModel(Model):
                 if num_init < 0:
                     break
                 else:
-                    #Shouldn't this be random? Or is it intentionally set to be the 0'th agent being infected every time.
                     a.stage = Stage.EXPOSED
                     self.generally_infected = self.generally_infected + 1
                     num_init = num_init - 1
@@ -1829,7 +1453,7 @@ class CovidModel(Model):
                     a = CovidAgent(self, parameters)
                     self.schedule.add(a)
                     a.variant = variant
-                    a.stage = Stage.EXPOSED
+                    a.stage = Stage.INFECTED
                     x = self.random.randrange(self.grid.width)
                     y = self.random.randrange(self.grid.height)
                     self.grid.place_agent(a, (x, y))
@@ -1859,7 +1483,7 @@ class CovidModel(Model):
                     a = CovidAgent(self.i, ag, sg, mort, self)
                     # Some will be infected
                     if bernoulli.rvs(self.new_agent_prop_infected):
-                        a.stage = Stage.EXPOSED
+                        a.stage = Stage.INFECTED
                         self.generally_infected = self.generally_infected + 1
                     self.schedule.add(a)
                     x = self.random.randrange(self.grid.width)

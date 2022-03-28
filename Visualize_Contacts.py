@@ -54,16 +54,44 @@ for argument in sys.argv[1:]:
 for directory in input_directory_list:
     file_list = glob.glob(f"{directory}/*.csv")
     for file in file_list:
-        input_filenames_list.append(file)
+        if not("agent" in file):
+            input_filenames_list.append(file)
 
 for file in input_filenames_list:
-    out_file = file.replace("outcomes/", "visualizations/")
-    out_file = out_file.replace(".csv", ".png")
+    out_file = file.replace(".csv", ".png")
     output_filenames_list.append(out_file)
 
 
+data_list = {}
+average_list = {}
+for file in input_filenames_list:
+    thing = file.replace("scenarios/Contact_Identifier/Results\Contact_Test-model_","")
+    thing = thing.replace(".csv", "")
+    thing = thing.replace("(", "")
+    thing = thing.replace(")", "")
+    data = tuple(map(int, thing.split(', ')))
+    population = data [0]
+    area = data[1]*data[2]
+    data_list[file] = (population, area)
 
 np.seterr(all="ignore")
+
+def calculate_averages(file, input_dict, key):
+    #Calculate the averages for daily and unique contacts, return both averages.
+    df = pd.read_csv(file)
+    daily_contact_average = 0
+    alltime_contact_average = 0
+    for step in df["Step"].unique():
+        values = df["Rt"][df["Step"] == step]
+        daily_contact_average += values.mean()
+        values =  df["Total_Contact"][df["Step"] == step]
+        alltime_contact_average += values.mean()
+    daily_contact_average = daily_contact_average/len(df["Step"].unique())
+    alltime_contact_average = alltime_contact_average/len(df["Step"].unique())
+    return daily_contact_average, df["Total_Contact"][df["Step"] == df["Step"].max()].mean()
+
+
+
 
 def visualize(index, in_file):#Visualize feature per file of interest.\
     mem = psutil.virtual_memory()
@@ -150,14 +178,86 @@ def visualize(index, in_file):#Visualize feature per file of interest.\
         plt.close()
 
 
-if __name__ == '__main__':
-    processes = []
-    mem = psutil.virtual_memory()
-    print("Memory_Available: ", mem.available / (1024 * 1024), "MB")
-    for index, in_file in enumerate(input_filenames_list):
-        p = multiprocessing.Process(target=visualize, args=[index, in_file])
-        p.start()
-        processes.append(p)
 
-    for process in processes:
-        process.join()
+
+data_1 = {}
+data_2 = {}
+print(data_list)
+for file, key in data_list.items():
+    print(file, key)
+    daily, total = calculate_averages(file, data, key)
+    data_1[key] = daily
+    data_2[key] = total
+
+
+by_area = {}
+by_pop  = {}
+
+data_per_key_area = {}
+data_per_key_pop = {}
+
+fig, ax = plt.subplots()
+space_list = [(25*25), (50*50), (75*75), (100*100), (125*125), (150*150)]
+space_list_tuples = [(25,25), (50,50), (75,75), (100,100), (125,125), (150,150)]
+population_list = [100,150,200,250,300]
+
+legends_list = []
+color_index = 0
+color_list  = ["red", "green", "blue", "black", "gold", "orange", "lime"]
+for index, population in enumerate(population_list):
+    axis_1 = []
+    values_1 = []
+    by_area = {}
+    for key, value in data_1.items():
+        if key[0] == population:
+            by_area[key[1]] = value
+    by_area_listed = sorted(by_area)
+    for key in by_area_listed:
+        values_1.append(by_area[key])
+        axis_1.append(key)
+    color_index = (color_index+1)%(len(color_list)-1)
+    cur_color = color_list[color_index]
+    ax.plot(axis_1, values_1, color=cur_color, label=f"{population}", linewidth=1)
+    legend = mpatches.Patch(color=cur_color)
+    legends_list.append(legend)
+
+
+ax.set_xlabel("Area")
+ax.set_ylabel("Average_Contact")
+ax.set_title("Daily Average Contact by Area")
+plt.axis('tight')
+plt.legend(legends_list, population_list, bbox_to_anchor=(0.90, 1.1), loc="upper left", borderaxespad=0, fontsize='xx-small')
+plt.savefig("scenarios/Contact_Identifier/Results/Rt.png", dpi=700)
+plt.close()
+
+fig, ax = plt.subplots()
+color_index= 0
+for index, area in enumerate(space_list):
+    axis_1 = []
+    values_1 = []
+    by_pop = {}
+    for key, value in data_1.items():
+        if key[1] == area:
+            by_pop[key[0]] = value
+        print(key[0], by_pop)
+    #PLOT AND SAVE
+    by_pop_sorted = sorted(by_pop)
+    for key in by_pop_sorted:
+        values_1.append(by_pop[key])
+        axis_1.append(key)
+
+    print(axis_1, values_1)
+    color_index = (color_index + 1) % (len(color_list) - 1)
+    cur_color = color_list[color_index]
+    ax.plot(axis_1, values_1, color=cur_color, label=f"{population}", linewidth=1)
+    legend = mpatches.Patch(color=cur_color)
+    legends_list.append(legend)
+
+print("Made it here")
+ax.set_xlabel("Populations")
+ax.set_ylabel("Average_Contact")
+ax.set_title("Daily Average Contact by Population")
+plt.axis('tight')
+plt.legend(legends_list, space_list_tuples, bbox_to_anchor=(0.90, 1.1), loc="upper left", borderaxespad=0, fontsize='xx-small')
+plt.savefig("scenarios/Contact_Identifier/Results/RTpop.png", dpi=700)
+plt.close()

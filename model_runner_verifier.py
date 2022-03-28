@@ -6,13 +6,13 @@
 # A simple tunable model for COVID-19 response
 from batchrunner_local import BatchRunnerMP
 from multiprocessing import freeze_support
-from covidmodel import CovidModel
-from covidmodel import CovidModel
-from covidmodel import Stage
-from covidmodel import AgeGroup
-from covidmodel import SexGroup
-from covidmodel import ValueGroup
-from covidmodel import *
+from covidmodelcheckpoint import CovidModel
+from covidmodelcheckpoint import CovidModel
+from covidmodelcheckpoint import Stage
+from covidmodelcheckpoint import AgeGroup
+from covidmodelcheckpoint import SexGroup
+from covidmodelcheckpoint import ValueGroup
+from covidmodelcheckpoint import *
 import pandas as pd
 import json
 import sys
@@ -21,38 +21,39 @@ import multiprocessing
 import os
 import glob
 
+
+
 directory_list = []
 filenames_list = []
-virus_data_file = open(str(sys.argv[1]))  # First arguement must be the location of the variant data file
+virus_data_file = open(str(sys.argv[1])) #First arguement must be the location of the variant data file
 
-for argument in sys.argv[2:]:  # Every following arguement must be a folder containing scenario data
+
+for argument in sys.argv[2:]:   # Every following arguement must be a folder containing scenario data
     directory_list.append(argument)
 
-for directory in directory_list:  # Searches through the directories for scenario files
+for directory in directory_list:    #Searches through the directories for scenario files
     file_list = glob.glob(f"{directory}/*.json")
     for file in file_list:
         filenames_list.append(file)
 
 # Read JSON file
 data_list = []
-for file_params in filenames_list:  # Creates a data list based on the filenames
+for file_params in filenames_list:      #Creates a data list based on the filenames
     with open(file_params) as f:
         data = json.load(f)
         data_list.append(data)
 
-indexes = [range(len(data_list))]  # Creates a list of indeces associating an index to a data set.
+indexes = [range(len(data_list))]       #Creates a list of indeces associating an index to a data set.
 virus_data = json.load(virus_data_file)
 
+def runModelScenario(data, index, iterative_input): #Function that runs a specified scenario given parameters in data.
 
-def runModelScenario(data, index, iterative_input):  # Function that runs a specified scenario given parameters in data.
-
-    print(f"Location: {data['location']}")
-    print(f"Description: {data['description']}")
-    print(f"Prepared by: {data['prepared-by']}")
-    print(f"Date: {data['date']}")
+    print(f"Location: { data['location'] }")
+    print(f"Description: { data['description'] }")
+    print(f"Prepared by: { data['prepared-by'] }")
+    print(f"Date: { data['date'] }")
     print("")
     print("Attempting to configure model from file...")
-    print(v_percent)
     # Observed distribution of mortality rate per age
     age_mortality = {
         AgeGroup.C80toXX: data["model"]["mortalities"]["age"]["80+"],
@@ -113,11 +114,11 @@ def runModelScenario(data, index, iterative_input):  # Function that runs a spec
             Stage.DECEASED: data["model"]["value"]["public"]["deceased"]
         }
     }
-
+    print(iterative_input)
     model_params = {
-        "num_agents": data["model"]["epidemiology"]["num_agents"],
-        "width": data["model"]["epidemiology"]["width"],
-        "height": data["model"]["epidemiology"]["height"],
+        "num_agents": iterative_input[0],
+        "width": iterative_input[1][0],
+        "height": iterative_input[1][1],
         "repscaling": data["model"]["epidemiology"]["repscaling"],
         "kmob": data["model"]["epidemiology"]["kmob"],
         "age_mortality": age_mortality,
@@ -129,7 +130,7 @@ def runModelScenario(data, index, iterative_input):  # Function that runs a spec
         "avg_incubation_time": data["model"]["epidemiology"]["avg_incubation_time"],
         "avg_recovery_time": data["model"]["epidemiology"]["avg_recovery_time"],
         "proportion_asymptomatic": data["model"]["epidemiology"]["proportion_asymptomatic"],
-        "proportion_severe": data["model"]["epidemiology"]["proportion_asymptomatic"],
+        "proportion_severe": data["model"]["epidemiology"]["proportion_severe"],
         "prob_contagion": data["model"]["epidemiology"]["prob_contagion"],
         "proportion_beds_pop": data["model"]["epidemiology"]["proportion_beds_pop"],
         "proportion_isolated": data["model"]["policies"]["isolation"]["proportion_isolated"],
@@ -159,27 +160,25 @@ def runModelScenario(data, index, iterative_input):  # Function that runs a spec
         "effective_period": data["model"]["policies"]["vaccine_rollout"]["effective_period"],
         "effectiveness": data["model"]["policies"]["vaccine_rollout"]["effectiveness"],
         "distribution_rate": data["model"]["policies"]["vaccine_rollout"]["distribution_rate"],
-        "cost_per_vaccine": data["model"]["policies"]["vaccine_rollout"]["cost_per_vaccine"],
+        "cost_per_vaccine":data["model"]["policies"]["vaccine_rollout"]["cost_per_vaccine"],
         "vaccination_percent": data["model"]["policies"]["vaccine_rollout"]["vaccination_percent"],
-        "step_count": data["model"]["ensemble"]["steps"],
+        "step_count": data["ensemble"]["steps"],
         "load_from_file": data["model"]["initialization"]["load_from_file"],
         "loading_file_path": data["model"]["initialization"]["loading_file_path"],
-        "starting_step": data["model"]["initialization"]["starting_step"],
-        "agent_storage": data["model"]["output"]["agent_storage"],
-        "model_storage": data["model"]["output"]["model_storage"],
-        "agent_increment": data["model"]["output"]["agent_increment"],
-        "model_increment": data["model"]["output"]["model_increment"],
-        "model_save_file": data["model"]["output"]["model_save_file"],
-        "agent_save_file": data["model"]["output"]["agent_save_file"],
-        "vector_movement": False
+        "starting_step":data["model"]["initialization"]["starting_step"],
+        "agent_storage" : data["output"]["agent_storage"],
+        "model_storage": data["output"]["model_storage"],
+        "agent_increment": data["output"]["agent_increment"],
+        "model_increment": data["output"]["model_increment"],
+        "vector_movement" : False
     }
 
-    # Adds variant data into the model in the form of a list.
+    #Adds variant data into the model in the form of a list.
     virus_param_list = []
     for virus in virus_data["variant"]:
         virus_param_list.append(virus_data["variant"][virus])
     model_params["variant_data"] = virus_param_list
-    var_params = {"dummy": range(25, 50, 25)}
+    var_params = {"dummy": range(25,50,25)}
 
     num_iterations = data["ensemble"]["runs"]
     num_steps = data["ensemble"]["steps"]
@@ -192,66 +191,79 @@ def runModelScenario(data, index, iterative_input):  # Function that runs a spec
         iterations=num_iterations,
         max_steps=num_steps,
         model_reporters={
-            "Step": compute_stepno,
-            "CummulPrivValue": compute_cumul_private_value,
-            "CummulPublValue": compute_cumul_public_value,
-            "CummulTestCost": compute_cumul_testing_cost,
-            "Rt": compute_eff_reprod_number,
-            "Employed": compute_employed,
-            "Unemployed": compute_unemployed
-        },
+                    "Step": compute_stepno,
+                    "CummulPrivValue": compute_cumul_private_value,
+                    "CummulPublValue": compute_cumul_public_value,
+                    "CummulTestCost": compute_cumul_testing_cost,
+                    "Rt": compute_eff_reprod_number,
+                    "Employed": compute_employed,
+                    "Unemployed": compute_unemployed
+                },
         display_progress=True)
 
     print("Parametrization complete:")
     print("")
     print(f"Running file {filenames_list[index]}")
     print("")
-    print(
-        f"Executing an ensemble of size {num_iterations} using {num_steps} steps with {num_iterations} machine cores...")
+    print(f"Executing an ensemble of size {num_iterations} using {num_steps} steps with {num_iterations} machine cores...")
 
-    # Will now return a dictionary containing [iteration:[model_data, agent_data]]
+    #Will now return a dictionary containing [iteration:[model_data, agent_data]]
     cm_runs = batch_run.run_all()
 
     # Extracting data into distinct dataframes
     model_ldfs = []
     agent_ldfs = []
     i = 0
-    for iteration, data in cm_runs.values():
-        model_cm = data[iteration][0]
-        agent_cm = data[iteration][1]
-
-        model_cm["Iteration"] = i
-        agent_cm["Iteration"] = i
-
-        model_ldfs.append(model_cm)
-        agent_ldfs.append(agent_cm)
+    for cm in cm_runs.values():
+        cm[0]["Iteration"] = i
+        cm[1]["Iteration"] = i
+        model_ldfs.append(cm[0])
+        agent_ldfs.append(cm[1])
         i = i + 1
-
-    print("")
-    print("Saving results to file...")
 
     model_dfs = pd.concat(model_ldfs)
     agent_dfs = pd.concat(agent_ldfs)
-    model_out = data["output"]["model_save_file"]
-    agent_out = data["output"]["agent_save_file"]
+    model_save_file = data["output"]["model_save_file"]
+    agent_save_file = data["output"]["agent_save_file"]
 
-    # Iterative input can be used to directly name the model of interest.
-    dfs.to_csv(model_out + "_" + str(iterative_input) + ".csv")
-    dfs.to_csv(agent_out + "_" + str(iterative_input) + ".csv")
+    # TODO-create the nomenclature for the nature of the save file for both model and agent data. (Very important for organizing test runs for different policy evaluations)
+    #Iterative input can be used to directly name the model of interest.
+    model_dfs.to_csv(model_save_file + "_" + str(iterative_input) + ".csv")
+    agent_dfs.to_csv(agent_save_file + "_" + str(iterative_input) + ".csv")
+
     print(f"Simulation {index} completed without errors.")
 
 
-# Here is where we put the model verification process.
+
+
+
+#Here is where we put the model verification process.
 if __name__ == '__main__':
     processes = []
-    for index, data in enumerate(data_list):
-        # for iterative process
-        for i in range(0, 1, 1):
-            v_percent = data["model"]["policies"]["vaccine_rollout"]["vaccination_percent"] + i / (10)
-            print(f"i: {i}  vaccination_percent: {v_percent}")
-            p = multiprocessing.Process(target=runModelScenario, args=[data, index, v_percent])
-            p.start()
-            processes.append(p)
 
-    for process in processes:
-        process.join()
+    space_list = [(25,25), (50,50), (75,75), (100,100), (125,125), (150,150)]
+    population_list = [100,150,200,250,300]
+    for index, data in enumerate(data_list):
+        # Verification process:
+
+        # 1. Initialize Differential model for a fixed parameter
+        # 2. Run a parameter sweep for R0 that minimizes the lsq between the two models.
+        # 3. Run trial for varying parameters for R_diff.
+        # 4. Save the values of R_diff and R_abm and find some relating factor in between them.
+
+
+        #2. Parameter sweep algorithm
+        # For maximumm efficiency we will run trials of #2000 steps in a fixed environment.
+        # We will run all 32 iterations in parallel and average the results and their variation values.
+        # We evaluate the lsq for the model at that point.
+        # Based on the size of the R(w) and whether it was an overestimate or under, we will reshift the prop_contagtion parameter.
+        # One thing to note are all the parameters in the OG model and how they affect the overall effect on the model.
+        for population in population_list:
+            for space in space_list:
+                variable = (population, space)
+                p = multiprocessing.Process(target=runModelScenario, args=[data, index, variable])
+                p.start()
+                processes.append(p)
+                for process in processes:
+                    process.join()
+
