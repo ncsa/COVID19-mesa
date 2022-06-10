@@ -1,8 +1,18 @@
 # COVID19-mesa
 
+
+## Authors 
+
 *Santiago Nunez-Corrales, Informatics and NCSA, UIUC (nunezco2@illinois.edu)*
 
 *Eric Jakobsson, Molecular and Cell Biology and NCSA, UIUC (jake@illinois.edu)*
+
+## Developers 
+
+* Angelo Santos
+* Boda Song
+* Xinyi Huang
+
 
 A simple simulation to explore contagion by COVID-19 via agent-based modeling (ABM), as well as potential effectiveness of various measures.
 
@@ -92,7 +102,6 @@ Model callibration requires the best possible clinical data estimates for two pa
 ### Scenario creation
 
 To develop scenarios, we strongly recommend starting from the most recently callibrated model that includes policies as well as usin a model without measures as a basis for counterfactual arguments.
-
 
 ## Acknowledgments
 
