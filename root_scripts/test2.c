@@ -35,7 +35,7 @@ test2(){
          TLeaf *st = T->GetLeaf("Step");
          st->GetBranch()->GetEntry(k);
          Double_t valuestep = st->GetValue();
-         if (valuestep == i); {
+         if (valuestep == i) {
             j++;
             value += valuesus;
             vec.push_back(valuesus);
@@ -49,14 +49,14 @@ test2(){
    for (Int_t i = 0; i < stepMax; i++) {
       Double_t values = 0;
       Int_t k = 7;
-      if (i < k): {
-         for (Int_t j = 0; j <= i; j++): {
+      if (i < k) {
+         for (Int_t j = 0; j <= i; j++) {
             values += average[j];
          }
             dayAverage.push_back(values/i);
       }
-      else if (i >= k): {
-         for (Int_t j = i-k; j <= i; j++): {
+      else if (i >= k) {
+         for (Int_t j = i-k; j <= i; j++) {
             values += average[j];
          }
          dayAverage.push_back(values/k);
