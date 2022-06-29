@@ -16,7 +16,7 @@ MarkupSafe==1.1.1
 matplotlib
 Mesa==0.8.6
 multiprocess==0.70.9
-networkx==2.4
+networkx
 numpy==1.22.2
 pandas
 pathos==0.2.5
