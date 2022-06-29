@@ -85,6 +85,9 @@ void test() {
 
    graph->GetYaxis()->SetRangeUser(0., 1.);
 
+   tree->Print();
+   tree->Write();
+
    fclose(fp);
    delete hfile;
 }
