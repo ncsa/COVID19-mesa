@@ -17,7 +17,7 @@ matplotlib==3.4.2
 Mesa==0.8.6
 multiprocess==0.70.9
 networkx==2.4
-numpy== 1.21.0
+numpy==1.22
 pandas
 pathos==0.2.5
 pox==0.2.7
