@@ -70,6 +70,8 @@ void test() {
    tree->ReadFile("cu-current-R0-callibration.csv");
 
 
+   tree->Print();
+   tree->Write();
 
    TCanvas *c1 = new TCanvas("c1","graph",700,500);
 
@@ -82,47 +84,6 @@ void test() {
    graph->GetYaxis()->SetTitle("Susceptible");
 
    graph->GetYaxis()->SetRangeUser(0., 1.);
-   tree->Print();
-   tree->Write();
-
-   // std::vector<Int_t> stepno; //store the number of steps
-   // std::vector<vector<Double_t>> values;//store vectors of value at each step
-   // std::vector<Double_t> average; // store the mean value at each step
-   // std::vector<Double_t> dayAverage; // 7 days average
-   // std::vector<Int_t> sampleSize;//store the number of observations at each step
-
-   // std::vector<Double_t> error;//store error at each step
-   // std::vector<Double_t> std;
-   // std::vector<Double_t> upperCI;
-   // std::vector<Double_t> lowerCI;
-
-
-
-   // for (Int_t i = 0; i < 3839; i++) {
-   //    Int_t j = 0;
-   //    Double_t value = 0;
-   //    vector<Double_t> vec;
-   //    for (int k = 0; k<tree->GetEntries(); k++) {
-   //       // tree->GetEntry(k);
-   //       TLeaf *sus = tree->GetLeaf("Susceptible");
-   //       sus->GetBranch()->GetEntry(k);
-   //       Double_t valuesus = sus->GetValue();
-   //       TLeaf *st = tree->GetLeaf("Step");
-   //       st->GetBranch()->GetEntry(k);
-   //       Double_t valuestep = st->GetValue();
-   //       if (valuestep == i); {
-   //          j++;
-   //          value += valuesus;
-   //          vec.push_back(valuesus);
-   //       }
-   //    }
-   //    values.push_back(vec);
-   //    sampleSize.push_back(j);
-   //    average.push_back(value/j);
-   //    stepno.push_back(i);
-   // }
-
-   hfile->Write();
 
    fclose(fp);
    delete hfile;
