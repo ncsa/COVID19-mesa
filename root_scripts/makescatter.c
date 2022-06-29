@@ -1,19 +1,17 @@
 using namespace ROOT;
 
-void test2() {
-
-   TFile *myFile = TFile::Open("cu-current-R0-callibration.root");
+void makescatter() {
+   TFile *myFile = TFile::Open("data.root");
    TTree* T=(TTree*)myFile->Get("T");
 
    //construct dataframe
    RDataFrame d("T", "cu-current-R0-callibration.root");
    //draw scatter plot
    //{"h2", "ptD0 vs Dm_d", 30, 0.135, 0.165, 30, -3, 6},
+   //auto mycanvas = new TCanvas();
    auto h = d.Histo2D({"myHisto", "My Title", 5, 0.5, 5.5, 256, -400, 400}, "Step", "Susceptible");
    h->Draw();
-   //auto mycanvas = new TCanvas();
-   //h->DrawCopy("COLZ"); 
-
+   
    // std::vector<Int_t> stepno_;
    // std::vector<Double_t> average_;
    // std::vector<Double_t> dayAverage_;
