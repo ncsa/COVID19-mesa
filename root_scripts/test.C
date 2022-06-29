@@ -73,13 +73,13 @@ void test() {
    tree->Print();
    tree->Write();
 
-   TCanvas *c1 = new TCanvas("c1","graph",700,500);
+   TCanvas *c1 = new TCanvas("c1","c_graph",700,500);
 
    //create graph
 
    tree->Draw("Susceptible:Step>>graph");
 
-   
+   TH1F *graph = (TH1F*)gROOT->FindObject("graph");
    graph->GetXaxis()->SetTitle("Step");
    graph->GetYaxis()->SetTitle("Susceptible");
 
@@ -87,6 +87,8 @@ void test() {
 
    tree->Print();
    tree->Write();
+
+   //c1->SaveAs("outcome.jpg");
 
    fclose(fp);
    delete hfile;
