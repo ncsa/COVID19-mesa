@@ -3,7 +3,7 @@ binaryornot==0.4.4
 certifi==2019.11.28
 chardet
 click
-cookiecutter==2.1.1
+cookiecutter
 cycler==0.10.0
 decorator==4.4.2
 dill==0.3.1.1
@@ -13,11 +13,11 @@ Jinja2==2.11.3
 jinja2-time==0.2.0
 kiwisolver==1.1.0
 MarkupSafe==1.1.1
-matplotlib==3.4.2
+matplotlib
 Mesa==0.8.6
 multiprocess==0.70.9
-networkx==2.4
-numpy==1.22
+networkx
+numpy==1.22.2
 pandas
 pathos==0.2.5
 pox==0.2.7
