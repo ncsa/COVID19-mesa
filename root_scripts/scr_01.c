@@ -1,5 +1,10 @@
-void src_01() {
+void src_01(const TString *colname) {
+
     auto d = ROOT::RDF::MakeCsvDataFrame("data.csv");
+
+    //auto h = d.Histo2D( "Step", "Susceptible");
+    //h->Draw();
+
     auto maxStep = d.Max("Step");
 
     std::vector<Int_t> stepno_;
@@ -7,7 +12,8 @@ void src_01() {
 
     for (Int_t i = 0; i <= maxStep; i++) {
         stepno_.push_back(i);
-        average_.push_back(d.Filter("Step == i").Mean<Double_t>("Susceptible"));
+        auto a = d.Filter("Step == i").Mean("Susceptible");
+        average_.push_back(a);
     }
 
     std::function<Double_t&(Double_t)> ave = [&average_](Double_t i) -> Double_t& { return average_[i];};
