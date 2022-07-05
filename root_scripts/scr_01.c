@@ -1,4 +1,4 @@
-void src_01(const TString *colname) {
+void src_01() {
 
     auto d = ROOT::RDF::MakeCsvDataFrame("data.csv");
 
