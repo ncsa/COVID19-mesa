@@ -76,7 +76,7 @@ class CovidAgent(Agent):
         self.stage = Stage.SUSCEPTIBLE
         self.astep = 0
         is_checkpoint = False
-        params = [ageg, sexg, mort]
+        params = [0, ageg, sexg, mort]
         self.agent_data = AgentDataClass(model, is_checkpoint, params)
 
        
@@ -109,7 +109,7 @@ class CovidAgent(Agent):
         if (self.stage != Stage.DECEASED) and (self.stage != Stage.RECOVERED):
             for agent in self.model.grid.get_cell_list_contents([self.pos]):
                 if agent.unique_id != self.unique_id:
-                    if not(agent.isolated) or self.agent_data.isolated_but_inefficient:
+                    if not(agent.agent_data.isolated) or self.agent_data.isolated_but_inefficient:
                         count = count + 1
 
         return count
@@ -227,7 +227,7 @@ class CovidAgent(Agent):
 
         #Implementing the vaccine
         #Will process based on whether all older agents in an older group are vaccinated
-        if (not(self.agent_data.vaccinated) or self.agent_data.dosage_eligible) and self.model.model_data.vaccinating_now and (not(self.agent_data.fully_vaccinated) and (self.agent_data.vaccine_count < self.model.model_data.vaccine_dosage)):
+        if (not(self.agent_data.vaccinated) or self.agent_data.dosage_eligible) and self.model.model_data.vaccination_now and (not(self.agent_data.fully_vaccinated) and (self.agent_data.vaccine_count < self.model.model_data.vaccine_dosage)):
             if self.should_be_vaccinated() and self.model.model_data.vaccine_count > 0 and self.agent_data.vaccine_willingness:
                 if not (bernoulli.rvs(0.1)):  # Chance that someone doesnt show up for the vaccine/ vaccine expires.
                     self.agent_data.vaccinated = True
@@ -326,26 +326,26 @@ class CovidAgent(Agent):
             #values we would have to account for
             variant = "Standard"
             for c in cellmates:
-                    if c.is_contagious() and (c.stage == Stage.SYMPDETECTED or c.stage == Stage.SEVERE) and self.agent_data.variant_immune[c.variant] == False:
+                    if c.is_contagious() and (c.stage == Stage.SYMPDETECTED or c.stage == Stage.SEVERE) and self.agent_data.variant_immune[c.agent_data.variant] == False:
                         c.add_contact_trace(self)
                         if self.agent_data.isolated and bernoulli.rvs(1 - self.model.model_data.prob_isolation_effective):
                             self.agent_data.isolated_but_inefficient = True
                             infected_contact = 1
-                            variant = c.variant
+                            variant = c.agent_data.variant
                             break
                         else:
                             infected_contact = 1
-                            variant = c.variant
+                            variant = c.agent_data.variant
                             break
-                    elif c.is_contagious() and (c.stage == Stage.ASYMPTOMATIC or c.stage == Stage.ASYMPDETECTED) and self.agent_data.variant_immune[c.variant] == False:
+                    elif c.is_contagious() and (c.stage == Stage.ASYMPTOMATIC or c.stage == Stage.ASYMPDETECTED) and self.agent_data.variant_immune[c.agent_data.variant] == False:
                         c.add_contact_trace(self)
                         if self.agent_data.isolated and bernoulli.rvs(1 - self.model.model_data.prob_isolation_effective):
                             self.agent_data.isolated_but_inefficient = True
                             infected_contact = 2
-                            variant = c.variant
+                            variant = c.agent_data.variant
                         else:
                             infected_contact = 2
-                            variant = c.variant
+                            variant = c.agent_data.variant
 
             # Value is computed before infected stage happens
             isolation_private_divider = 1
@@ -691,7 +691,7 @@ def compute_variant_stage(model, variant, stage):
 def compute_vaccinated_stage(model, stage):
     count = 0
     for agent in model.schedule.agents:
-        if agent.agent_data.stage == stage and agent.agent_data.vaccinated == True:
+        if agent.stage == stage and agent.agent_data.vaccinated == True:
             count += count
     vaccinated_count = compute_vaccinated_count(model)
     if vaccinated_count == 0:
@@ -705,7 +705,7 @@ def compute_stage(model,stage):
 def count_type(model, stage):
     count = 0
     for agent in model.schedule.agents:
-        if agent.agent_data.stage == stage:
+        if agent.stage == stage:
             count = count + 1
 
     return count
@@ -1126,6 +1126,7 @@ class CovidModel(Model):
         )
 
         for variant in variant_data:
+            self.model_data.variant_data_list[variant["Name"]] = {}
             self.model_data.variant_data_list[variant["Name"]]["Name"] = variant["Name"]
             self.model_data.variant_data_list[variant["Name"]]["Appearance"] = variant["Appearance"]
             self.model_data.variant_data_list[variant["Name"]]["Contagtion_Multiplier"] = variant["Contagtion_Multiplier"]
@@ -1288,7 +1289,7 @@ class CovidModel(Model):
         if self.stepno % self.model_data.dwell_15_day == 0:
             print(f'Simulating day {self.stepno // self.model_data.dwell_15_day}')
                 #Addition for adding the daily amount of vaccines.
-            if self.model_data.vaccinating_now:
+            if self.model_data.vaccination_now:
                 self.model_data.vaccine_count = self.model_data.vaccine_count + self.model_data.distribution_rate
 
 
@@ -1299,11 +1300,11 @@ class CovidModel(Model):
         if self.model_data.tracing_now and (self.stepno > self.model_data.tracing_end):
             self.model_data.tracing_now = False
 
-        if not (self.model_data.vaccinating_now) and (self.stepno >= self.model_data.vaccination_start):
+        if not (self.model_data.vaccination_now) and (self.stepno >= self.model_data.vaccination_start):
             self.model_data.vaccinating_now = True
 
-        if self.model_data.vaccinating_now and (self.stepno > self.model_data.vaccination_end):
-            self.model_data.vaccinating_now = False
+        if self.model_data.vaccination_now and (self.stepno > self.model_data.vaccination_end):
+            self.model_data.vaccination_now = False
 
 
         for variant in self.model_data.variant_start_times:

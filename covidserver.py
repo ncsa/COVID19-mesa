@@ -10,11 +10,13 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.UserParam import UserSettableParameter
 import sys
 import json
-from covidmodelcheckpoint import CovidModel
-from covidmodelcheckpoint import Stage
-from covidmodelcheckpoint import AgeGroup
-from covidmodelcheckpoint import SexGroup
-from covidmodelcheckpoint import ValueGroup
+from covidmodel import CovidModel
+from covidmodel import Stage
+from covidmodel import AgeGroup
+from covidmodel import SexGroup
+from covidmodel import ValueGroup
+
+# python3.9 covidserver.py scenarios/Vaccination_Scenarios_Attempt_4/Variant_Data.json
 
 # Specific model data
 
@@ -390,17 +392,17 @@ model_params = {
     "distribution_rate": UserSettableParameter("slider", "distribution rate", 20, 0, 100, 1),
     "cost_per_vaccine": UserSettableParameter("slider", "cost_per_vaccine", 200, 10, 1000, 10),
     "vaccination_percent": UserSettableParameter("slider", "vaccination_percent", 0.5, 0, 1, 0.01),
-    "variant_data": virus_param_list,
+    "variant_data": virus_param_list
     # some random parameters just for testing
-    "step_count": 1,
-    "load_from_file": False, 
-    "loading_file_path": "",
-    "starting_step": 0,
-    "agent_storage": 0,
-    "model_storage": 0,
-    "agent_increment": 0,
-    "model_increment": 0,
-    "iteration": 1
+    # "step_count": 1,
+    # "load_from_file": False, 
+    # "loading_file_path": "",
+    # "starting_step": 0,
+    # "agent_storage": 0,
+    # "model_storage": 0,
+    # "agent_increment": 0,
+    # "model_increment": 0,
+    # "iteration": 1
 }
 server = ModularServer(CovidModel,
                        [grid,chart,chart_epidemiology,chart_cumulative_effectiveness,vaccinated_age_group,Achart,Bchart,Dchart],
