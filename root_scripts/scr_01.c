@@ -2,7 +2,7 @@ void src_01(const TString *colname) {
 
     auto d = ROOT::RDF::MakeCsvDataFrame("data.csv");
 
-    auto h = d.Histo2D( "Step", "Susceptible");
+    auto h = d.Histo2D({"h2", "ptD0 vs Dm_d", 30, 0.135, 0.165, 30, -3, 6}, "Step", "Susceptible");
     h->Draw();
 
     // auto maxStep = d.Max("Step");
