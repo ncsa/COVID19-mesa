@@ -35,3 +35,4 @@ tqdm==4.44.1
 urllib3
 whichcraft==0.6.1
 psutil
+psycopg2
