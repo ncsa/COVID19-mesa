@@ -77,13 +77,8 @@ void test() {
 
    //create graph
 
-   tree->Draw("Susceptible:Step>>graph");
+   tree->Draw("Susceptible:Step");
 
-   TH1F *graph = (TH1F*)gROOT->FindObject("graph");
-   graph->GetXaxis()->SetTitle("Step");
-   graph->GetYaxis()->SetTitle("Susceptible");
-
-   graph->GetYaxis()->SetRangeUser(0., 1.);
 
    tree->Print();
    tree->Write();

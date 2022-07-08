@@ -1,9 +1,9 @@
 
 void src_01() {
 
-    auto d = ROOT::RDF::MakeCsvDataFrame("data.csv");
+    auto d = ROOT::RDF::MakeCsvDataFrame("cu-current-R0-callibration.csv");
 
-    auto h = d.Histo2D("Step", "Susceptible");
+    auto h = d.Histo2D({"h2", "ptD0 vs Dm_d", 30, 0.135, 0.165, 30, -3, 6}, "Step", "Susceptible");
     h->Draw();
 
     // auto maxStep = d.Max("Step");
