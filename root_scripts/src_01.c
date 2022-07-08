@@ -17,6 +17,7 @@ void src_01() {
     //     average_.push_back(a);
     // }
 
+
     // std::function<Double_t&(Double_t)> ave = [&average_](Double_t i) -> Double_t& { return average_[i];};
     // std::function<Int_t&(Int_t)> ste = [&stepno_](Int_t i) -> Int_t& { return stepno_[i];};
     // d.Define("average", ave);
