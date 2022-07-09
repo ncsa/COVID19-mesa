@@ -1,7 +1,10 @@
 
 void src_01() {
-
-    auto d = ROOT::RDF::MakeCsvDataFrame("cu-current-R0-callibration.csv");
+    auto fileNameUrl = "C:\Users\14037\COVID19-mesa/cu-current-R0-callibration.csv";
+    auto fileName = "cu-current-R0-callibration.csv";
+    if(gSystem->AccessPathName(fileName))
+       TFile::Cp(fileNameUrl, fileName);
+    auto d = ROOT::RDF::MakeCsvDataFrame(fileName);
 
     auto h = d.Histo2D({"h2", "ptD0 vs Dm_d", 30, 0.135, 0.165, 30, -3, 6}, "Step", "Susceptible");
     h->Draw();
