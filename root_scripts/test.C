@@ -1,6 +1,3 @@
-#include <iostream>
-
-using namespace std;
 
 void test() {
    // Simplified version of cernbuild.C.
