@@ -26,42 +26,42 @@ void src_01() {
    d.Define("average", ave);
    d.Define("stepno", ste);
    auto myGraph1 = d.Graph<Int_t, Double_t>("stepno", "average");
-   0 1   2   3       4        5     6  7  8  9
-   0 01 012 0123    0123456 1234567 
-   //create 7 days average
-   for (Int_t i = 0; i < maxStep; i++) {
-      Double_t values = 0;
-      Int_t k = 7;
-      if (i < k) {
-         for (Int_t j = 0; j <= i; j++) {
-            values += average_[j];
-         }
-            dayAverage_.push_back(values/i);
-      }
-      else if (i >= k) {
-         for (Int_t j = i-k; j <= i; j++) {
-            values += average_[j];
-         }
-         dayAverage_.push_back(values/k);
-      }
-   }
-   std::function<const Double_t&(Double_t)> save = [&dayaAverage_](Double_t i) -> const Double_t& { return dayAverage_[i];};
-   d.Define("dayAverage", save);
-   auto myGraph2 = d.Graph<Int_t, Double_t>("stepno", "dayAverage");
-   myGraph2->Draw();
+   // 0 1   2   3       4        5     6  7  8  9
+   // 0 01 012 0123    0123456 1234567 
+   // //create 7 days average
+   // for (Int_t i = 0; i < maxStep; i++) {
+   //    Double_t values = 0;
+   //    Int_t k = 7;
+   //    if (i < k) {
+   //       for (Int_t j = 0; j <= i; j++) {
+   //          values += average_[j];
+   //       }
+   //          dayAverage_.push_back(values/i);
+   //    }
+   //    else if (i >= k) {
+   //       for (Int_t j = i-k; j <= i; j++) {
+   //          values += average_[j];
+   //       }
+   //       dayAverage_.push_back(values/k);
+   //    }
+   // }
+   // std::function<const Double_t&(Double_t)> save = [&dayaAverage_](Double_t i) -> const Double_t& { return dayAverage_[i];};
+   // d.Define("dayAverage", save);
+   // auto myGraph2 = d.Graph<Int_t, Double_t>("stepno", "dayAverage");
+   // myGraph2->Draw();
 
-   Double_t ci95 = 0.95; 
-   for (Int_t i = 0; i < maxStep; i++) {
-      std_.push_back(d.Filter("Step == i").StdDev<double>("Susceptible"));
-      //error_.push_back(), how to get z score?
-      upperCI_.push_back(average_[i]+error_[i]);
-      lowerCI_.push_back(average_[i]-error_[i]);
-   }
+   // Double_t ci95 = 0.95; 
+   // for (Int_t i = 0; i < maxStep; i++) {
+   //    std_.push_back(d.Filter("Step == i").StdDev<double>("Susceptible"));
+   //    //error_.push_back(), how to get z score?
+   //    upperCI_.push_back(average_[i]+error_[i]);
+   //    lowerCI_.push_back(average_[i]-error_[i]);
+   // }
 
 
     auto c = new TCanvas();
     c->SetLogx();
     c->SetLogy();
     myGraph1->DrawClone();
-    myGraph2->DrawClone();
+   //  myGraph2->DrawClone();
 }
