@@ -1,7 +1,6 @@
 void MakeTree(TString csvFile = "cu-current-R0-callibration") {   
-   gSystem->ChangeDirectory("C:\\Users\\14037\\COVID19-mesa\\outcomes");
-
-   TFile *hfile = hfile = TFile::Open(csvFile + ".root","RECREATE");
+   
+   TFile *hfile = hfile = TFile::Open("../outcomes/" + csvFile + ".root","RECREATE");
 
    TTree *tree = new TTree("T", csvFile + "Tree");
 
