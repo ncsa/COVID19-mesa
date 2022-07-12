@@ -4,6 +4,7 @@
 # {nunezco,jake}@illinois.edu
 
 # A simple tunable model for COVID-19 response
+from operator import mod
 import timeit
 
 import mesa.batchrunner
@@ -22,6 +23,315 @@ import os
 import pandas as pd
 from agent_data_class import AgentDataClass
 from model_data_class import ModelDataClass
+import psycopg2
+from database.config import config
+import uuid
+
+
+def insert_agent(data):
+    """ insert a new agent into the trace table """
+    sql = """
+        INSERT INTO agent(
+            uuid,
+            age_group,
+            sex_group,
+            vaccine_willingness,
+            incubation_time, 
+            dwelling_time, 
+            recovery_time, 
+            prob_contagion, 
+            mortality_value, 
+            severity_value,
+            curr_dwelling,
+            curr_incubation,
+            curr_recovery,
+            curr_asymptomatic,
+            isolated,
+            isolated_but_inefficient,
+            test_chance,
+            in_isolation,
+            in_distancing,
+            in_testing,
+            astep,
+            tested,
+            occupying_bed,
+            cumul_private_value,
+            cumul_public_value,
+            employed,
+            tested_traced,
+            tracing_delay,
+            tracing_counter,
+            vaccinated,
+            safetymultiplier,
+            current_effectiveness,
+            vaccination_day,
+            vaccine_count,
+            dosage_eligible,
+            fully_vaccinated,
+            variant
+        ) VALUES(
+            %s,
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s,
+            %s,
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s
+        )
+    """
+    conn = None
+    try:
+        # read database configuration
+        params = config()
+        # connect to the PostgreSQL database
+        conn = psycopg2.connect(**params)
+        # create a new cursor
+        cur = conn.cursor()
+        # execute the INSERT statement
+        cur.executemany(sql, data)
+        # commit the changes to the database
+        conn.commit()
+        # close communication with the database
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print('error')
+        print(error)
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def insert_model(data):
+    """ insert a new model into the experiment table """
+    sql = """
+        INSERT INTO experiment(
+            uuid,
+            test_cost,
+            alpha_private,
+            alpha_public,
+            fully_vaccinated_count,
+            prop_initial_infected,
+            generally_infected,
+            cumul_vaccine_cost,
+            cumul_test_cost,
+            total_costs,
+            vaccination_chance,
+            vaccination_stage,
+            vaccine_cost,
+            day_vaccination_begin,
+            day_vaccination_end,
+            effective_period,
+            effectiveness,
+            distribution_rate,
+            vaccine_count,
+            vaccinated_count,
+            vaccinated_percent,
+            vaccine_dosage,
+            effectiveness_per_dosage,
+            dwell_15_day,
+            avg_dwell,
+            avg_incubation,
+            repscaling,
+            prob_contagion_base,
+            kmob,
+            rate_inbound,
+            prob_contagion_places,
+            prob_asymptomatic,
+            avg_recovery,
+            testing_rate,
+            testing_start,
+            testing_end,
+            tracing_start,
+            tracing_end,
+            tracing_now,
+            isolation_rate,
+            isolation_start,
+            isolation_end,
+            after_isolation,
+            prob_isolation_effective,
+            distancing,
+            distancing_start,
+            distancing_end,
+            new_agent_num,
+            new_agent_start,
+            new_agent_end,
+            new_agent_age_mean,
+            new_agent_prop_infected,
+            vaccination_start,
+            vaccination_end,
+            vaccination_now,
+            prob_severe,
+            max_bed_available,
+            bed_count
+        ) VALUES(
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s
+        )
+    """
+    conn = None
+    try:
+        # read database configuration
+        params = config()
+        # connect to the PostgreSQL database
+        conn = psycopg2.connect(**params)
+        # create a new cursor
+        cur = conn.cursor()
+        # execute the INSERT statement
+        cur.executemany(sql, data)
+        # commit the changes to the database
+        conn.commit()
+        # close communication with the database
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+
+def insert_summary(data):
+    """ insert a new summary into the summary table """
+    sql = """
+        INSERT INTO summary(
+            uuid,
+            step,
+            n,
+            isolated,
+            vaccinated,
+            vaccines,
+            v,
+            data_time,
+            step_time,
+            generally_infected,
+            fully_vaccinated,
+            vaccine_1,
+            vaccine_2,
+            vaccine_willing
+        ) VALUES(
+            %s,
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+        )
+    """
+    conn = None
+    try:
+        # read database configuration
+        params = config()
+        # connect to the PostgreSQL database
+        conn = psycopg2.connect(**params)
+        # create a new cursor
+        cur = conn.cursor()
+        # execute the INSERT statement
+        cur.executemany(sql, data)
+        # commit the changes to the database
+        conn.commit()
+        # close communication with the database
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print('error')
+        print(error)
+    finally:
+        if conn is not None:
+            conn.close()
+
+
 
 class Stage(Enum):
     SUSCEPTIBLE = 1
@@ -655,6 +965,49 @@ class CovidAgent(Agent):
             # If we are here, there is a problem 
             sys.exit("Unknown stage: aborting.")
 
+        #Insert a new trace into the database (AgentDataClass)
+        id = str(uuid.uuid4())
+
+        insert_agent([(
+            id, 
+            self.agent_data.age_group.value,
+            self.agent_data.sex_group.value, 
+            self.agent_data.vaccine_willingness, 
+            self.agent_data.incubation_time, 
+            self.agent_data.dwelling_time, 
+            self.agent_data.recovery_time, 
+            self.agent_data.prob_contagion, 
+            self.agent_data.mortality_value, 
+            self.agent_data.severity_value,
+            self.agent_data.curr_dwelling,
+            self.agent_data.curr_incubation,
+            self.agent_data.curr_recovery,
+            self.agent_data.curr_asymptomatic,
+            self.agent_data.isolated,
+            self.agent_data.isolated_but_inefficient,
+            self.agent_data.test_chance,
+            self.agent_data.in_isolation,
+            self.agent_data.in_distancing,
+            self.agent_data.in_testing,
+            self.agent_data.astep,
+            self.agent_data.tested,
+            self.agent_data.occupying_bed,
+            self.agent_data.cumul_private_value,
+            self.agent_data.cumul_public_value,
+            self.agent_data.employed,
+            self.agent_data.tested_traced,
+            self.agent_data.tracing_delay,
+            self.agent_data.tracing_counter,
+            self.agent_data.vaccinated,
+            self.agent_data.safetymultiplier,
+            self.agent_data.current_effectiveness,
+            self.agent_data.vaccination_day,
+            self.agent_data.vaccine_count,
+            self.agent_data.dosage_eligible,
+            self.agent_data.fully_vaccinated,
+            self.agent_data.variant
+        )])
+
         self.astep = self.astep + 1
 
     def move(self):
@@ -894,24 +1247,39 @@ def compute_eligible_age_group_count(model,agegroup):
 
 def update_vaccination_stage(model):
     initial_stage = model.model_data.vaccination_stage
-    if compute_eligible_age_group_count(model, AgeGroup.C80toXX) < 1:
-        model.model_data.vaccination_stage = VaccinationStage.C70to79
-        if compute_eligible_age_group_count(model, AgeGroup.C70to79) < 1:
-            model.model_data.vaccination_stage = VaccinationStage.C60to69
-            if compute_eligible_age_group_count(model, AgeGroup.C60to69) < 1:
-                model.model_data.vaccination_stage = VaccinationStage.C50to59
-                if compute_eligible_age_group_count(model, AgeGroup.C50to59) < 1:
-                    model.model_data.vaccination_stage = VaccinationStage.C40to49
-                    if compute_eligible_age_group_count(model, AgeGroup.C40to49) < 1:
-                        model.model_data.vaccination_stage = VaccinationStage.C30to39
-                        if compute_eligible_age_group_count(model, AgeGroup.C30to39) < 1:
-                            model.model_data.vaccination_stage = VaccinationStage.C20to29
-                            if compute_eligible_age_group_count(model, AgeGroup.C20to29) < 1:
-                                model.model_data.vaccination_stage = VaccinationStage.C10to19
-                                if compute_eligible_age_group_count(model, AgeGroup.C10to19) < 1:
-                                    model.model_data.vaccination_stage = VaccinationStage.C00to09
-    else:
-        model.model_data.vaccination_stage = VaccinationStage.C80toXX
+    # if compute_eligible_age_group_count(model, AgeGroup.C80toXX) < 1:
+    #     model.model_data.vaccination_stage = VaccinationStage.C70to79
+    #     if compute_eligible_age_group_count(model, AgeGroup.C70to79) < 1:
+    #         model.model_data.vaccination_stage = VaccinationStage.C60to69
+    #         if compute_eligible_age_group_count(model, AgeGroup.C60to69) < 1:
+    #             model.model_data.vaccination_stage = VaccinationStage.C50to59
+    #             if compute_eligible_age_group_count(model, AgeGroup.C50to59) < 1:
+    #                 model.model_data.vaccination_stage = VaccinationStage.C40to49
+    #                 if compute_eligible_age_group_count(model, AgeGroup.C40to49) < 1:
+    #                     model.model_data.vaccination_stage = VaccinationStage.C30to39
+    #                     if compute_eligible_age_group_count(model, AgeGroup.C30to39) < 1:
+    #                         model.model_data.vaccination_stage = VaccinationStage.C20to29
+    #                         if compute_eligible_age_group_count(model, AgeGroup.C20to29) < 1:
+    #                             model.model_data.vaccination_stage = VaccinationStage.C10to19
+    #                             if compute_eligible_age_group_count(model, AgeGroup.C10to19) < 1:
+    #                                 model.model_data.vaccination_stage = VaccinationStage.C00to09
+    # else:
+    #     model.model_data.vaccination_stage = VaccinationStage.C80toXX
+
+    eligible_age_group_dict = []
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C80toXX)] = VaccinationStage.C70to79
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C70to79)] = VaccinationStage.C60to69
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C60to69)] = VaccinationStage.C50to59
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C50to59)] = VaccinationStage.C40to49
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C40to49)] = VaccinationStage.C30to39
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C30to39)] = VaccinationStage.C20to29
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C10to19)] = VaccinationStage.C00to09
+
+    model.model_data.vaccination_stage = VaccinationStage.C80toXX
+    for key,value in sorted(eligible_age_group_dict.items(), reverse=True):
+        if (key < 1):
+            model.model_data.vaccination_stage = value
+
     if initial_stage != model.model_data.vaccination_stage:
         print(f"Vaccination stage is now {model.model_data.vaccination_stage}")
 
@@ -1169,6 +1537,71 @@ class CovidModel(Model):
         times_list = list(np.linspace(self.model_data.new_agent_start, self.model_data.new_agent_end, self.model_data.new_agent_num, dtype=int))
         self.new_agent_time_map = {x:times_list.count(x) for x in times_list}
 
+        # We store a simulation specification in the database
+        # Commit
+        id = str(uuid.uuid4())
+        
+        insert_model([(
+            id,
+            self.model_data.test_cost,
+            self.model_data.alpha_private,
+            self.model_data.alpha_public,
+            self.model_data.fully_vaccinated_count,
+            self.model_data.prop_initial_infected,
+            self.model_data.generally_infected,
+            self.model_data.cumul_vaccine_cost,
+            self.model_data.cumul_test_cost,
+            self.model_data.total_costs,
+            self.model_data.vaccination_chance,
+            self.model_data.vaccination_stage.value,
+            self.model_data.vaccine_cost,
+            self.model_data.day_vaccination_begin,
+            self.model_data.day_vaccination_end,
+            self.model_data.effective_period,
+            self.model_data.effectiveness,
+            self.model_data.distribution_rate,
+            self.model_data.vaccine_count,
+            self.model_data.vaccinated_count,
+            self.model_data.vaccinated_percent,
+            self.model_data.vaccine_dosage,
+            self.model_data.effectiveness_per_dosage,
+            self.model_data.dwell_15_day,
+            self.model_data.avg_dwell,
+            self.model_data.avg_incubation,
+            self.model_data.repscaling,
+            self.model_data.prob_contagion_base,
+            self.model_data.kmob,
+            self.model_data.rate_inbound,
+            self.model_data.prob_contagion_places,
+            self.model_data.prob_asymptomatic,
+            self.model_data.avg_recovery,
+            self.model_data.testing_rate,
+            self.model_data.testing_start,
+            self.model_data.testing_end,
+            self.model_data.tracing_start,
+            self.model_data.tracing_end,
+            self.model_data.tracing_now,
+            self.model_data.isolation_rate,
+            self.model_data.isolation_start,
+            self.model_data.isolation_end,
+            self.model_data.after_isolation,
+            self.model_data.prob_isolation_effective,
+            self.model_data.distancing,
+            self.model_data.distancing_start,
+            self.model_data.distancing_end,
+            self.model_data.new_agent_num,
+            self.model_data.new_agent_start,
+            self.model_data.new_agent_end,
+            self.model_data.new_agent_age_mean,
+            self.model_data.new_agent_prop_infected,
+            self.model_data.vaccination_start,
+            self.model_data.vaccination_end,
+            self.model_data.vaccination_now,
+            self.model_data.prob_severe,
+            self.model_data.max_bed_available,
+            self.model_data.bed_count
+        )])
+
         # Create agents
         self.i = 0
 
@@ -1271,6 +1704,28 @@ class CovidModel(Model):
         # Final step: infect an initial proportion of random agents
         num_init = int(self.num_agents * prop_initial_infected)
 
+        # Save all initial values of agents in the database
+        # Commit
+
+        # Save all initial summaries into the database
+        id = uuid.uuid4()
+        insert_summary([(
+            id,
+            model_reporters_dict["Step"],
+            model_reporters_dict["N"],
+            model_reporters_dict["Isolated"],
+            model_reporters_dict["Vaccinated"],
+            model_reporters_dict["Vaccines"],
+            model_reporters_dict["V"],
+            model_reporters_dict["Data_Time"],
+            model_reporters_dict["Step_Time"],
+            model_reporters_dict["Generally_Infected"],
+            model_reporters_dict["Fully_Vaccinated"],
+            model_reporters_dict["Vaccine_1"],
+            model_reporters_dict["Vaccine_2"],
+            model_reporters_dict["Vaccine_Willing"]
+        )])
+
         for a in self.schedule.agents:
             if num_init < 0:
                 break
@@ -1369,4 +1824,8 @@ class CovidModel(Model):
         self.schedule.step()
         steptimeB = timeit.default_timer()
         self.step_time = steptimeB - steptimeA
+
+        # Commit (save first all the agent data in memory)
+        # Save the summaries
+
         self.stepno = self.stepno + 1

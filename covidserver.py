@@ -3,6 +3,8 @@
 # University of Illinois at Urbana-Champaign
 # {nunezco,jake}@illinois.edu
 
+# python3.9 covidserver.py scenarios/Vaccination_Scenarios_Attempt_4/Variant_Data.json
+
 # A simple tunable model for COVID-19 response
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.modules import ChartModule
