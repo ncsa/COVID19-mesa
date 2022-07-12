@@ -1,9 +1,11 @@
-void draw(TString columnName="Susceptible") {
+void draw(TString columnName="Susceptible",TString csvFile = "cu-current-R0-callibration") {
     Int_t           Step;
     Double_t        Susceptible;
 
-    TFile *hfile = TFile::Open("../outcomes/cu-current-R0-callibration.root","READ");
+    TFile *hfile = TFile::Open(csvFile + ".root","READ");
     TTree *tree = (TTree*)hfile->Get("T");
+
+    cout<<tree->GetEntries()<<endl;
 
     tree->SetBranchAddress("Step",&Step);
     tree->SetBranchAddress(columnName,&Susceptible);
@@ -56,5 +58,5 @@ void draw(TString columnName="Susceptible") {
     gf2->Draw("L");
 
     gStyle->SetOptTitle(0);
-    gPad->Print(columnName + ".ps");
+    gPad->Print(columnName + csvFile + ".ps");
 } 
