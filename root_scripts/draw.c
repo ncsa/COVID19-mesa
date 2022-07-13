@@ -1,8 +1,8 @@
-void draw(TString columnName="Susceptible",TString csvFile = "cu-current-R0-callibration") {
+void draw(TString columnName = "Susceptible",TString csvFile = "cu-current-R0-callibration") {
     Int_t           Step;
     Double_t        Susceptible;
 
-    TFile *hfile = TFile::Open(csvFile + ".root","READ");
+    TFile *hfile = TFile::Open("../outcomes/" + csvFile + ".root","READ");
     TTree *tree = (TTree*)hfile->Get("T");
 
     cout<<tree->GetEntries()<<endl;
@@ -40,9 +40,9 @@ void draw(TString columnName="Susceptible",TString csvFile = "cu-current-R0-call
         y[j] = y[j]/ns;
         Double_t variance = fabs(y_sem[j]/ns - y[j]*y[j]);
         Double_t std = sqrt(variance/(ns-1));
-        y_sem[j] = std/sqrt(30.);
-        lci95[j] = TMath::StudentQuantile(0.025,ns-1)*y_sem[j] + y[j];
-        hci95[j] = TMath::StudentQuantile(0.975,ns-1)*y_sem[j] + y[j];
+        y_sem[j] = std/sqrt(ns);
+        lci95[j] = TMath::StudentQuantile(0.025, ns-1)*y_sem[j] + y[j]; //ci_beta/2 = 0.025
+        hci95[j] = TMath::StudentQuantile(0.975, ns-1)*y_sem[j] + y[j]; //1 - ci_beta/2 = 0.975
         yel[j] = y[j] - lci95[j];
         yeh[j] = hci95[j] - y[j];
     }
@@ -58,5 +58,5 @@ void draw(TString columnName="Susceptible",TString csvFile = "cu-current-R0-call
     gf2->Draw("L");
 
     gStyle->SetOptTitle(0);
-    gPad->Print(columnName + csvFile + ".ps");
+    gPad->Print(csvFile + ", " + columnName + ".ps");
 } 
