@@ -5,6 +5,7 @@
 
 # A simple tunable model for COVID-19 response
 from operator import mod
+from sqlite3 import DatabaseError
 import timeit
 
 import mesa.batchrunner
@@ -23,314 +24,8 @@ import os
 import pandas as pd
 from agent_data_class import AgentDataClass
 from model_data_class import ModelDataClass
-import psycopg2
-from database.config import config
 import uuid
-
-
-def insert_agent(data):
-    """ insert a new agent into the trace table """
-    sql = """
-        INSERT INTO agent(
-            uuid,
-            age_group,
-            sex_group,
-            vaccine_willingness,
-            incubation_time, 
-            dwelling_time, 
-            recovery_time, 
-            prob_contagion, 
-            mortality_value, 
-            severity_value,
-            curr_dwelling,
-            curr_incubation,
-            curr_recovery,
-            curr_asymptomatic,
-            isolated,
-            isolated_but_inefficient,
-            test_chance,
-            in_isolation,
-            in_distancing,
-            in_testing,
-            astep,
-            tested,
-            occupying_bed,
-            cumul_private_value,
-            cumul_public_value,
-            employed,
-            tested_traced,
-            tracing_delay,
-            tracing_counter,
-            vaccinated,
-            safetymultiplier,
-            current_effectiveness,
-            vaccination_day,
-            vaccine_count,
-            dosage_eligible,
-            fully_vaccinated,
-            variant
-        ) VALUES(
-            %s,
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s,
-            %s,
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s
-        )
-    """
-    conn = None
-    try:
-        # read database configuration
-        params = config()
-        # connect to the PostgreSQL database
-        conn = psycopg2.connect(**params)
-        # create a new cursor
-        cur = conn.cursor()
-        # execute the INSERT statement
-        cur.executemany(sql, data)
-        # commit the changes to the database
-        conn.commit()
-        # close communication with the database
-        cur.close()
-    except (Exception, psycopg2.DatabaseError) as error:
-        print('error')
-        print(error)
-    finally:
-        if conn is not None:
-            conn.close()
-
-
-def insert_model(data):
-    """ insert a new model into the experiment table """
-    sql = """
-        INSERT INTO experiment(
-            uuid,
-            test_cost,
-            alpha_private,
-            alpha_public,
-            fully_vaccinated_count,
-            prop_initial_infected,
-            generally_infected,
-            cumul_vaccine_cost,
-            cumul_test_cost,
-            total_costs,
-            vaccination_chance,
-            vaccination_stage,
-            vaccine_cost,
-            day_vaccination_begin,
-            day_vaccination_end,
-            effective_period,
-            effectiveness,
-            distribution_rate,
-            vaccine_count,
-            vaccinated_count,
-            vaccinated_percent,
-            vaccine_dosage,
-            effectiveness_per_dosage,
-            dwell_15_day,
-            avg_dwell,
-            avg_incubation,
-            repscaling,
-            prob_contagion_base,
-            kmob,
-            rate_inbound,
-            prob_contagion_places,
-            prob_asymptomatic,
-            avg_recovery,
-            testing_rate,
-            testing_start,
-            testing_end,
-            tracing_start,
-            tracing_end,
-            tracing_now,
-            isolation_rate,
-            isolation_start,
-            isolation_end,
-            after_isolation,
-            prob_isolation_effective,
-            distancing,
-            distancing_start,
-            distancing_end,
-            new_agent_num,
-            new_agent_start,
-            new_agent_end,
-            new_agent_age_mean,
-            new_agent_prop_infected,
-            vaccination_start,
-            vaccination_end,
-            vaccination_now,
-            prob_severe,
-            max_bed_available,
-            bed_count
-        ) VALUES(
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s
-        )
-    """
-    conn = None
-    try:
-        # read database configuration
-        params = config()
-        # connect to the PostgreSQL database
-        conn = psycopg2.connect(**params)
-        # create a new cursor
-        cur = conn.cursor()
-        # execute the INSERT statement
-        cur.executemany(sql, data)
-        # commit the changes to the database
-        conn.commit()
-        # close communication with the database
-        cur.close()
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
-    finally:
-        if conn is not None:
-            conn.close()
-
-
-
-def insert_summary(data):
-    """ insert a new summary into the summary table """
-    sql = """
-        INSERT INTO summary(
-            uuid,
-            step,
-            n,
-            isolated,
-            vaccinated,
-            vaccines,
-            v,
-            data_time,
-            step_time,
-            generally_infected,
-            fully_vaccinated,
-            vaccine_1,
-            vaccine_2,
-            vaccine_willing
-        ) VALUES(
-            %s,
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-            %s, 
-        )
-    """
-    conn = None
-    try:
-        # read database configuration
-        params = config()
-        # connect to the PostgreSQL database
-        conn = psycopg2.connect(**params)
-        # create a new cursor
-        cur = conn.cursor()
-        # execute the INSERT statement
-        cur.executemany(sql, data)
-        # commit the changes to the database
-        conn.commit()
-        # close communication with the database
-        cur.close()
-    except (Exception, psycopg2.DatabaseError) as error:
-        print('error')
-        print(error)
-    finally:
-        if conn is not None:
-            conn.close()
-
+from database import Database
 
 
 class Stage(Enum):
@@ -965,10 +660,10 @@ class CovidAgent(Agent):
             # If we are here, there is a problem 
             sys.exit("Unknown stage: aborting.")
 
+
         #Insert a new trace into the database (AgentDataClass)
         id = str(uuid.uuid4())
-
-        insert_agent([(
+        agent_params = [(
             id, 
             self.agent_data.age_group.value,
             self.agent_data.sex_group.value, 
@@ -1006,7 +701,12 @@ class CovidAgent(Agent):
             self.agent_data.dosage_eligible,
             self.agent_data.fully_vaccinated,
             self.agent_data.variant
-        )])
+        )]
+
+        db = Database()
+        db.insert_agent(agent_params)
+        db.commit()
+        db.close()
 
         self.astep = self.astep + 1
 
@@ -1266,7 +966,7 @@ def update_vaccination_stage(model):
     # else:
     #     model.model_data.vaccination_stage = VaccinationStage.C80toXX
 
-    eligible_age_group_dict = []
+    eligible_age_group_dict = {}
     eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C80toXX)] = VaccinationStage.C70to79
     eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C70to79)] = VaccinationStage.C60to69
     eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C60to69)] = VaccinationStage.C50to59
@@ -1492,57 +1192,13 @@ class CovidModel(Model):
             max_bed_available = max_bed_available,
             bed_count=max_bed_available
         )
+        print("model finished")
+        # initial commit
 
-        for variant in variant_data:
-            self.model_data.variant_data_list[variant["Name"]] = {}
-            self.model_data.variant_data_list[variant["Name"]]["Name"] = variant["Name"]
-            self.model_data.variant_data_list[variant["Name"]]["Appearance"] = variant["Appearance"]
-            self.model_data.variant_data_list[variant["Name"]]["Contagtion_Multiplier"] = variant["Contagtion_Multiplier"]
-            self.model_data.variant_data_list[variant["Name"]]["Vaccine_Multiplier"] = variant["Vaccine_Multiplier"]
-            self.model_data.variant_data_list[variant["Name"]]["Asymtpomatic_Multiplier"] = variant["Asymtpomatic_Multiplier"]
-            self.model_data.variant_data_list[variant["Name"]]["Mortality_Multiplier"] = variant["Mortality_Multiplier"]
-            self.model_data.variant_data_list[variant["Name"]]["Reinfection"] = variant["Reinfection"]
-
-         # All parameter names of concern for agents. Must be kept in this form as a standard for loading into agent data. Add a new variable name before pos.
-        #TODO (optional) make the production of the agent more rigourous instead of the brute force solution you have up there.
-        self.agent_parameter_names = ['unique_id', 'stage', 'age_group', 'sex_group', 'vaccine_willingness',
-                                      'incubation_time', 'dwelling_time', 'recovery_time', 'prob_contagion',
-                                      'mortality_value', 'severity_value', 'curr_dwelling', 'curr_incubation',
-                                      'curr_recovery', 'curr_asymptomatic', 'isolated', 'isolated_but_inefficient',
-                                      'test_chance', 'in_isolation', 'in_distancing', 'in_testing', 'astep', 'tested',
-                                      'occupying_bed', 'cumul_private_value', 'cumul_public_value', 'employed',
-                                      'tested_traced', 'contacts', 'tracing_delay', 'tracing_counter', 'vaccinated',
-                                      'safetymultiplier', 'current_effectiveness', 'vaccination_day', 'vaccine_count',
-                                      'dosage_eligible', 'fully_vaccinated', 'variant', 'variant_immune', 'pos']
-
-        self.model_reporters = {}
-        # Closing of various businesses
-        # TODO: at the moment, we assume that closing businesses decreases the dwell time.
-        # A more proper implementation would a) use a power law distribution for dwell times
-        # and b) assign a background of dwell times first, modifying them upwards later
-        # for all cells.
-        # Alternatively, shutting restaurants corresponds to 15% of interactions in an active day, and bars to a 7%
-        # of those interactions
-        self.variant_start_times = {}
-        self.variant_start = {}
-        for key in self.model_data.variant_data_list:
-            self.variant_start_times[key] = self.model_data.variant_data_list[key]["Appearance"] * self.model_data.dwell_15_day
-            self.variant_start[key] = False
-            print(key)
-            print(self.model_data.variant_data_list[key])
-            print(self.model_data.variant_data_list[key]["Appearance"])
-
-
-        # Now, a neat python trick: generate the spacing of entries and then build a map
-        times_list = list(np.linspace(self.model_data.new_agent_start, self.model_data.new_agent_end, self.model_data.new_agent_num, dtype=int))
-        self.new_agent_time_map = {x:times_list.count(x) for x in times_list}
-
-        # We store a simulation specification in the database
-        # Commit
-        id = str(uuid.uuid4())
-        
-        insert_model([(
-            id,
+        # insert a model into the database
+        myid = str(uuid.uuid4())
+        model_params = [(
+            myid,
             self.model_data.test_cost,
             self.model_data.alpha_private,
             self.model_data.alpha_public,
@@ -1600,7 +1256,61 @@ class CovidModel(Model):
             self.model_data.prob_severe,
             self.model_data.max_bed_available,
             self.model_data.bed_count
-        )])
+        )]
+
+        db = Database()
+        db.insert_model(model_params)
+        db.commit()
+        db.close()
+        
+
+        for variant in variant_data:
+            self.model_data.variant_data_list[variant["Name"]] = {}
+            self.model_data.variant_data_list[variant["Name"]]["Name"] = variant["Name"]
+            self.model_data.variant_data_list[variant["Name"]]["Appearance"] = variant["Appearance"]
+            self.model_data.variant_data_list[variant["Name"]]["Contagtion_Multiplier"] = variant["Contagtion_Multiplier"]
+            self.model_data.variant_data_list[variant["Name"]]["Vaccine_Multiplier"] = variant["Vaccine_Multiplier"]
+            self.model_data.variant_data_list[variant["Name"]]["Asymtpomatic_Multiplier"] = variant["Asymtpomatic_Multiplier"]
+            self.model_data.variant_data_list[variant["Name"]]["Mortality_Multiplier"] = variant["Mortality_Multiplier"]
+            self.model_data.variant_data_list[variant["Name"]]["Reinfection"] = variant["Reinfection"]
+
+         # All parameter names of concern for agents. Must be kept in this form as a standard for loading into agent data. Add a new variable name before pos.
+        #TODO (optional) make the production of the agent more rigourous instead of the brute force solution you have up there.
+        self.agent_parameter_names = ['unique_id', 'stage', 'age_group', 'sex_group', 'vaccine_willingness',
+                                      'incubation_time', 'dwelling_time', 'recovery_time', 'prob_contagion',
+                                      'mortality_value', 'severity_value', 'curr_dwelling', 'curr_incubation',
+                                      'curr_recovery', 'curr_asymptomatic', 'isolated', 'isolated_but_inefficient',
+                                      'test_chance', 'in_isolation', 'in_distancing', 'in_testing', 'astep', 'tested',
+                                      'occupying_bed', 'cumul_private_value', 'cumul_public_value', 'employed',
+                                      'tested_traced', 'contacts', 'tracing_delay', 'tracing_counter', 'vaccinated',
+                                      'safetymultiplier', 'current_effectiveness', 'vaccination_day', 'vaccine_count',
+                                      'dosage_eligible', 'fully_vaccinated', 'variant', 'variant_immune', 'pos']
+
+        self.model_reporters = {}
+        # Closing of various businesses
+        # TODO: at the moment, we assume that closing businesses decreases the dwell time.
+        # A more proper implementation would a) use a power law distribution for dwell times
+        # and b) assign a background of dwell times first, modifying them upwards later
+        # for all cells.
+        # Alternatively, shutting restaurants corresponds to 15% of interactions in an active day, and bars to a 7%
+        # of those interactions
+        self.variant_start_times = {}
+        self.variant_start = {}
+        for key in self.model_data.variant_data_list:
+            self.variant_start_times[key] = self.model_data.variant_data_list[key]["Appearance"] * self.model_data.dwell_15_day
+            self.variant_start[key] = False
+            print(key)
+            print(self.model_data.variant_data_list[key])
+            print(self.model_data.variant_data_list[key]["Appearance"])
+
+
+        # Now, a neat python trick: generate the spacing of entries and then build a map
+        times_list = list(np.linspace(self.model_data.new_agent_start, self.model_data.new_agent_end, self.model_data.new_agent_num, dtype=int))
+        self.new_agent_time_map = {x:times_list.count(x) for x in times_list}
+
+        # We store a simulation specification in the database
+        # Commit
+        #print(self.model_data.vaccination_stage.value)
 
         # Create agents
         self.i = 0
@@ -1707,24 +1417,46 @@ class CovidModel(Model):
         # Save all initial values of agents in the database
         # Commit
 
-        # Save all initial summaries into the database
-        id = uuid.uuid4()
-        insert_summary([(
-            id,
-            model_reporters_dict["Step"],
-            model_reporters_dict["N"],
-            model_reporters_dict["Isolated"],
-            model_reporters_dict["Vaccinated"],
-            model_reporters_dict["Vaccines"],
-            model_reporters_dict["V"],
-            model_reporters_dict["Data_Time"],
-            model_reporters_dict["Step_Time"],
-            model_reporters_dict["Generally_Infected"],
-            model_reporters_dict["Fully_Vaccinated"],
-            model_reporters_dict["Vaccine_1"],
-            model_reporters_dict["Vaccine_2"],
-            model_reporters_dict["Vaccine_Willing"]
-        )])
+        step = compute_stepno(self)
+        n = compute_num_agents(self)
+        isolated = compute_isolated(self)
+        vaccinated = compute_vaccinated(self)
+        vaccines = compute_vaccine_count(self)
+        v = compute_vaccinated(self)
+        data_time = compute_datacollection_time(self)
+        step_time = compute_step_time(self)
+        generally_infected = compute_generally_infected(self)
+        fully_vaccinated = compute_generally_infected(self)
+        vaccine_1 = compute_vaccinated_1(self)
+        vaccine_2 = compute_vaccinated_2(self)
+        vaccine_willing = compute_willing_agents(self)
+
+
+        #Save all initial summaries into the database
+        # insert a summary into database
+        myid = str(uuid.uuid4())
+        summary_params = [(
+            myid,
+            step,
+            n,
+            isolated,
+            vaccinated,
+            vaccines,
+            v,
+            data_time,
+            step_time,
+            generally_infected,
+            fully_vaccinated,
+            vaccine_1,
+            vaccine_2,
+            vaccine_willing
+        )]
+
+        db = Database()
+        db.insert_summary(summary_params)
+        db.commit()
+        db.close()
+
 
         for a in self.schedule.agents:
             if num_init < 0:
@@ -1737,6 +1469,7 @@ class CovidModel(Model):
     def step(self):
         datacollectiontimeA = timeit.default_timer()
         self.datacollector.collect(self)
+        # summary
         datacollectiontimeB = timeit.default_timer()
         self.datacollection_time = datacollectiontimeB-datacollectiontimeA
 
