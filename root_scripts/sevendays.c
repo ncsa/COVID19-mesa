@@ -51,17 +51,17 @@ void sevendays(TString columnName = "Susceptible",TString csvFile = "cu-current-
     }
 
     for (int j = 0; j < al; ++j) {
-        if (j < 96) { 
+        if (j < 96*k) { 
             for (int i = 0; i <= j; ++i) {
                 ky[j] += y[i];
             }
             ky[j] = ky[j]/(j+1);
         }
         else {
-            for (int i = j-95; i <= j; ++i) { 
+            for (int i = j-(96*k -1 ); i <= j; ++i) { 
                 ky[j] += y[i];
             }
-            ky[j] = ky[j]/96; 
+            ky[j] = ky[j]/(96*k); 
         }
     }
 
