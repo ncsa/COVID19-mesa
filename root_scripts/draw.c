@@ -42,7 +42,7 @@ void draw(TString columnName = "Susceptible",TString csvFile = "cu-current-R0-ca
     for (int j = 0; j < al; ++j) {
         y[j] = y[j]/ns;
         Double_t variance = fabs(y_sem[j]/ns - y[j]*y[j]);
-        Double_t std = sqrt(variance/(ns-1));
+        Double_t std = sqrt(variance);
         y_sem[j] = std/sqrt(ns);
         lci95[j] = TMath::StudentQuantile(ci_a/2, ns-1)*y_sem[j] + y[j]; 
         hci95[j] = TMath::StudentQuantile(1-ci_a/2, ns-1)*y_sem[j] + y[j]; 
