@@ -703,10 +703,8 @@ class CovidAgent(Agent):
             self.agent_data.variant
         )]
 
-        db = Database()
-        db.insert_agent(agent_params)
-        db.commit()
-        db.close()
+        self.model.db.insert_agent(agent_params)
+        self.model.db.commit()
 
         self.astep = self.astep + 1
 
@@ -1103,7 +1101,7 @@ class CovidModel(Model):
                  day_distancing_start, days_distancing_lasts, proportion_detected, day_testing_start, days_testing_lasts, 
                  new_agent_proportion, new_agent_start, new_agent_lasts, new_agent_age_mean, new_agent_prop_infected,
                  day_tracing_start, days_tracing_lasts, stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop, day_vaccination_begin,
-                 day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data, dummy=0):
+                 day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data, db, dummy=0):
 
         print("Made it to the model")
         self.running = True
@@ -1113,14 +1111,15 @@ class CovidModel(Model):
         self.stepno = 0
         self.datacollection_time = 0
         self.step_time = 0
+        self.db = db
         
         dwell_15_day = 96
         vaccine_dosage = 2
         repscaling = 1
-        testing_start=day_testing_start* dwell_15_day
-        tracing_start=day_tracing_start* dwell_15_day
-        isolation_start=day_start_isolation*dwell_15_day
-        distancing_start=day_distancing_start*dwell_15_day
+        testing_start = day_testing_start* dwell_15_day
+        tracing_start = day_tracing_start* dwell_15_day
+        isolation_start = day_start_isolation*dwell_15_day
+        distancing_start = day_distancing_start*dwell_15_day
         new_agent_start=new_agent_start*dwell_15_day
         max_bed_available = num_agents * proportion_beds_pop
 
@@ -1258,11 +1257,8 @@ class CovidModel(Model):
             self.model_data.bed_count
         )]
 
-        db = Database()
-        db.insert_model(model_params)
-        db.commit()
-        db.close()
-        
+        self.db.insert_model(model_params)
+        self.db.commit()
 
         for variant in variant_data:
             self.model_data.variant_data_list[variant["Name"]] = {}
@@ -1337,6 +1333,7 @@ class CovidModel(Model):
 
 
         age_vaccination_dict = {}
+
         for age in AgeGroup:
             age_group_name = "Vaccinated " + str(age.name)
             age_vaccination_dict[age_group_name] = [compute_vaccinated_in_group, [self, age]]
@@ -1375,6 +1372,7 @@ class CovidModel(Model):
             agent_status_dict[stage_name] = [compute_stage, [self,stage]]
 
 
+        # This is part of the summary
         prices_dict = { "CumulPrivValue": compute_cumul_private_value,
             "CumulPublValue": compute_cumul_public_value,
             "CumulTestCost": compute_cumul_testing_cost,
@@ -1386,6 +1384,8 @@ class CovidModel(Model):
             "Cumul_Vaccine_Cost": compute_cumul_vaccination_cost,
             "Cumul_Cost": compute_total_cost
         }
+
+        # This is also part of the summary
         model_reporters_dict = {
                 "Step": compute_stepno,
                 "N": compute_num_agents,
@@ -1417,6 +1417,16 @@ class CovidModel(Model):
         # Save all initial values of agents in the database
         # Commit
 
+        cumul_priv_value = compute_cumul_private_value(self)
+        cumul_publ_value = compute_cumul_public_value(self)
+        cumul_test_cost = compute_cumul_testing_cost(self)
+        rt = compute_eff_reprod_number(self)
+        employed = compute_employed(self)
+        unemployed = compute_unemployed(self)
+        tested = compute_tested(self)
+        traced = compute_traced(self)
+        cumul_vaccine_cost = compute_cumul_vaccination_cost(self)
+        cumul_cost =compute_total_cost(self)
         step = compute_stepno(self)
         n = compute_num_agents(self)
         isolated = compute_isolated(self)
@@ -1437,6 +1447,16 @@ class CovidModel(Model):
         myid = str(uuid.uuid4())
         summary_params = [(
             myid,
+            cumul_priv_value,
+            cumul_publ_value,
+            cumul_test_cost,
+            rt,
+            employed,
+            unemployed,
+            tested,
+            traced,
+            cumul_vaccine_cost,
+            cumul_cost,
             step,
             n,
             isolated,
@@ -1452,10 +1472,8 @@ class CovidModel(Model):
             vaccine_willing
         )]
 
-        db = Database()
-        db.insert_summary(summary_params)
-        db.commit()
-        db.close()
+        self.db.insert_summary(summary_params)
+        self.db.commit()
 
 
         for a in self.schedule.agents:

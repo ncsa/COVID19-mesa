@@ -56,45 +56,7 @@ class Database:
                 dosage_eligible,
                 fully_vaccinated,
                 variant
-            ) VALUES(
-                %s,
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s,
-                %s,
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s
-            )
+            ) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         try:
             self.cur = self.conn.cursor()
@@ -165,68 +127,8 @@ class Database:
                 prob_severe,
                 max_bed_available,
                 bed_count
-            ) VALUES(
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s
-            )
+            ) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """
-        conn = None
         try:
            self.cur = self.conn.cursor()
            self.cur.executemany(sql, data)
@@ -239,6 +141,16 @@ class Database:
         sql = """
             INSERT INTO summary(
                 uuid,
+                cumul_priv_value,
+                cumul_publ_value,
+                cumul_test_cost,
+                rt,
+                employed,
+                unemployed,
+                tested,
+                traced,
+                cumul_vaccine_cost,
+                cumul_cost,
                 step,
                 n,
                 isolated,
@@ -252,24 +164,8 @@ class Database:
                 vaccine_1,
                 vaccine_2,
                 vaccine_willing
-            ) VALUES(
-                %s,
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s, 
-                %s,
-                %s
-            )
+            ) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """
-        conn = None
         try:
             self.cur = self.conn.cursor()
             self.cur.executemany(sql, data)

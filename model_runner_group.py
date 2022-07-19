@@ -207,6 +207,10 @@ def runModelScenario(data,index,virus_data,filenames_list,is_checkpoint):
         virus_param_list.append(virus_data["variant"][virus])
     model_params["variant_data"] = virus_param_list
 
+
+    db = Database()
+    model_params["db"] = db
+
     var_params = {"dummy": range(25,50,25)}
 
     num_iterations = data["ensemble"]["runs"]
@@ -220,15 +224,7 @@ def runModelScenario(data,index,virus_data,filenames_list,is_checkpoint):
             variable_parameters=var_params,
             iterations= num_iterations,
             max_steps=num_steps,
-            model_reporters={
-                        "Step": compute_stepno,
-                        "CummulPrivValue": compute_cumul_private_value,
-                        "CummulPublValue": compute_cumul_public_value,
-                        "CummulTestCost": compute_cumul_testing_cost,
-                        "Rt": compute_eff_reprod_number,
-                        "Employed": compute_employed,
-                        "Unemployed": compute_unemployed
-                    },
+            model_reporters={},
             agent_reporters={},
             display_progress=True
         )
@@ -265,6 +261,7 @@ def runModelScenario(data,index,virus_data,filenames_list,is_checkpoint):
         print(f"Executing an ensemble of size {num_iterations} using {num_steps} steps with {num_iterations} machine cores...")
 
     cm_runs = batch_run.run_all()
+    db.close()
 
     if is_checkpoint:
         model_ldfs = []
