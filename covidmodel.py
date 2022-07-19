@@ -4,6 +4,8 @@
 # {nunezco,jake}@illinois.edu
 
 # A simple tunable model for COVID-19 response
+from operator import mod
+from sqlite3 import DatabaseError
 import timeit
 
 import mesa.batchrunner
@@ -22,6 +24,9 @@ import os
 import pandas as pd
 from agent_data_class import AgentDataClass
 from model_data_class import ModelDataClass
+import uuid
+from database import Database
+
 
 class Stage(Enum):
     SUSCEPTIBLE = 1
@@ -655,6 +660,52 @@ class CovidAgent(Agent):
             # If we are here, there is a problem 
             sys.exit("Unknown stage: aborting.")
 
+
+        #Insert a new trace into the database (AgentDataClass)
+        id = str(uuid.uuid4())
+        agent_params = [(
+            id, 
+            self.agent_data.age_group.value,
+            self.agent_data.sex_group.value, 
+            self.agent_data.vaccine_willingness, 
+            self.agent_data.incubation_time, 
+            self.agent_data.dwelling_time, 
+            self.agent_data.recovery_time, 
+            self.agent_data.prob_contagion, 
+            self.agent_data.mortality_value, 
+            self.agent_data.severity_value,
+            self.agent_data.curr_dwelling,
+            self.agent_data.curr_incubation,
+            self.agent_data.curr_recovery,
+            self.agent_data.curr_asymptomatic,
+            self.agent_data.isolated,
+            self.agent_data.isolated_but_inefficient,
+            self.agent_data.test_chance,
+            self.agent_data.in_isolation,
+            self.agent_data.in_distancing,
+            self.agent_data.in_testing,
+            self.agent_data.astep,
+            self.agent_data.tested,
+            self.agent_data.occupying_bed,
+            self.agent_data.cumul_private_value,
+            self.agent_data.cumul_public_value,
+            self.agent_data.employed,
+            self.agent_data.tested_traced,
+            self.agent_data.tracing_delay,
+            self.agent_data.tracing_counter,
+            self.agent_data.vaccinated,
+            self.agent_data.safetymultiplier,
+            self.agent_data.current_effectiveness,
+            self.agent_data.vaccination_day,
+            self.agent_data.vaccine_count,
+            self.agent_data.dosage_eligible,
+            self.agent_data.fully_vaccinated,
+            self.agent_data.variant
+        )]
+
+        self.model.db.insert_agent(agent_params)
+        self.model.db.commit()
+
         self.astep = self.astep + 1
 
     def move(self):
@@ -894,24 +945,39 @@ def compute_eligible_age_group_count(model,agegroup):
 
 def update_vaccination_stage(model):
     initial_stage = model.model_data.vaccination_stage
-    if compute_eligible_age_group_count(model, AgeGroup.C80toXX) < 1:
-        model.model_data.vaccination_stage = VaccinationStage.C70to79
-        if compute_eligible_age_group_count(model, AgeGroup.C70to79) < 1:
-            model.model_data.vaccination_stage = VaccinationStage.C60to69
-            if compute_eligible_age_group_count(model, AgeGroup.C60to69) < 1:
-                model.model_data.vaccination_stage = VaccinationStage.C50to59
-                if compute_eligible_age_group_count(model, AgeGroup.C50to59) < 1:
-                    model.model_data.vaccination_stage = VaccinationStage.C40to49
-                    if compute_eligible_age_group_count(model, AgeGroup.C40to49) < 1:
-                        model.model_data.vaccination_stage = VaccinationStage.C30to39
-                        if compute_eligible_age_group_count(model, AgeGroup.C30to39) < 1:
-                            model.model_data.vaccination_stage = VaccinationStage.C20to29
-                            if compute_eligible_age_group_count(model, AgeGroup.C20to29) < 1:
-                                model.model_data.vaccination_stage = VaccinationStage.C10to19
-                                if compute_eligible_age_group_count(model, AgeGroup.C10to19) < 1:
-                                    model.model_data.vaccination_stage = VaccinationStage.C00to09
-    else:
-        model.model_data.vaccination_stage = VaccinationStage.C80toXX
+    # if compute_eligible_age_group_count(model, AgeGroup.C80toXX) < 1:
+    #     model.model_data.vaccination_stage = VaccinationStage.C70to79
+    #     if compute_eligible_age_group_count(model, AgeGroup.C70to79) < 1:
+    #         model.model_data.vaccination_stage = VaccinationStage.C60to69
+    #         if compute_eligible_age_group_count(model, AgeGroup.C60to69) < 1:
+    #             model.model_data.vaccination_stage = VaccinationStage.C50to59
+    #             if compute_eligible_age_group_count(model, AgeGroup.C50to59) < 1:
+    #                 model.model_data.vaccination_stage = VaccinationStage.C40to49
+    #                 if compute_eligible_age_group_count(model, AgeGroup.C40to49) < 1:
+    #                     model.model_data.vaccination_stage = VaccinationStage.C30to39
+    #                     if compute_eligible_age_group_count(model, AgeGroup.C30to39) < 1:
+    #                         model.model_data.vaccination_stage = VaccinationStage.C20to29
+    #                         if compute_eligible_age_group_count(model, AgeGroup.C20to29) < 1:
+    #                             model.model_data.vaccination_stage = VaccinationStage.C10to19
+    #                             if compute_eligible_age_group_count(model, AgeGroup.C10to19) < 1:
+    #                                 model.model_data.vaccination_stage = VaccinationStage.C00to09
+    # else:
+    #     model.model_data.vaccination_stage = VaccinationStage.C80toXX
+
+    eligible_age_group_dict = {}
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C80toXX)] = VaccinationStage.C70to79
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C70to79)] = VaccinationStage.C60to69
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C60to69)] = VaccinationStage.C50to59
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C50to59)] = VaccinationStage.C40to49
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C40to49)] = VaccinationStage.C30to39
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C30to39)] = VaccinationStage.C20to29
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C10to19)] = VaccinationStage.C00to09
+
+    model.model_data.vaccination_stage = VaccinationStage.C80toXX
+    for key,value in sorted(eligible_age_group_dict.items(), reverse=True):
+        if (key < 1):
+            model.model_data.vaccination_stage = value
+
     if initial_stage != model.model_data.vaccination_stage:
         print(f"Vaccination stage is now {model.model_data.vaccination_stage}")
 
@@ -1035,7 +1101,7 @@ class CovidModel(Model):
                  day_distancing_start, days_distancing_lasts, proportion_detected, day_testing_start, days_testing_lasts, 
                  new_agent_proportion, new_agent_start, new_agent_lasts, new_agent_age_mean, new_agent_prop_infected,
                  day_tracing_start, days_tracing_lasts, stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop, day_vaccination_begin,
-                 day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data, dummy=0):
+                 day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data, db, dummy=0):
 
         print("Made it to the model")
         self.running = True
@@ -1045,14 +1111,15 @@ class CovidModel(Model):
         self.stepno = 0
         self.datacollection_time = 0
         self.step_time = 0
+        self.db = db
         
         dwell_15_day = 96
         vaccine_dosage = 2
         repscaling = 1
-        testing_start=day_testing_start* dwell_15_day
-        tracing_start=day_tracing_start* dwell_15_day
-        isolation_start=day_start_isolation*dwell_15_day
-        distancing_start=day_distancing_start*dwell_15_day
+        testing_start = day_testing_start* dwell_15_day
+        tracing_start = day_tracing_start* dwell_15_day
+        isolation_start = day_start_isolation*dwell_15_day
+        distancing_start = day_distancing_start*dwell_15_day
         new_agent_start=new_agent_start*dwell_15_day
         max_bed_available = num_agents * proportion_beds_pop
 
@@ -1124,6 +1191,74 @@ class CovidModel(Model):
             max_bed_available = max_bed_available,
             bed_count=max_bed_available
         )
+        print("model finished")
+        # initial commit
+
+        # insert a model into the database
+        myid = str(uuid.uuid4())
+        model_params = [(
+            myid,
+            self.model_data.test_cost,
+            self.model_data.alpha_private,
+            self.model_data.alpha_public,
+            self.model_data.fully_vaccinated_count,
+            self.model_data.prop_initial_infected,
+            self.model_data.generally_infected,
+            self.model_data.cumul_vaccine_cost,
+            self.model_data.cumul_test_cost,
+            self.model_data.total_costs,
+            self.model_data.vaccination_chance,
+            self.model_data.vaccination_stage.value,
+            self.model_data.vaccine_cost,
+            self.model_data.day_vaccination_begin,
+            self.model_data.day_vaccination_end,
+            self.model_data.effective_period,
+            self.model_data.effectiveness,
+            self.model_data.distribution_rate,
+            self.model_data.vaccine_count,
+            self.model_data.vaccinated_count,
+            self.model_data.vaccinated_percent,
+            self.model_data.vaccine_dosage,
+            self.model_data.effectiveness_per_dosage,
+            self.model_data.dwell_15_day,
+            self.model_data.avg_dwell,
+            self.model_data.avg_incubation,
+            self.model_data.repscaling,
+            self.model_data.prob_contagion_base,
+            self.model_data.kmob,
+            self.model_data.rate_inbound,
+            self.model_data.prob_contagion_places,
+            self.model_data.prob_asymptomatic,
+            self.model_data.avg_recovery,
+            self.model_data.testing_rate,
+            self.model_data.testing_start,
+            self.model_data.testing_end,
+            self.model_data.tracing_start,
+            self.model_data.tracing_end,
+            self.model_data.tracing_now,
+            self.model_data.isolation_rate,
+            self.model_data.isolation_start,
+            self.model_data.isolation_end,
+            self.model_data.after_isolation,
+            self.model_data.prob_isolation_effective,
+            self.model_data.distancing,
+            self.model_data.distancing_start,
+            self.model_data.distancing_end,
+            self.model_data.new_agent_num,
+            self.model_data.new_agent_start,
+            self.model_data.new_agent_end,
+            self.model_data.new_agent_age_mean,
+            self.model_data.new_agent_prop_infected,
+            self.model_data.vaccination_start,
+            self.model_data.vaccination_end,
+            self.model_data.vaccination_now,
+            self.model_data.prob_severe,
+            self.model_data.max_bed_available,
+            self.model_data.bed_count
+        )]
+
+        self.db.insert_model(model_params)
+        self.db.commit()
 
         for variant in variant_data:
             self.model_data.variant_data_list[variant["Name"]] = {}
@@ -1169,6 +1304,10 @@ class CovidModel(Model):
         times_list = list(np.linspace(self.model_data.new_agent_start, self.model_data.new_agent_end, self.model_data.new_agent_num, dtype=int))
         self.new_agent_time_map = {x:times_list.count(x) for x in times_list}
 
+        # We store a simulation specification in the database
+        # Commit
+        #print(self.model_data.vaccination_stage.value)
+
         # Create agents
         self.i = 0
 
@@ -1194,6 +1333,7 @@ class CovidModel(Model):
 
 
         age_vaccination_dict = {}
+
         for age in AgeGroup:
             age_group_name = "Vaccinated " + str(age.name)
             age_vaccination_dict[age_group_name] = [compute_vaccinated_in_group, [self, age]]
@@ -1232,6 +1372,7 @@ class CovidModel(Model):
             agent_status_dict[stage_name] = [compute_stage, [self,stage]]
 
 
+        # This is part of the summary
         prices_dict = { "CumulPrivValue": compute_cumul_private_value,
             "CumulPublValue": compute_cumul_public_value,
             "CumulTestCost": compute_cumul_testing_cost,
@@ -1243,6 +1384,8 @@ class CovidModel(Model):
             "Cumul_Vaccine_Cost": compute_cumul_vaccination_cost,
             "Cumul_Cost": compute_total_cost
         }
+
+        # This is also part of the summary
         model_reporters_dict = {
                 "Step": compute_stepno,
                 "N": compute_num_agents,
@@ -1271,6 +1414,68 @@ class CovidModel(Model):
         # Final step: infect an initial proportion of random agents
         num_init = int(self.num_agents * prop_initial_infected)
 
+        # Save all initial values of agents in the database
+        # Commit
+
+        cumul_priv_value = compute_cumul_private_value(self)
+        cumul_publ_value = compute_cumul_public_value(self)
+        cumul_test_cost = compute_cumul_testing_cost(self)
+        rt = compute_eff_reprod_number(self)
+        employed = compute_employed(self)
+        unemployed = compute_unemployed(self)
+        tested = compute_tested(self)
+        traced = compute_traced(self)
+        cumul_vaccine_cost = compute_cumul_vaccination_cost(self)
+        cumul_cost =compute_total_cost(self)
+        step = compute_stepno(self)
+        n = compute_num_agents(self)
+        isolated = compute_isolated(self)
+        vaccinated = compute_vaccinated(self)
+        vaccines = compute_vaccine_count(self)
+        v = compute_vaccinated(self)
+        data_time = compute_datacollection_time(self)
+        step_time = compute_step_time(self)
+        generally_infected = compute_generally_infected(self)
+        fully_vaccinated = compute_generally_infected(self)
+        vaccine_1 = compute_vaccinated_1(self)
+        vaccine_2 = compute_vaccinated_2(self)
+        vaccine_willing = compute_willing_agents(self)
+
+
+        #Save all initial summaries into the database
+        # insert a summary into database
+        myid = str(uuid.uuid4())
+        summary_params = [(
+            myid,
+            cumul_priv_value,
+            cumul_publ_value,
+            cumul_test_cost,
+            rt,
+            employed,
+            unemployed,
+            tested,
+            traced,
+            cumul_vaccine_cost,
+            cumul_cost,
+            step,
+            n,
+            isolated,
+            vaccinated,
+            vaccines,
+            v,
+            data_time,
+            step_time,
+            generally_infected,
+            fully_vaccinated,
+            vaccine_1,
+            vaccine_2,
+            vaccine_willing
+        )]
+
+        self.db.insert_summary(summary_params)
+        self.db.commit()
+
+
         for a in self.schedule.agents:
             if num_init < 0:
                 break
@@ -1282,6 +1487,7 @@ class CovidModel(Model):
     def step(self):
         datacollectiontimeA = timeit.default_timer()
         self.datacollector.collect(self)
+        # summary
         datacollectiontimeB = timeit.default_timer()
         self.datacollection_time = datacollectiontimeB-datacollectiontimeA
 
@@ -1369,4 +1575,8 @@ class CovidModel(Model):
         self.schedule.step()
         steptimeB = timeit.default_timer()
         self.step_time = steptimeB - steptimeA
+
+        # Commit (save first all the agent data in memory)
+        # Save the summaries
+
         self.stepno = self.stepno + 1
