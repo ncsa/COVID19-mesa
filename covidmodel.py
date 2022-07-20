@@ -4,6 +4,8 @@
 # {nunezco,jake}@illinois.edu
 
 # A simple tunable model for COVID-19 response
+from operator import mod
+from sqlite3 import DatabaseError
 import timeit
 
 import mesa.batchrunner
@@ -20,6 +22,11 @@ import psutil as psu
 import timeit as time
 import os
 import pandas as pd
+from agent_data_class import AgentDataClass
+from model_data_class import ModelDataClass
+import uuid
+from database import Database
+
 
 class Stage(Enum):
     SUSCEPTIBLE = 1
@@ -72,60 +79,14 @@ class CovidAgent(Agent):
     def __init__(self, unique_id, ageg, sexg, mort, model):
         super().__init__(unique_id, model)
         self.stage = Stage.SUSCEPTIBLE
-        self.age_group = ageg
-        self.sex_group = sexg
-        self.vaccine_willingness = bernoulli.rvs(self.model.vaccination_percent)
-        # These are fixed values associated with properties of individuals
-        self.incubation_time = poisson.rvs(model.avg_incubation)
-        self.dwelling_time = poisson.rvs(model.avg_dwell)
-        self.recovery_time = poisson.rvs(model.avg_recovery)
-        self.prob_contagion = self.model.prob_contagion_base
-        # Mortality in vulnerable population appears to be around day 2-3
-        self.mortality_value = mort
-        # Severity appears to appear after day 5
-        self.severity_value = model.prob_severe/(self.model.dwell_15_day*self.recovery_time)
-        self.curr_dwelling = 0
-        self.curr_incubation = 0
-        self.curr_recovery = 0
-        self.curr_asymptomatic = 0
-        # Isolation measures are set at the model step level
-        self.isolated = False
-        self.isolated_but_inefficient = False
-        # Contagion probability is local
-        self.test_chance = 0
-        # Horrible hack for isolation step
-        self.in_isolation = False
-        self.in_distancing = False
-        self.in_testing = False
         self.astep = 0
-        self.tested = False
-        self.occupying_bed = False
-        # Economic assumptions
-        self.cumul_private_value = 0
-        self.cumul_public_value = 0
-        # Employment
-        self.employed = True
-        # Contact tracing: this is only available for symptomatic patients
-        self.tested_traced = False
-        # All agents 
-        self.contacts = set()
-        # We assume it takes two full days
-        self.tracing_delay = 2*model.dwell_15_day
-        self.tracing_counter = 0
-        #vaccination variables
-        self.vaccinated = False
-        self.safetymultiplier = 1
-        self.current_effectiveness = 0
-        self.vaccination_day = 0
-        self.vaccine_count = 0
-        self.dosage_eligible = True
-        self.fully_vaccinated = False
-        self.variant = "Standard"
-        self.variant_immune = {}
-        for variant in self.model.variant_data_list:
-            self.variant_immune[variant] = False
+        is_checkpoint = False
+        params = [0, ageg, sexg, mort]
+        self.agent_data = AgentDataClass(model, is_checkpoint, params)
+
+       
     def alive(self):
-        print(f'{self.unique_id} {self.age_group} {self.sex_group} is alive')
+        print(f'{self.unique_id} {self.agent_data.age_group} {self.agent_data.sex_group} is alive')
 
     def is_contagious(self):
         return (self.stage == Stage.EXPOSED) or (self.stage == Stage.ASYMPTOMATIC) or (self.stage == Stage.SYMPDETECTED)
@@ -140,9 +101,9 @@ class CovidAgent(Agent):
         # of the distribution and must be further callibrated.
         mult = 1.0
 
-        if self.model.distancing >= 1.5:
+        if self.model.model_data.distancing >= 1.5:
             k = 10
-            mult = 1.0 - (1.0 / (1.0 + np.exp(k*(-(self.model.distancing - 1.5) + 0.5))))
+            mult = 1.0 - (1.0 / (1.0 + np.exp(k*(-(self.model.model_data.distancing - 1.5) + 0.5))))
 
         return mult
 
@@ -153,7 +114,7 @@ class CovidAgent(Agent):
         if (self.stage != Stage.DECEASED) and (self.stage != Stage.RECOVERED):
             for agent in self.model.grid.get_cell_list_contents([self.pos]):
                 if agent.unique_id != self.unique_id:
-                    if not(agent.isolated) or self.isolated_but_inefficient:
+                    if not(agent.agent_data.isolated) or self.agent_data.isolated_but_inefficient:
                         count = count + 1
 
         return count
@@ -162,27 +123,27 @@ class CovidAgent(Agent):
     def test_contact_trace(self):
         # We may have an already tested but it had a posterior contact and became infected
         if self.stage == Stage.SUSCEPTIBLE:
-            self.tested_traced = True
+            self.agent_data.tested_traced = True
         elif self.stage == Stage.EXPOSED:
-            self.tested_traced = True
+            self.agent_data.tested_traced = True
 
-            if bernoulli.rvs(self.model.prob_asymptomatic):
+            if bernoulli.rvs(self.model.model_data.prob_asymptomatic):
                     self.stage = Stage.ASYMPDETECTED
             else:
                 self.stage = Stage.SYMPDETECTED
         elif self.stage == Stage.ASYMPTOMATIC:
             self.stage = Stage.ASYMPDETECTED
-            self.tested_traced = True
+            self.agent_data.tested_traced = True
         else:
             return
 
     def add_contact_trace(self, other):
-        if self.model.tracing_now:
-            self.contacts.add(other)
+        if self.model.model_data.tracing_now:
+            self.agent_data.contacts.add(other)
 
     #helper function that reveals if an agent is vaccinated
     def is_vaccinated(self):
-        return self.vaccinated
+        return self.agent_data.vaccinated
 
 
     #Vaccination decision process, prone to change to find the ideal method.
@@ -190,7 +151,7 @@ class CovidAgent(Agent):
     #For now implementing random vaccination.
 
     def general_vaccination_chance(self):
-        eligible_count = compute_age_group_count(self.model, self.age_group)
+        eligible_count = compute_age_group_count(self.model, self.agent_data.age_group)
         vaccination_chance = 1/eligible_count
         if self.stage == Stage.ASYMPTOMATIC or self.stage == Stage.SUSCEPTIBLE or self.stage == Stage.EXPOSED:
             if bernoulli.rvs(vaccination_chance):
@@ -200,31 +161,31 @@ class CovidAgent(Agent):
 
     def should_be_vaccinated(self):
         if self.general_vaccination_chance():
-            if self.age_group == AgeGroup.C80toXX and self.model.vaccination_stage == VaccinationStage.C80toXX:
+            if self.agent_data.age_group == AgeGroup.C80toXX and self.model.model_data.vaccination_stage == VaccinationStage.C80toXX:
                 update_vaccination_stage(self.model)
                 return True
-            elif self.age_group == AgeGroup.C70to79 and self.model.vaccination_stage == VaccinationStage.C70to79:
+            elif self.agent_data.age_group == AgeGroup.C70to79 and self.model.model_data.vaccination_stage == VaccinationStage.C70to79:
                 update_vaccination_stage(self.model)
                 return True
-            elif self.age_group == AgeGroup.C60to69 and self.model.vaccination_stage == VaccinationStage.C60to69:
+            elif self.agent_data.age_group == AgeGroup.C60to69 and self.model.model_data.vaccination_stage == VaccinationStage.C60to69:
                 update_vaccination_stage(self.model)
                 return True
-            elif self.age_group == AgeGroup.C50to59 and self.model.vaccination_stage == VaccinationStage.C50to59:
+            elif self.agent_data.age_group == AgeGroup.C50to59 and self.model.model_data.vaccination_stage == VaccinationStage.C50to59:
                 update_vaccination_stage(self.model)
                 return True
-            elif self.age_group == AgeGroup.C40to49 and self.model.vaccination_stage == VaccinationStage.C40to49:
+            elif self.agent_data.age_group == AgeGroup.C40to49 and self.model.model_data.vaccination_stage == VaccinationStage.C40to49:
                 update_vaccination_stage(self.model)
                 return True
-            elif self.age_group == AgeGroup.C30to39 and self.model.vaccination_stage == VaccinationStage.C30to39:
+            elif self.agent_data.age_group == AgeGroup.C30to39 and self.model.model_data.vaccination_stage == VaccinationStage.C30to39:
                 update_vaccination_stage(self.model)
                 return True
-            elif self.age_group == AgeGroup.C20to29 and self.model.vaccination_stage == VaccinationStage.C20to29:
+            elif self.agent_data.age_group == AgeGroup.C20to29 and self.model.model_data.vaccination_stage == VaccinationStage.C20to29:
                 update_vaccination_stage(self.model)
                 return True
-            elif self.age_group == AgeGroup.C10to19 and self.model.vaccination_stage == VaccinationStage.C10to19:
+            elif self.agent_data.age_group == AgeGroup.C10to19 and self.model.model_data.vaccination_stage == VaccinationStage.C10to19:
                 update_vaccination_stage(self.model)
                 return True
-            elif self.age_group == AgeGroup.C00to09 and self.model.vaccination_stage == VaccinationStage.C00to09:
+            elif self.agent_data.age_group == AgeGroup.C00to09 and self.model.model_data.vaccination_stage == VaccinationStage.C00to09:
                 update_vaccination_stage(self.model)
                 return True
             else :
@@ -235,51 +196,51 @@ class CovidAgent(Agent):
     def step(self):
         # We compute unemployment in general as a probability of 0.00018 per day.
         # In 60 days, this is equivalent to a probability of 1% unemployment filings.
-        if self.employed:
-            if self.isolated:
-                if bernoulli.rvs(32*0.00018/self.model.dwell_15_day):
-                    self.employed = False
+        if self.agent_data.employed:
+            if self.agent_data.isolated:
+                if bernoulli.rvs(32*0.00018/self.model.model_data.dwell_15_day):
+                    self.agent_data.employed = False
             else:
-                if bernoulli.rvs(8*0.00018/self.model.dwell_15_day):
-                    self.employed = False
+                if bernoulli.rvs(8*0.00018/self.model.model_data.dwell_15_day):
+                    self.agent_data.employed = False
 
         # We also compute the probability of re-employment, which is at least ten times
         # as smaller in a crisis.
-        if not(self.employed):
-            if bernoulli.rvs(0.000018/self.model.dwell_15_day):
-                self.employed = True
+        if not(self.agent_data.employed):
+            if bernoulli.rvs(0.000018/self.model.model_data.dwell_15_day):
+                self.agent_data.employed = True
 
 
        # Social distancing
-        if not(self.in_distancing) and (self.astep >= self.model.distancing_start):
-            self.prob_contagion = self.dmult() * self.model.prob_contagion_base
-            self.in_distancing = True
+        if not(self.agent_data.in_distancing) and (self.astep >= self.model.model_data.distancing_start):
+            self.agent_data.prob_contagion = self.dmult() * self.model.model_data.prob_contagion_base
+            self.agent_data.in_distancing = True
 
-        if self.in_distancing and (self.astep >= self.model.distancing_end):
-            self.prob_contagion = self.model.prob_contagion_base
-            self.in_distancing = False
+        if self.agent_data.in_distancing and (self.astep >= self.model.model_data.distancing_end):
+            self.agent_data.prob_contagion = self.model.model_data.prob_contagion_base
+            self.agent_data.in_distancing = False
 
         # Testing
-        if not(self.in_testing) and (self.astep >= self.model.testing_start):
-            self.test_chance = self.model.testing_rate
-            self.in_testing = True
+        if not(self.agent_data.in_testing) and (self.astep >= self.model.model_data.testing_start):
+            self.agent_data.test_chance = self.model.model_data.testing_rate
+            self.agent_data.in_testing = True
 
-        if self.in_testing and (self.astep >= self.model.testing_end):
-            self.test_chance = 0
-            self.in_testing = False
+        if self.agent_data.in_testing and (self.astep >= self.model.model_data.testing_end):
+            self.agent_data.test_chance = 0
+            self.agent_data.in_testing = False
 
 
         #Implementing the vaccine
         #Will process based on whether all older agents in an older group are vaccinated
-        if (not(self.vaccinated) or self.dosage_eligible) and self.model.vaccinating_now and (not(self.fully_vaccinated) and (self.vaccine_count < self.model.vaccine_dosage)):
-            if self.should_be_vaccinated() and self.model.vaccine_count > 0 and self.vaccine_willingness:
+        if (not(self.agent_data.vaccinated) or self.agent_data.dosage_eligible) and self.model.model_data.vaccination_now and (not(self.agent_data.fully_vaccinated) and (self.agent_data.vaccine_count < self.model.model_data.vaccine_dosage)):
+            if self.should_be_vaccinated() and self.model.model_data.vaccine_count > 0 and self.agent_data.vaccine_willingness:
                 if not (bernoulli.rvs(0.1)):  # Chance that someone doesnt show up for the vaccine/ vaccine expires.
-                    self.vaccinated = True
-                    self.vaccination_day = self.model.stepno
-                    self.vaccine_count = self.vaccine_count + 1
-                    self.dosage_eligible = False
-                    self.model.vaccine_count = self.model.vaccine_count - 1
-                    self.model.vaccinated_count = self.model.vaccinated_count + 1
+                    self.agent_data.vaccinated = True
+                    self.agent_data.vaccination_day = self.model.stepno
+                    self.agent_data.vaccine_count = self.agent_data.vaccine_count + 1
+                    self.agent_data.dosage_eligible = False
+                    self.model.model_data.vaccine_count = self.model.model_data.vaccine_count - 1
+                    self.model.model_data.vaccinated_count = self.model.model.data.vaccinated_count + 1
 
                 else:
                     other_agent = self.random.choice(self.model.schedule.agents)
@@ -289,54 +250,54 @@ class CovidAgent(Agent):
                     other_agent.vaccination_day = self.model.stepno
                     other_agent.vaccine_count = other_agent.vaccine_count +1
                     other_agent.dosage_eligible = False
-                    self.model.vaccinated_count = self.model.vaccinated_count + 1
-                    self.model.vaccine_count = self.model.vaccine_count - 1
+                    self.model.model_data.vaccinated_count = self.model.model_data.vaccinated_count + 1
+                    self.model.model_data.vaccine_count = self.model.model_data.vaccine_count - 1
 
 
         # Self isolation is tricker. We only isolate susceptibles, incubating and asymptomatics
-        if not(self.in_isolation):
-            if (self.astep >= self.model.isolation_start):
+        if not(self.agent_data.in_isolation):
+            if (self.astep >= self.model.model_data.isolation_start):
                 if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
                     (self.stage == Stage.ASYMPTOMATIC):
-                    if bool(bernoulli.rvs(self.model.isolation_rate)):
-                        self.isolated = True
+                    if bool(bernoulli.rvs(self.model.model_data.isolation_rate)):
+                        self.agent_data.isolated = True
                     else:
-                        self.isolated = False
-                    self.in_isolation = True
-            elif (self.astep >= self.model.isolation_end):
+                        self.agent_data.isolated = False
+                    self.agent_data.in_isolation = True
+            elif (self.astep >= self.model.model_data.isolation_end):
                 if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
                     (self.stage == Stage.ASYMPTOMATIC):
-                    if bool(bernoulli.rvs(self.model.after_isolation)):
-                        self.isolated = True
+                    if bool(bernoulli.rvs(self.model.model_data.after_isolation)):
+                        self.agent_data.isolated = True
                     else:
-                        self.isolated = False
-                    self.in_isolation = True
+                        self.agent_data.isolated = False
+                    self.agent_data.in_isolation = True
 
                     
         # Using a similar logic, we remove isolation for all relevant agents still locked
-        if self.in_isolation and (self.astep >= self.model.isolation_end):
+        if self.agent_data.in_isolation and (self.astep >= self.model.model_data.isolation_end):
             if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
                 (self.stage == Stage.ASYMPTOMATIC):
-                self.isolated = False
-                self.in_isolation = False
+                self.agent_data.isolated = False
+                self.agent_data.in_isolation = False
 
 
         #Implementing the current safety factor for maximum effectiveness
 
-        vaccination_time = self.model.stepno - self.vaccination_day
+        vaccination_time = self.model.stepno - self.agent_data.vaccination_day
         #In this model I will assume that the vaccine is only half as effective once 2 weeks have passed given one dose.
-        effective_date = self.model.dwell_15_day * 14
-        if (vaccination_time < effective_date) and self.vaccinated == True:
-            self.safetymultiplier = 1 - (self.model.effectiveness_per_dosage * (vaccination_time/effective_date)) - self.current_effectiveness #Error the vaccination will go to 0 once it is done.
+        effective_date = self.model.model_data.dwell_15_day * 14
+        if (vaccination_time < effective_date) and self.agent_data.vaccinated == True:
+            self.agent_data.safetymultiplier = 1 - (self.model.agent_data.effectiveness_per_dosage * (vaccination_time/effective_date)) - self.agent_data.current_effectiveness #Error the vaccination will go to 0 once it is done.
         else:
-            self.current_effectiveness = self.model.effectiveness_per_dosage * self.vaccine_count
-            self.safetymultiplier = 1 - self.current_effectiveness * self.model.variant_data_list[self.variant]["Vaccine_Multiplier"]
-            if (self.vaccine_count < self.model.vaccine_dosage):
-                self.dosage_eligible = True  # Once this number is false, the person is eligible and is not fully vaccinated.
-            elif self.fully_vaccinated == False:
-                self.dosage_eligible = False
-                self.fully_vaccinated = True
-                self.model.fully_vaccinated_count = self.model.fully_vaccinated_count + 1
+            self.agent_data.current_effectiveness = self.model.model_data.effectiveness_per_dosage * self.agent_data.vaccine_count
+            self.agent_data.safetymultiplier = 1 - self.agent_data.current_effectiveness * self.model.model_data.variant_data_list[self.agent_data.variant]["Vaccine_Multiplier"]
+            if (self.agent_data.vaccine_count < self.model.model_data.vaccine_dosage):
+                self.agent_data.dosage_eligible = True  # Once this number is false, the person is eligible and is not fully vaccinated.
+            elif self.agent_data.fully_vaccinated == False:
+                self.agent_data.dosage_eligible = False
+                self.agent_data.fully_vaccinated = True
+                self.model.model_data.fully_vaccinated_count = self.model.model_data.fully_vaccinated_count + 1
 
 
         # Using the model, determine if a susceptible individual becomes infected due to
@@ -355,9 +316,9 @@ class CovidAgent(Agent):
             # still susceptible.
             # We take care of testing probability at the top level step
             # routine to avoid this repeated computation
-            if not(self.tested or self.tested_traced) and bernoulli.rvs(self.test_chance):
-                self.tested = True
-                self.model.cumul_test_cost = self.model.cumul_test_cost + self.model.test_cost
+            if not(self.agent_data.tested or self.agent_data.tested_traced) and bernoulli.rvs(self.agent_data.test_chance):
+                self.agent_data.tested = True
+                self.model.model_data.cumul_test_cost = self.model.model_data.cumul_test_cost + self.model.model_data.test_cost
             # First opportunity to get infected: contact with others
             # in near proximity
             cellmates = self.model.grid.get_cell_list_contents([self.pos])
@@ -370,72 +331,72 @@ class CovidAgent(Agent):
             #values we would have to account for
             variant = "Standard"
             for c in cellmates:
-                    if c.is_contagious() and (c.stage == Stage.SYMPDETECTED or c.stage == Stage.SEVERE) and self.variant_immune[c.variant] == False:
+                    if c.is_contagious() and (c.stage == Stage.SYMPDETECTED or c.stage == Stage.SEVERE) and self.agent_data.variant_immune[c.agent_data.variant] == False:
                         c.add_contact_trace(self)
-                        if self.isolated and bernoulli.rvs(1 - self.model.prob_isolation_effective):
-                            self.isolated_but_inefficient = True
+                        if self.agent_data.isolated and bernoulli.rvs(1 - self.model.model_data.prob_isolation_effective):
+                            self.agent_data.isolated_but_inefficient = True
                             infected_contact = 1
-                            variant = c.variant
+                            variant = c.agent_data.variant
                             break
                         else:
                             infected_contact = 1
-                            variant = c.variant
+                            variant = c.agent_data.variant
                             break
-                    elif c.is_contagious() and (c.stage == Stage.ASYMPTOMATIC or c.stage == Stage.ASYMPDETECTED) and self.variant_immune[c.variant] == False:
+                    elif c.is_contagious() and (c.stage == Stage.ASYMPTOMATIC or c.stage == Stage.ASYMPDETECTED) and self.agent_data.variant_immune[c.agent_data.variant] == False:
                         c.add_contact_trace(self)
-                        if self.isolated and bernoulli.rvs(1 - self.model.prob_isolation_effective):
-                            self.isolated_but_inefficient = True
+                        if self.agent_data.isolated and bernoulli.rvs(1 - self.model.model_data.prob_isolation_effective):
+                            self.agent_data.isolated_but_inefficient = True
                             infected_contact = 2
-                            variant = c.variant
+                            variant = c.agent_data.variant
                         else:
                             infected_contact = 2
-                            variant = c.variant
+                            variant = c.agent_data.variant
 
             # Value is computed before infected stage happens
             isolation_private_divider = 1
             isolation_public_divider = 1
 
 
-            if self.employed:
-                if self.isolated:
+            if self.agent_data.employed:
+                if self.agent_data.isolated:
                     isolation_private_divider = 0.3
                     isolation_public_divider = 0.01
 
 
-                self.cumul_private_value = self.cumul_private_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.SUSCEPTIBLE])*isolation_private_divider
-                self.cumul_public_value = self.cumul_public_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SUSCEPTIBLE])*isolation_public_divider
+                self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + \
+                    ((len(cellmates) - 1) * self.model.model_data.stage_value_dist[ValueGroup.PRIVATE][Stage.SUSCEPTIBLE])*isolation_private_divider
+                self.agent_data.cumul_public_value = self.agent_data.cumul_public_value + \
+                    ((len(cellmates) - 1) * self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.SUSCEPTIBLE])*isolation_public_divider
             else:
-                self.cumul_private_value = self.cumul_private_value + 0
-                self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SUSCEPTIBLE]
+                self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + 0
+                self.agent_data.cumul_public_value = self.agent_data.cumul_public_value - 2*self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.SUSCEPTIBLE]
 
 
-            current_prob = self.prob_contagion * self.model.variant_data_list[variant]["Contagtion_Multiplier"]
-            if self.vaccinated:
-                current_prob = current_prob * self.safetymultiplier
+            current_prob = self.agent_data.prob_contagion * self.model.model_data.variant_data_list[variant]["Contagtion_Multiplier"]
+            if self.agent_data.vaccinated:
+                current_prob = current_prob * self.agent_data.safetymultiplier
 
             if infected_contact == 2:
                 current_prob = current_prob * 0.42
 
             if infected_contact > 0:
-                if self.isolated:
-                    if bernoulli.rvs(current_prob) and not(bernoulli.rvs(self.model.prob_isolation_effective)):
+                if self.agent_data.isolated:
+                    if bernoulli.rvs(current_prob) and not(bernoulli.rvs(self.model.model_data.prob_isolation_effective)):
                         self.stage = Stage.EXPOSED
-                        self.variant = variant
-                        self.model.generally_infected = self.model.generally_infected + 1
+                        self.agent_data.variant = variant
+                        self.model.model_data.generally_infected = self.model.model_data.generally_infected + 1
                 else:
                     if bernoulli.rvs(current_prob):
                         #Added vaccination account after being exposed to determine exposure.
                         self.stage = Stage.EXPOSED
-                        self.variant = variant
-                        self.model.generally_infected = self.model.generally_infected + 1
+                        self.agent_data.variant = variant
+                        self.model.model_data.generally_infected = self.model.model_data.generally_infected + 1
 
 
             # Second opportunity to get infected: residual droplets in places
             # TODO
 
-            if not(self.isolated):
+            if not(self.agent_data.isolated):
                 self.move()
         elif self.stage == Stage.EXPOSED:
             # Susceptible patients only move and spread the disease.
@@ -448,40 +409,40 @@ class CovidAgent(Agent):
             isolation_private_divider = 1
             isolation_public_divider = 1
 
-            if self.employed:
-                if self.isolated:
+            if self.agent_data.employed:
+                if self.agent_data.isolated:
                     isolation_private_divider = 0.3
                     isolation_public_divider = 0.01
                 
-                self.cumul_private_value = self.cumul_private_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.EXPOSED])*isolation_private_divider
-                self.cumul_public_value = self.cumul_public_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.EXPOSED])*isolation_public_divider
+                self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + \
+                    ((len(cellmates) - 1) * self.model.model_data.stage_value_dist[ValueGroup.PRIVATE][Stage.EXPOSED])*isolation_private_divider
+                self.agent_data.cumul_public_value = self.agent_data.cumul_public_value + \
+                    ((len(cellmates) - 1) * self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.EXPOSED])*isolation_public_divider
             else:
-                self.cumul_private_value = self.cumul_private_value + 0
-                self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.EXPOSED]
+                self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + 0
+                self.agent_data.cumul_public_value = self.agent_data.cumul_public_value - 2*self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.EXPOSED]
 
             # Assignment is less expensive than comparison
             do_move = True
 
-            current_prob_asymptomatic = self.model.prob_asymptomatic * self.model.variant_data_list[self.variant]["Asymtpomatic_Multiplier"]
-            if self.vaccinated:
-                current_prob_asymptomatic = 1-(1-self.model.prob_asymptomatic) * self.safetymultiplier #Probability of asymptomatic becomes 1-(probability of symptomatic)*safety_multiplier
+            current_prob_asymptomatic = self.model.model_data.prob_asymptomatic * self.model.model_data.variant_data_list[self.agent_data.variant]["Asymtpomatic_Multiplier"]
+            if self.agent_data.vaccinated:
+                current_prob_asymptomatic = 1-(1-self.model.model_data.prob_asymptomatic) * self.agent_data.safetymultiplier #Probability of asymptomatic becomes 1-(probability of symptomatic)*safety_multiplier
 
 
             # If testing is available and the date is reached, test
-            if not(self.tested or self.tested_traced) and bernoulli.rvs(self.test_chance):
+            if not(self.agent_data.tested or self.agent_data.tested_traced) and bernoulli.rvs(self.agent_data.test_chance):
                 if bernoulli.rvs(current_prob_asymptomatic):
                     self.stage = Stage.ASYMPDETECTED
                 else:
                     self.stage = Stage.SYMPDETECTED
                     do_move = False
                 
-                self.tested = True
-                self.model.cumul_test_cost = self.model.cumul_test_cost + self.model.test_cost
+                self.agent_data.tested = True
+                self.model.model_data.cumul_test_cost = self.model.model_data.cumul_test_cost + self.model.model_data.test_cost
             else:
-                if self.curr_incubation < self.incubation_time:
-                    self.curr_incubation = self.curr_incubation + 1
+                if self.agent_data.curr_incubation < self.agent_data.incubation_time:
+                    self.agent_data.curr_incubation = self.agent_data.curr_incubation + 1
                 else:
                     if bernoulli.rvs(current_prob_asymptomatic):
                         self.stage = Stage.ASYMPTOMATIC
@@ -490,7 +451,7 @@ class CovidAgent(Agent):
                         do_move = False
 
             # Now, attempt to move
-            if do_move and not(self.isolated):
+            if do_move and not(self.agent_data.isolated):
                 self.move()
             
             # Perform the move once the condition has been determined
@@ -502,31 +463,31 @@ class CovidAgent(Agent):
             isolation_private_divider = 1
             isolation_public_divider = 1
 
-            if self.employed:
-                if self.isolated:
+            if self.agent_data.employed:
+                if self.agent_data.isolated:
                     isolation_private_divider = 0.3
                     isolation_public_divider = 0.01
                 
-                    self.cumul_private_value = self.cumul_private_value + \
-                        ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.ASYMPTOMATIC])*isolation_private_divider
-                    self.cumul_public_value = self.cumul_public_value + \
-                        ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPTOMATIC])*isolation_public_divider
+                    self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + \
+                        ((len(cellmates) - 1) * self.model.model_data.stage_value_dist[ValueGroup.PRIVATE][Stage.ASYMPTOMATIC])*isolation_private_divider
+                    self.agent_data.cumul_public_value = self.agent_data.cumul_public_value + \
+                        ((len(cellmates) - 1) * self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPTOMATIC])*isolation_public_divider
                 else:
-                    self.cumul_private_value = self.cumul_private_value + 0
-                    self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPTOMATIC]
+                    self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + 0
+                    self.agent_data.cumul_public_value = self.agent_data.cumul_public_value - 2*self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPTOMATIC]
 
-            if not(self.tested or self.tested_traced) and bernoulli.rvs(self.test_chance):
+            if not(self.agent_data.tested or self.agent_data.tested_traced) and bernoulli.rvs(self.agent_data.test_chance):
                 self.stage = Stage.ASYMPDETECTED
-                self.tested = True
-                self.model.cumul_test_cost = self.model.cumul_test_cost + self.model.test_cost
+                self.agent_data.tested = True
+                self.model.model_data.cumul_test_cost = self.model.model_data.cumul_test_cost + self.model.model_data.test_cost
 
-            if self.curr_recovery >= self.recovery_time:
+            if self.agent_data.curr_recovery >= self.agent_data.recovery_time:
                 self.stage = Stage.RECOVERED
-                self.variant_immune[self.variant] = True
+                self.agent_data.variant_immune[self.agent_data.variant] = True
             else:
-                self.curr_recovery  += 1
+                self.agent_data.curr_recovery  += 1
 
-            if not (self.isolated):
+            if not (self.agent_data.isolated):
                 self.move()
 
                     
@@ -534,125 +495,125 @@ class CovidAgent(Agent):
             # Once a symptomatic patient has been detected, it does not move and starts
             # the road to severity, recovery or death. We assume that, by reaching a health
             # unit, they are tested as positive.
-            self.isolated = True
-            self.tested = True
+            self.agent_data.isolated = True
+            self.agent_data.tested = True
 
-            current_severe_chance = self.mortality_value * self.model.variant_data_list[self.variant]["Mortality_Multiplier"] * (1/(self.model.dwell_15_day))
-            if (self.vaccinated):
-                current_severe_chance = current_severe_chance * self.safetymultiplier
+            current_severe_chance = self.agent_data.mortality_value * self.model.model_data.variant_data_list[self.agent_data.variant]["Mortality_Multiplier"] * (1/(self.model.model_data.dwell_15_day))
+            if (self.agent_data.vaccinated):
+                current_severe_chance = current_severe_chance * self.agent_data.safetymultiplier
 
 
             # Contact tracing logic: use a negative number to indicate trace exhaustion
-            if self.model.tracing_now and self.tracing_counter >= 0:
+            if self.model.model_data.tracing_now and self.agent_data.tracing_counter >= 0:
                 # Test only when the count down has been reached
-                if self.tracing_counter == self.tracing_delay:
-                    for t in self.contacts:
+                if self.agent_data.tracing_counter == self.agent_data.tracing_delay:
+                    for t in self.agent_data.contacts:
                         t.test_contact_trace()
 
-                    self.tracing_counter = -1
+                    self.agent_data.tracing_counter = -1
                 else:
-                    self.tracing_counter = self.tracing_counter + 1
+                    self.agent_data.tracing_counter = self.agent_data.tracing_counter + 1
             
-            self.cumul_private_value = self.cumul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.SYMPDETECTED]
-            self.cumul_public_value = self.cumul_public_value + \
-                self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SYMPDETECTED]
+            self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + \
+                self.model.model_data.stage_value_dist[ValueGroup.PRIVATE][Stage.SYMPDETECTED]
+            self.agent_data.cumul_public_value = self.agent_data.cumul_public_value + \
+                self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.SYMPDETECTED]
 
-            if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
-                self.curr_recovery = self.curr_recovery + 1
+            if self.agent_data.curr_incubation + self.agent_data.curr_recovery < self.agent_data.incubation_time + self.agent_data.recovery_time:
+                self.agent_data.curr_recovery = self.agent_data.curr_recovery + 1
 
                 if bernoulli.rvs(current_severe_chance):
                     self.stage = Stage.SEVERE
             else:
                 self.stage = Stage.RECOVERED
-                self.variant_immune[self.variant] = True
+                self.agent_data.variant_immune[self.agent_data.variant] = True
         elif self.stage == Stage.ASYMPDETECTED:
-            self.isolated = True
+            self.agent_data.isolated = True
 
             # Contact tracing logic: use a negative number to indicate trace exhaustion
-            if self.model.tracing_now and self.tracing_counter >= 0:
+            if self.model.model_data.tracing_now and self.agent_data.tracing_counter >= 0:
                 # Test only when the count down has been reached
-                if self.tracing_counter == self.tracing_delay:
-                    for t in self.contacts:
+                if self.agent_data.tracing_counter == self.agent_data.tracing_delay:
+                    for t in self.agent_data.contacts:
                         t.test_contact_trace()
 
-                    self.tracing_counter = -1
+                    self.agent_data.tracing_counter = -1
                 else:
-                    self.tracing_counter = self.tracing_counter + 1
+                    self.agent_data.tracing_counter = self.agent_data.tracing_counter + 1
 
-            self.cumul_private_value = self.cumul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.ASYMPDETECTED]
-            self.cumul_public_value = self.cumul_public_value + \
-                self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPDETECTED]
+            self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + \
+                self.model.model_data.stage_value_dist[ValueGroup.PRIVATE][Stage.ASYMPDETECTED]
+            self.agent_data.cumul_public_value = self.agent_data.cumul_public_value + \
+                self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPDETECTED]
 
             # The road of an asymptomatic patients is similar without the prospect of death
-            if self.curr_incubation + self.curr_recovery < self.incubation_time + self.recovery_time:
-               self.curr_recovery = self.curr_recovery + 1
+            if self.agent_data.curr_incubation + self.agent_data.curr_recovery < self.agent_data.incubation_time + self.agent_data.recovery_time:
+               self.agent_data.curr_recovery = self.agent_data.curr_recovery + 1
             else:
                 self.stage = Stage.RECOVERED
-                self.variant_immune[self.variant] = True
+                self.agent_data.variant_immune[self.agent_data.variant] = True
 
         elif self.stage == Stage.SEVERE:            
-            self.cumul_private_value = self.cumul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.SEVERE]
-            self.cumul_public_value = self.cumul_public_value + \
-                self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.SEVERE]
+            self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + \
+                self.model.model_data.stage_value_dist[ValueGroup.PRIVATE][Stage.SEVERE]
+            self.agent_data.cumul_public_value = self.agent_data.cumul_public_value + \
+                self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.SEVERE]
 
             # Severe patients are in ICU facilities
-            if self.curr_recovery < self.recovery_time:
+            if self.agent_data.curr_recovery < self.agent_data.recovery_time:
                 # Not recovered yet, may pass away depending on prob.
-                if self.model.bed_count > 0 and self.occupying_bed == False:
-                    self.occupying_bed = True
-                    self.model.bed_count -= 1
-                if self.occupying_bed == False:
-                    if bernoulli(1/(self.recovery_time)): #Chance that someone dies at this stage is current_time/time that they should recover. This ensures that they may die at a point during recovery.
+                if self.model.model_data.bed_count > 0 and self.agent_data.occupying_bed == False:
+                    self.agent_data.occupying_bed = True
+                    self.model.model_data.bed_count -= 1
+                if self.agent_data.occupying_bed == False:
+                    if bernoulli(1/(self.agent_data.recovery_time)): #Chance that someone dies at this stage is current_time/time that they should recover. This ensures that they may die at a point during recovery.
                         self.stage = Stage.DECEASED
                 # else:
                 #     if bernoulli(0 * 1/self.recovery_time): #Chance that someone dies on the bed is 42% less likely so I will also add that they have a 1/recovery_time chance of dying
                 #         self.stage = Stage.DECEASED
                 #         self.occupying_bed == False
                 #         self.model.bed_count += 1
-                self.curr_recovery = self.curr_recovery + 1
+                self.agent_data.curr_recovery = self.agent_data.curr_recovery + 1
             else:
                 self.stage = Stage.RECOVERED
-                self.variant_immune[self.variant] = True
-                if (self.occupying_bed == True):
-                    self.occupying_bed == False
-                    self.model.bed_count += 1
+                self.agent_data.variant_immune[self.variant] = True
+                if (self.agent_data.occupying_bed == True):
+                    self.agent_data.occupying_bed == False
+                    self.model.model_data.bed_count += 1
 
 
 
         elif self.stage == Stage.RECOVERED:
             cellmates = self.model.grid.get_cell_list_contents([self.pos])
             
-            if self.employed:
+            if self.agent_data.employed:
                 isolation_private_divider = 1
                 isolation_public_divider = 1
 
-                if self.isolated:
+                if self.agent_data.isolated:
                     isolation_private_divider = 0.3
                     isolation_public_divider = 0.01
 
-                self.cumul_private_value = self.cumul_private_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.RECOVERED])*isolation_private_divider
-                self.cumul_public_value = self.cumul_public_value + \
-                    ((len(cellmates) - 1) * self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.RECOVERED])*isolation_public_divider
+                self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + \
+                    ((len(cellmates) - 1) * self.model.model_data.stage_value_dist[ValueGroup.PRIVATE][Stage.RECOVERED])*isolation_private_divider
+                self.agent_data.cumul_public_value = self.agent_data.cumul_public_value + \
+                    ((len(cellmates) - 1) * self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.RECOVERED])*isolation_public_divider
             else:
-                self.cumul_private_value = self.cumul_private_value + 0
-                self.cumul_public_value = self.cumul_public_value - 2*self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.RECOVERED]
+                self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + 0
+                self.agent_data.cumul_public_value = self.agent_data.cumul_public_value - 2*self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.RECOVERED]
 
 
             # A recovered agent can now move freely within the grid again
-            self.curr_recovery = 0
-            self.isolated = False
-            self.isolated_but_inefficient = False
+            self.agent_data.curr_recovery = 0
+            self.agent_data.isolated = False
+            self.agent_data.isolated_but_inefficient = False
 
             infected_contact = 0
             variant = "Standard"
             for c in cellmates:
-                if c.is_contagious() and self.model.variant_data_list[c.variant]["Reinfection"] == True and (c.stage == Stage.SYMPDETECTED or c.stage == Stage.SEVERE) and self.variant_immune[c.variant] != True:
-                    if self.isolated and bernoulli.rvs(1 - self.model.prob_isolation_effective):
-                        self.isolated_but_inefficient = True
+                if c.is_contagious() and self.model.model_data.variant_data_list[c.variant]["Reinfection"] == True and (c.stage == Stage.SYMPDETECTED or c.stage == Stage.SEVERE) and self.agent_data.variant_immune[c.variant] != True:
+                    if self.agent_data.isolated and bernoulli.rvs(1 - self.model.model_data.prob_isolation_effective):
+                        self.agent_data.isolated_but_inefficient = True
                         infected_contact = 1
                         variant = c.variant
                         break
@@ -660,51 +621,97 @@ class CovidAgent(Agent):
                         infected_contact = 1
                         variant = c.variant
                         break
-                elif c.is_contagious() and (c.stage == Stage.ASYMPTOMATIC or c.stage == Stage.ASYMPDETECTED) and self.variant_immune[c.variant] == False:
+                elif c.is_contagious() and (c.stage == Stage.ASYMPTOMATIC or c.stage == Stage.ASYMPDETECTED) and self.agent_data.variant_immune[c.variant] == False:
                     c.add_contact_trace(self)
-                    if self.isolated and bernoulli.rvs(1 - self.model.prob_isolation_effective):
-                        self.isolated_but_inefficient = True
+                    if self.agent_data.isolated and bernoulli.rvs(1 - self.model.model_data.prob_isolation_effective):
+                        self.agent_data.isolated_but_inefficient = True
                         infected_contact = 2
                         variant = c.variant
                     else:
                         infected_contact = 2
                         variant = c.variant
 
-            current_prob = self.prob_contagion * self.model.variant_data_list[variant]["Contagtion_Multiplier"]
-            if self.vaccinated:
-                current_prob = current_prob * self.safetymultiplier
+            current_prob = self.agent_data.prob_contagion * self.model.model_data.variant_data_list[variant]["Contagtion_Multiplier"]
+            if self.agent_data.vaccinated:
+                current_prob = current_prob * self.agent_data.safetymultiplier
 
             if infected_contact == 2:
                 current_prob = current_prob * 0.42
 
             if infected_contact > 0:
-                if self.isolated:
-                    if bernoulli.rvs(current_prob) and not (bernoulli.rvs(self.model.prob_isolation_effective)):
+                if self.agent_data.isolated:
+                    if bernoulli.rvs(current_prob) and not (bernoulli.rvs(self.model.model_data.prob_isolation_effective)):
                         self.stage = Stage.EXPOSED
-                        self.variant = variant
+                        self.agent_data.variant = variant
                 else:
                     if bernoulli.rvs(current_prob):
                         # Added vaccination account after being exposed to determine exposure.
                         self.stage = Stage.EXPOSED
-                        self.variant = variant
+                        self.agent_data.variant = variant
 
 
             self.move()
         elif self.stage == Stage.DECEASED:
-            self.cumul_private_value = self.cumul_private_value + \
-                self.model.stage_value_dist[ValueGroup.PRIVATE][Stage.DECEASED]
-            self.cumul_public_value = self.cumul_public_value + \
-                self.model.stage_value_dist[ValueGroup.PUBLIC][Stage.DECEASED]
+            self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + \
+                self.model.model_data.stage_value_dist[ValueGroup.PRIVATE][Stage.DECEASED]
+            self.agent_data.cumul_public_value = self.agent_data.cumul_public_value + \
+                self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.DECEASED]
         else:
             # If we are here, there is a problem 
             sys.exit("Unknown stage: aborting.")
+
+
+        #Insert a new trace into the database (AgentDataClass)
+        id = str(uuid.uuid4())
+        agent_params = [(
+            id, 
+            self.agent_data.age_group.value,
+            self.agent_data.sex_group.value, 
+            self.agent_data.vaccine_willingness, 
+            self.agent_data.incubation_time, 
+            self.agent_data.dwelling_time, 
+            self.agent_data.recovery_time, 
+            self.agent_data.prob_contagion, 
+            self.agent_data.mortality_value, 
+            self.agent_data.severity_value,
+            self.agent_data.curr_dwelling,
+            self.agent_data.curr_incubation,
+            self.agent_data.curr_recovery,
+            self.agent_data.curr_asymptomatic,
+            self.agent_data.isolated,
+            self.agent_data.isolated_but_inefficient,
+            self.agent_data.test_chance,
+            self.agent_data.in_isolation,
+            self.agent_data.in_distancing,
+            self.agent_data.in_testing,
+            self.agent_data.astep,
+            self.agent_data.tested,
+            self.agent_data.occupying_bed,
+            self.agent_data.cumul_private_value,
+            self.agent_data.cumul_public_value,
+            self.agent_data.employed,
+            self.agent_data.tested_traced,
+            self.agent_data.tracing_delay,
+            self.agent_data.tracing_counter,
+            self.agent_data.vaccinated,
+            self.agent_data.safetymultiplier,
+            self.agent_data.current_effectiveness,
+            self.agent_data.vaccination_day,
+            self.agent_data.vaccine_count,
+            self.agent_data.dosage_eligible,
+            self.agent_data.fully_vaccinated,
+            self.agent_data.variant
+        )]
+
+        self.model.db.insert_agent(agent_params)
+        self.model.db.commit()
 
         self.astep = self.astep + 1
 
     def move(self):
         # If dwelling has not been exhausted, do not move
-        if self.curr_dwelling > 0:
-            self.curr_dwelling = self.curr_dwelling - 1
+        if self.agent_data.curr_dwelling > 0:
+            self.agent_data.curr_dwelling = self.agent_data.curr_dwelling - 1
 
         # If dwelling has been exhausted, move and replenish the dwell
         else:
@@ -716,7 +723,7 @@ class CovidAgent(Agent):
             new_position = self.random.choice(possible_steps)
 
             self.model.grid.move_agent(self, new_position)
-            self.curr_dwelling = poisson.rvs(self.model.avg_dwell)
+            self.agent_data.curr_dwelling = poisson.rvs(self.model.model_data.avg_dwell)
 
 
 ########################################
@@ -725,17 +732,17 @@ def compute_variant_stage(model, variant, stage):
     count = 0
     for agent in model.schedule.agents:
         if stage == Stage.SUSCEPTIBLE:
-            if agent.variant == variant:
+            if agent.agent_data.variant == variant:
                 count += 1
         else:
-            if agent.stage == stage and agent.variant == variant:
+            if agent.stage == stage and agent.agent_data.variant == variant:
                 count += 1
     return count
 
 def compute_vaccinated_stage(model, stage):
     count = 0
     for agent in model.schedule.agents:
-        if agent.stage == stage and agent.vaccinated == True:
+        if agent.stage == stage and agent.agent_data.vaccinated == True:
             count += count
     vaccinated_count = compute_vaccinated_count(model)
     if vaccinated_count == 0:
@@ -757,14 +764,14 @@ def count_type(model, stage):
 def compute_isolated(model):
     count = 0
     for agent in model.schedule.agents:
-        if agent.isolated:
+        if agent.agent_data.isolated:
             count = count + 1
     return count
 
 def compute_employed(model):
     count = 0
     for agent in model.schedule.agents:
-        if agent.employed:
+        if agent.agent_data.employed:
             count = count + 1
 
     return count
@@ -773,7 +780,7 @@ def compute_unemployed(model):
     count = 0
 
     for agent in model.schedule.agents:
-        if not(agent.employed):
+        if not(agent.agent_data.employed):
             count = count + 1
 
     return count
@@ -790,16 +797,16 @@ def compute_stepno(model):
 def compute_cumul_private_value(model):
     value = 0
     for agent in model.schedule.agents:
-        value = value + agent.cumul_private_value
-    return np.sign(value)*np.power(np.abs(value), model.alpha_private)/model.num_agents
+        value = value + agent.agent_data.cumul_private_value
+    return np.sign(value)*np.power(np.abs(value), model.model_data.alpha_private)/model.num_agents
 
 def compute_cumul_public_value(model):
     value = 0
 
     for agent in model.schedule.agents:
-        value = value + agent.cumul_public_value
+        value = value + agent.agent_data.cumul_public_value
 
-    return np.sign(value)*np.power(np.abs(value), model.alpha_public)/model.num_agents
+    return np.sign(value)*np.power(np.abs(value), model.model_data.alpha_public)/model.num_agents
 
 
 #  Changed the method for calculating the test cost. This will occur in more linear time,
@@ -807,19 +814,19 @@ def compute_cumul_public_value(model):
 #  will change testing to be based on necessity along with the vaccine.
 
 def compute_cumul_testing_cost(model):
-    return model.cumul_test_cost
+    return model.model_data.cumul_test_cost
 
 def compute_cumul_vaccination_cost(model):
-    return model.cumul_vaccine_cost
+    return model.model_data.cumul_vaccine_cost
 
 def compute_total_cost(model):
-    return model.cumul_test_cost + model.cumul_vaccine_cost
+    return model.model_data.cumul_test_cost + model.model_data.cumul_vaccine_cost
 
 def compute_tested(model):
     tested = 0
 
     for agent in model.schedule.agents:
-        if agent.tested:
+        if agent.agent_data.tested:
             tested = tested + 1
 
     return tested
@@ -828,7 +835,7 @@ def compute_tested(model):
 def compute_vaccinated(model):
     vaccinated_count = 0
     for agent in model.schedule.agents:
-        if agent.vaccinated:
+        if agent.agent_data.vaccinated:
             vaccinated_count = vaccinated_count + 1
 
     return vaccinated_count
@@ -837,28 +844,28 @@ def compute_vaccinated(model):
 def compute_vaccinated_count(model):
     vaccinated_count = 0
     for agent in model.schedule.agents:
-        if agent.vaccinated:
+        if agent.agent_data.vaccinated:
             vaccinated_count = vaccinated_count + 1
     return vaccinated_count
 
 def compute_vaccinated_1(model):
     vaccinated_count = 0
     for agent in model.schedule.agents:
-        if agent.vaccine_count == 1:
+        if agent.agent_data.vaccine_count == 1:
             vaccinated_count = vaccinated_count + 1
     return vaccinated_count
 
 def compute_vaccinated_2(model):
     vaccinated_count = 0
     for agent in model.schedule.agents:
-        if agent.vaccine_count == 2:
+        if agent.agent_data.vaccine_count == 2:
             vaccinated_count = vaccinated_count + 1
     return vaccinated_count
 
 def compute_willing_agents(model):
     count = 0
     for agent in model.schedule.agents:
-        if agent.vaccine_willingness:
+        if agent.agent_data.vaccine_willingness:
             count = count + 1
     return count
 
@@ -867,7 +874,7 @@ def compute_willing_agents(model):
 def compute_vaccinated_in_group_count(model,agegroup):
     vaccinated_count = 0
     for agent in model.schedule.agents:
-        if (agent.vaccinated) and (agent.age_group == agegroup):
+        if (agent.agent_data.vaccinated) and (agent.agent_data.age_group == agegroup):
             vaccinated_count = vaccinated_count + 1
     return vaccinated_count
 
@@ -876,7 +883,7 @@ def compute_vaccinated_in_group_count(model,agegroup):
 def compute_vaccinated_in_group(model,agegroup):
     vaccinated_count = 0
     for agent in model.schedule.agents:
-        if (agent.vaccinated) and (agent.age_group == agegroup):
+        if (agent.agent_data.vaccinated) and (agent.agent_data.age_group == agegroup):
             vaccinated_count = vaccinated_count + 1
     return vaccinated_count
 
@@ -884,7 +891,7 @@ def compute_vaccinated_in_group(model,agegroup):
 def compute_fully_vaccinated_in_group(model,agegroup):
     vaccinated_count = 0
     for agent in model.schedule.agents:
-        if (agent.fully_vaccinated) and (agent.age_group == agegroup):
+        if (agent.agent_data.fully_vaccinated) and (agent.agent_data.age_group == agegroup):
             vaccinated_count = vaccinated_count + 1
     return vaccinated_count
 
@@ -892,7 +899,7 @@ def compute_fully_vaccinated_in_group(model,agegroup):
 def compute_vaccinated_in_group_percent_vaccine_count(model, agegroup, count):
     vaccinated_count = 0
     for agent in model.schedule.agents:
-        if (agent.vaccine_count == count) and (agent.age_group == agegroup):
+        if (agent.agent_data.vaccine_count == count) and (agent.agent_data.age_group == agegroup):
             vaccinated_count = vaccinated_count + 1
     return vaccinated_count
 
@@ -901,9 +908,9 @@ def cumul_effectiveness_per_group_vaccinated(model,agegroup):
     vaccinated_count = 0
     effectiveness = 0
     for agent in model.schedule.agents:
-        if (agent.age_group == agegroup and agent.vaccinated == True):
+        if (agent.agent_data.age_group == agegroup and agent.agent_data.vaccinated == True):
             vaccinated_count = vaccinated_count + 1
-            effectiveness += agent.safetymultiplier
+            effectiveness += agent.agent_data.safetymultiplier
     if (vaccinated_count > 0):
         return 1-(effectiveness / vaccinated_count)
     else:
@@ -913,9 +920,9 @@ def cumul_effectiveness_per_group(model,agegroup):
     agent_count = 0
     effectiveness = 0
     for agent in model.schedule.agents:
-        if (agent.age_group == agegroup):
+        if (agent.agent_data.age_group == agegroup):
             agent_count = agent_count + 1
-            effectiveness += agent.safetymultiplier
+            effectiveness += agent.agent_data.safetymultiplier
     if (agent_count > 0):
         return 1-(effectiveness / agent_count)
     else:
@@ -924,46 +931,61 @@ def cumul_effectiveness_per_group(model,agegroup):
 def compute_age_group_count(model,agegroup):
     count = 0
     for agent in model.schedule.agents:
-        if agent.age_group == agegroup:
+        if agent.agent_data.age_group == agegroup:
             count = count + 1
     return count
 
 def compute_eligible_age_group_count(model,agegroup):
     count = 0
     for agent in model.schedule.agents:
-        if (agent.age_group == agegroup) and (agent.stage == Stage.SUSCEPTIBLE or agent.stage == Stage.EXPOSED or agent.stage == Stage.ASYMPTOMATIC) and agent.dosage_eligible and agent.vaccine_willingness:
+        if (agent.agent_data.age_group == agegroup) and (agent.agent_data.stage == Stage.SUSCEPTIBLE or agent.agent_data.stage == Stage.EXPOSED or agent.agent_data.stage == Stage.ASYMPTOMATIC) and agent.agent_data.dosage_eligible and agent.agent_data.vaccine_willingness:
             count = count + 1
     return count
 
 
 def update_vaccination_stage(model):
-    initial_stage = model.vaccination_stage
-    if compute_eligible_age_group_count(model, AgeGroup.C80toXX) < 1:
-        model.vaccination_stage = VaccinationStage.C70to79
-        if compute_eligible_age_group_count(model, AgeGroup.C70to79) < 1:
-            model.vaccination_stage = VaccinationStage.C60to69
-            if compute_eligible_age_group_count(model, AgeGroup.C60to69) < 1:
-                model.vaccination_stage = VaccinationStage.C50to59
-                if compute_eligible_age_group_count(model, AgeGroup.C50to59) < 1:
-                    model.vaccination_stage = VaccinationStage.C40to49
-                    if compute_eligible_age_group_count(model, AgeGroup.C40to49) < 1:
-                        model.vaccination_stage = VaccinationStage.C30to39
-                        if compute_eligible_age_group_count(model, AgeGroup.C30to39) < 1:
-                            model.vaccination_stage = VaccinationStage.C20to29
-                            if compute_eligible_age_group_count(model, AgeGroup.C20to29) < 1:
-                                model.vaccination_stage = VaccinationStage.C10to19
-                                if compute_eligible_age_group_count(model, AgeGroup.C10to19) < 1:
-                                    model.vaccination_stage = VaccinationStage.C00to09
-    else:
-        model.vaccination_stage = VaccinationStage.C80toXX
-    if initial_stage != model.vaccination_stage:
-        print(f"Vaccination stage is now {model.vaccination_stage}")
+    initial_stage = model.model_data.vaccination_stage
+    # if compute_eligible_age_group_count(model, AgeGroup.C80toXX) < 1:
+    #     model.model_data.vaccination_stage = VaccinationStage.C70to79
+    #     if compute_eligible_age_group_count(model, AgeGroup.C70to79) < 1:
+    #         model.model_data.vaccination_stage = VaccinationStage.C60to69
+    #         if compute_eligible_age_group_count(model, AgeGroup.C60to69) < 1:
+    #             model.model_data.vaccination_stage = VaccinationStage.C50to59
+    #             if compute_eligible_age_group_count(model, AgeGroup.C50to59) < 1:
+    #                 model.model_data.vaccination_stage = VaccinationStage.C40to49
+    #                 if compute_eligible_age_group_count(model, AgeGroup.C40to49) < 1:
+    #                     model.model_data.vaccination_stage = VaccinationStage.C30to39
+    #                     if compute_eligible_age_group_count(model, AgeGroup.C30to39) < 1:
+    #                         model.model_data.vaccination_stage = VaccinationStage.C20to29
+    #                         if compute_eligible_age_group_count(model, AgeGroup.C20to29) < 1:
+    #                             model.model_data.vaccination_stage = VaccinationStage.C10to19
+    #                             if compute_eligible_age_group_count(model, AgeGroup.C10to19) < 1:
+    #                                 model.model_data.vaccination_stage = VaccinationStage.C00to09
+    # else:
+    #     model.model_data.vaccination_stage = VaccinationStage.C80toXX
+
+    eligible_age_group_dict = {}
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C80toXX)] = VaccinationStage.C70to79
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C70to79)] = VaccinationStage.C60to69
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C60to69)] = VaccinationStage.C50to59
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C50to59)] = VaccinationStage.C40to49
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C40to49)] = VaccinationStage.C30to39
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C30to39)] = VaccinationStage.C20to29
+    eligible_age_group_dict[compute_eligible_age_group_count(model, AgeGroup.C10to19)] = VaccinationStage.C00to09
+
+    model.model_data.vaccination_stage = VaccinationStage.C80toXX
+    for key,value in sorted(eligible_age_group_dict.items(), reverse=True):
+        if (key < 1):
+            model.model_data.vaccination_stage = value
+
+    if initial_stage != model.model_data.vaccination_stage:
+        print(f"Vaccination stage is now {model.model_data.vaccination_stage}")
 
 
 def compute_willing_group_count(model, agegroup):
     count = 0
     for agent in model.schedule.agents:
-        if(agent.vaccine_willingness):
+        if(agent.agent_data.vaccine_willingness):
             count += 1
     return count
 
@@ -971,14 +993,14 @@ def compute_traced(model):
     tested = 0
 
     for agent in model.schedule.agents:
-        if agent.tested_traced:
+        if agent.agent_data.tested_traced:
             tested = tested + 1
 
     return tested
 
 
 def compute_total_processor_usage(model):
-    if model.stepno % model.dwell_15_day == 0:
+    if model.stepno % model.model_data.dwell_15_day == 0:
         processes = psu.cpu_percent(1, True)
         process_count = 0
         for idx, process in enumerate(processes):
@@ -989,7 +1011,7 @@ def compute_total_processor_usage(model):
         return 0
 
 def compute_processor_usage(model, processoridx):
-    if model.stepno % model.dwell_15_day == 0:
+    if model.stepno % model.model_data.dwell_15_day == 0:
         processes = psu.cpu_percent(1, True)
         for idx, process in enumerate(processes):
             if (idx == processoridx):
@@ -1013,17 +1035,17 @@ def compute_eff_reprod_number(model):
     for agent in model.schedule.agents:
         if agent.stage == Stage.EXPOSED:
             exposed = exposed + 1
-            exp_time = exp_time + agent.incubation_time
-            prob_contagion = agent.prob_contagion
+            exp_time = exp_time + agent.agent_data.incubation_time
+            prob_contagion = agent.agent_data.prob_contagion
         elif agent.stage == Stage.SYMPDETECTED:
             # NOTE: this part needs to be adapted to model hospital transmission in further detail
             symptomatics = symptomatics + 1
-            sympt_time = sympt_time + agent.incubation_time
-            prob_contagion = agent.prob_contagion
+            sympt_time = sympt_time + agent.agent_data.incubation_time
+            prob_contagion = agent.agent_data.prob_contagion
         elif agent.stage == Stage.ASYMPTOMATIC:
             asymptomatics = asymptomatics + 1
-            asympt_time = asympt_time + agent.incubation_time + agent.recovery_time
-            prob_contagion = agent.prob_contagion
+            asympt_time = asympt_time + agent.agent_data.incubation_time + agent.agent_data.recovery_time
+            prob_contagion = agent.agent_data.prob_contagion
         else:
             continue
 
@@ -1047,13 +1069,13 @@ def compute_eff_reprod_number(model):
         infectious_period = 0
 
     avg_contacts = compute_contacts(model)
-    return model.kmob * model.repscaling * prob_contagion * avg_contacts * infectious_period
+    return model.model_data.kmob * model.model_data.repscaling * prob_contagion * avg_contacts * infectious_period
 
 def compute_num_agents(model):
     return model.num_agents
 
 def compute_vaccine_count(model):
-    return model.vaccine_count
+    return model.model_data.vaccine_count
 
 def compute_datacollection_time(model):
     return model.datacollection_time
@@ -1062,11 +1084,10 @@ def compute_step_time(model):
     return model.step_time
 
 def compute_generally_infected(model):
-    return model.generally_infected
+    return model.model_data.generally_infected
 
 def compute_fully_vaccinated_count(model):
-    return model.fully_vaccinated_count
-
+    return model.model_data.fully_vaccinated_count
 
 
 
@@ -1080,135 +1101,188 @@ class CovidModel(Model):
                  day_distancing_start, days_distancing_lasts, proportion_detected, day_testing_start, days_testing_lasts, 
                  new_agent_proportion, new_agent_start, new_agent_lasts, new_agent_age_mean, new_agent_prop_infected,
                  day_tracing_start, days_tracing_lasts, stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop, day_vaccination_begin,
-                 day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data, dummy=0):
-        print("Made_it_here")
+                 day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data, db, dummy=0):
+
+        print("Made it to the model")
         self.running = True
         self.num_agents = num_agents
         self.grid = MultiGrid(width, height, True)
         self.schedule = RandomActivation(self)
-        self.age_mortality = age_mortality
-        self.sex_mortality = sex_mortality
-        self.age_distribution = age_distribution
-        self.sex_distribution = sex_distribution
-        self.stage_value_dist = stage_value_matrix
-        self.test_cost = test_cost
         self.stepno = 0
-        self.alpha_private = alpha_private
-        self.alpha_public = alpha_public
-        self.day_vaccination_begin = day_vaccination_begin
-        self.day_vaccination_end = day_vaccination_end
-        self.effective_period = effective_period
-        self.effectiveness = effectiveness
-        self.distribution_rate = distribution_rate
-        self.vaccine_count = 0
-        self.vaccinated_count = 0
-        self.fully_vaccinated_count = 0
-        self.bed_count = 0
-        self.prop_initial_infected = prop_initial_infected
-        # temporary vaccination chance portion, will exclude when vaccination process is more clear.
-        self.vaccination_chance = distribution_rate/num_agents
-        self.vaccination_stage = VaccinationStage.C80toXX
-        self.vaccine_cost = cost_per_vaccine
-        self.cumul_vaccine_cost = 0
-        self.cumul_test_cost = 0
-        self.total_costs = 0
         self.datacollection_time = 0
         self.step_time = 0
-        self.generally_infected = 0
-        self.vaccination_percent = vaccination_percent
-        # Keeps track of how many doses of the vaccine are required
-        self.vaccine_dosage = 2
-        self.effectiveness_per_dosage = self.effectiveness/self.vaccine_dosage
-        print("Made it here")
-        if self.vaccination_chance > 1:
-            print("INVALID VACCINATION CHANCE")
-            self.vaccination_chance = 0.5
+        self.db = db
+        
+        dwell_15_day = 96
+        vaccine_dosage = 2
+        repscaling = 1
+        testing_start = day_testing_start* dwell_15_day
+        tracing_start = day_tracing_start* dwell_15_day
+        isolation_start = day_start_isolation*dwell_15_day
+        distancing_start = day_distancing_start*dwell_15_day
+        new_agent_start=new_agent_start*dwell_15_day
+        max_bed_available = num_agents * proportion_beds_pop
 
-        self.variant_count = 0
-        self.variant_data_list = {}
+        self.model_data = ModelDataClass (
+            age_mortality=age_mortality, 
+            sex_mortality=sex_mortality, 
+            age_distribution=age_distribution, 
+            sex_distribution=sex_distribution,
+            stage_value_dist=stage_value_matrix,
+            test_cost=test_cost, 
+            alpha_private=alpha_private, 
+            alpha_public=alpha_public,
+            fully_vaccinated_count=0, 
+            prop_initial_infected=prop_initial_infected, 
+            generally_infected=0, 
+            cumul_vaccine_cost=0,
+            cumul_test_cost=0, 
+            total_costs=0, 
+            vaccination_chance=distribution_rate/num_agents,
+            vaccination_stage=VaccinationStage.C80toXX, 
+            vaccine_cost=cost_per_vaccine,
+            day_vaccination_begin=day_vaccination_begin, 
+            day_vaccination_end=day_vaccination_end, 
+            effective_period=effective_period,
+            effectiveness=effectiveness, 
+            distribution_rate=distribution_rate, 
+            vaccine_count=0, 
+            vaccinated_count=0,
+            vaccinated_percent=vaccination_percent,
+            vaccine_dosage=vaccine_dosage,
+            effectiveness_per_dosage=effectiveness/vaccine_dosage,
+            variant_data_list={},
+            agent_parameter_names=[],
+            dwell_15_day=dwell_15_day,
+            avg_dwell=4,
+            avg_incubation=int(round(avg_incubation_time * dwell_15_day)),
+            repscaling=repscaling,
+            prob_contagion_base=prob_contagion / repscaling,
+            kmob=kmob,
+            rate_inbound=rate_inbound/dwell_15_day,
+            prob_contagion_places=0.001,
+            prob_asymptomatic=proportion_asymptomatic,
+            avg_recovery=avg_recovery_time * dwell_15_day,
+            testing_rate=proportion_detected/(days_testing_lasts  * dwell_15_day),
+            testing_start=testing_start,
+            testing_end=testing_start + days_testing_lasts* dwell_15_day,
+            tracing_start=tracing_start,
+            tracing_end=tracing_start + days_tracing_lasts* dwell_15_day,
+            tracing_now=False,
+            isolation_rate=proportion_isolated,
+            isolation_start=isolation_start,
+            isolation_end=isolation_start + days_isolation_lasts*dwell_15_day,
+            after_isolation=after_isolation,
+            prob_isolation_effective=prob_isolation_effective,
+            distancing=social_distance,
+            distancing_start=distancing_start,
+            distancing_end=distancing_start + days_distancing_lasts*dwell_15_day,
+            new_agent_num=int(new_agent_proportion * self.num_agents),
+            new_agent_start=new_agent_start,
+            new_agent_end=new_agent_start + new_agent_lasts*dwell_15_day,
+            new_agent_age_mean=new_agent_age_mean,
+            new_agent_prop_infected=new_agent_prop_infected,
+            vaccination_start=day_vaccination_begin * dwell_15_day,
+            vaccination_end=day_vaccination_end * dwell_15_day,
+            vaccination_now=False,
+            variant_start_times={},
+            variant_start={},
+            prob_severe=proportion_severe,
+            max_bed_available = max_bed_available,
+            bed_count=max_bed_available
+        )
+        print("model finished")
+        # initial commit
+
+        # insert a model into the database
+        myid = str(uuid.uuid4())
+        model_params = [(
+            myid,
+            self.model_data.test_cost,
+            self.model_data.alpha_private,
+            self.model_data.alpha_public,
+            self.model_data.fully_vaccinated_count,
+            self.model_data.prop_initial_infected,
+            self.model_data.generally_infected,
+            self.model_data.cumul_vaccine_cost,
+            self.model_data.cumul_test_cost,
+            self.model_data.total_costs,
+            self.model_data.vaccination_chance,
+            self.model_data.vaccination_stage.value,
+            self.model_data.vaccine_cost,
+            self.model_data.day_vaccination_begin,
+            self.model_data.day_vaccination_end,
+            self.model_data.effective_period,
+            self.model_data.effectiveness,
+            self.model_data.distribution_rate,
+            self.model_data.vaccine_count,
+            self.model_data.vaccinated_count,
+            self.model_data.vaccinated_percent,
+            self.model_data.vaccine_dosage,
+            self.model_data.effectiveness_per_dosage,
+            self.model_data.dwell_15_day,
+            self.model_data.avg_dwell,
+            self.model_data.avg_incubation,
+            self.model_data.repscaling,
+            self.model_data.prob_contagion_base,
+            self.model_data.kmob,
+            self.model_data.rate_inbound,
+            self.model_data.prob_contagion_places,
+            self.model_data.prob_asymptomatic,
+            self.model_data.avg_recovery,
+            self.model_data.testing_rate,
+            self.model_data.testing_start,
+            self.model_data.testing_end,
+            self.model_data.tracing_start,
+            self.model_data.tracing_end,
+            self.model_data.tracing_now,
+            self.model_data.isolation_rate,
+            self.model_data.isolation_start,
+            self.model_data.isolation_end,
+            self.model_data.after_isolation,
+            self.model_data.prob_isolation_effective,
+            self.model_data.distancing,
+            self.model_data.distancing_start,
+            self.model_data.distancing_end,
+            self.model_data.new_agent_num,
+            self.model_data.new_agent_start,
+            self.model_data.new_agent_end,
+            self.model_data.new_agent_age_mean,
+            self.model_data.new_agent_prop_infected,
+            self.model_data.vaccination_start,
+            self.model_data.vaccination_end,
+            self.model_data.vaccination_now,
+            self.model_data.prob_severe,
+            self.model_data.max_bed_available,
+            self.model_data.bed_count
+        )]
+
+        self.db.insert_model(model_params)
+        self.db.commit()
+
         for variant in variant_data:
-            self.variant_data_list[variant["Name"]] = {}
+            self.model_data.variant_data_list[variant["Name"]] = {}
+            self.model_data.variant_data_list[variant["Name"]]["Name"] = variant["Name"]
+            self.model_data.variant_data_list[variant["Name"]]["Appearance"] = variant["Appearance"]
+            self.model_data.variant_data_list[variant["Name"]]["Contagtion_Multiplier"] = variant["Contagtion_Multiplier"]
+            self.model_data.variant_data_list[variant["Name"]]["Vaccine_Multiplier"] = variant["Vaccine_Multiplier"]
+            self.model_data.variant_data_list[variant["Name"]]["Asymtpomatic_Multiplier"] = variant["Asymtpomatic_Multiplier"]
+            self.model_data.variant_data_list[variant["Name"]]["Mortality_Multiplier"] = variant["Mortality_Multiplier"]
+            self.model_data.variant_data_list[variant["Name"]]["Reinfection"] = variant["Reinfection"]
 
-        for variant in variant_data:
+         # All parameter names of concern for agents. Must be kept in this form as a standard for loading into agent data. Add a new variable name before pos.
+        #TODO (optional) make the production of the agent more rigourous instead of the brute force solution you have up there.
+        self.agent_parameter_names = ['unique_id', 'stage', 'age_group', 'sex_group', 'vaccine_willingness',
+                                      'incubation_time', 'dwelling_time', 'recovery_time', 'prob_contagion',
+                                      'mortality_value', 'severity_value', 'curr_dwelling', 'curr_incubation',
+                                      'curr_recovery', 'curr_asymptomatic', 'isolated', 'isolated_but_inefficient',
+                                      'test_chance', 'in_isolation', 'in_distancing', 'in_testing', 'astep', 'tested',
+                                      'occupying_bed', 'cumul_private_value', 'cumul_public_value', 'employed',
+                                      'tested_traced', 'contacts', 'tracing_delay', 'tracing_counter', 'vaccinated',
+                                      'safetymultiplier', 'current_effectiveness', 'vaccination_day', 'vaccine_count',
+                                      'dosage_eligible', 'fully_vaccinated', 'variant', 'variant_immune', 'pos']
 
-            self.variant_data_list[variant["Name"]]["Name"] = variant["Name"]
-            self.variant_data_list[variant["Name"]]["Appearance"] = variant["Appearance"]
-            self.variant_data_list[variant["Name"]]["Contagtion_Multiplier"] = variant["Contagtion_Multiplier"]
-            self.variant_data_list[variant["Name"]]["Vaccine_Multiplier"] = variant["Vaccine_Multiplier"]
-            self.variant_data_list[variant["Name"]]["Asymtpomatic_Multiplier"] = variant["Asymtpomatic_Multiplier"]
-            self.variant_data_list[variant["Name"]]["Mortality_Multiplier"] = variant["Mortality_Multiplier"]
-            self.variant_data_list[variant["Name"]]["Reinfection"] = variant["Reinfection"]
-
-        # Number of 15 minute dwelling times per day
-        self.dwell_15_day = 96
-
-        # Average dwelling units
-        self.avg_dwell = 4
-
-        # The average incubation period is 5 days, which can be changed
-        self.avg_incubation = int(round(avg_incubation_time * self.dwell_15_day))
-
-        # Probability of contagion after exposure in the same cell
-        # Presupposes a person centered on a 1.8 meter radius square.
-        # We use a proxy value to account for social distancing.
-        # Representativeness modifies the probability of contagion by the scaling factor
-        if repscaling < 2:
-            self.repscaling = 1
-        else:
-            self.repscaling = (np.log(repscaling)/np.log(1.96587))
-
-        self.prob_contagion_base = prob_contagion / self.repscaling
-
-        # Mobility constant for geographic rescaling
-        self.kmob = kmob
-
-        # Proportion of daily incoming infected people from other places
-        self.rate_inbound = rate_inbound/self.dwell_15_day
-
-        # Probability of contagion due to residual droplets: TODO
-        self.prob_contagion_places = 0.001
-
-        # Probability of being asymptomatic, contagious
-        # and only detectable by testing
-        self.prob_asymptomatic = proportion_asymptomatic
-
-        # Average recovery time
-        self.avg_recovery = avg_recovery_time * self.dwell_15_day
-
-        # Proportion of detection. We use the rate as reference and
-        # activate testing at the rate and specified dates
-        self.testing_rate = proportion_detected/(days_testing_lasts  * self.dwell_15_day)
-        self.testing_start = day_testing_start* self.dwell_15_day
-        self.testing_end = self.testing_start + days_testing_lasts*self.dwell_15_day
-
-        # We need an additional variable to activate and inactivate automatic contact tracing
-        self.tracing_start = day_tracing_start* self.dwell_15_day
-        self.tracing_end = self.tracing_start + days_tracing_lasts*self.dwell_15_day
-        self.tracing_now = False
-
-        # Same for isolation rate
-        self.isolation_rate = proportion_isolated
-        self.isolation_start = day_start_isolation*self.dwell_15_day
-        self.isolation_end = self.isolation_start + days_isolation_lasts*self.dwell_15_day
-        self.after_isolation = after_isolation
-        self.prob_isolation_effective = prob_isolation_effective
-
-        # Same for social distancing
-        self.distancing = social_distance
-        self.distancing_start = day_distancing_start*self.dwell_15_day
-        self.distancing_end = self.distancing_start + days_distancing_lasts*self.dwell_15_day
-
-        # Introduction of new agents after a specific time
-        self.new_agent_num = int(new_agent_proportion * self.num_agents)
-        self.new_agent_start = new_agent_start*self.dwell_15_day
-        self.new_agent_end = self.new_agent_start + new_agent_lasts*self.dwell_15_day
-        self.new_agent_age_mean = new_agent_age_mean
-        self.new_agent_prop_infected = new_agent_prop_infected
-
-        #Code for vaccination
-        self.vaccination_start = day_vaccination_begin * self.dwell_15_day
-        self.vaccination_end = day_vaccination_end * self.dwell_15_day
-        self.vaccinating_now = False
+        self.model_reporters = {}
         # Closing of various businesses
         # TODO: at the moment, we assume that closing businesses decreases the dwell time.
         # A more proper implementation would a) use a power law distribution for dwell times
@@ -1218,33 +1292,30 @@ class CovidModel(Model):
         # of those interactions
         self.variant_start_times = {}
         self.variant_start = {}
-        for key in self.variant_data_list:
-            self.variant_start_times[key] = self.variant_data_list[key]["Appearance"] * self.dwell_15_day
+        for key in self.model_data.variant_data_list:
+            self.variant_start_times[key] = self.model_data.variant_data_list[key]["Appearance"] * self.model_data.dwell_15_day
             self.variant_start[key] = False
             print(key)
-            print(self.variant_data_list[key])
-            print(self.variant_data_list[key]["Appearance"])
+            print(self.model_data.variant_data_list[key])
+            print(self.model_data.variant_data_list[key]["Appearance"])
 
 
         # Now, a neat python trick: generate the spacing of entries and then build a map
-        times_list = list(np.linspace(self.new_agent_start, self.new_agent_end, self.new_agent_num, dtype=int))
+        times_list = list(np.linspace(self.model_data.new_agent_start, self.model_data.new_agent_end, self.model_data.new_agent_num, dtype=int))
         self.new_agent_time_map = {x:times_list.count(x) for x in times_list}
 
-        # Probability of severity
-        self.prob_severe = proportion_severe
-
-        # Number of beds where saturation limit occurs
-        self.max_beds_available = self.num_agents * proportion_beds_pop
-        self.bed_count = self.max_beds_available
+        # We store a simulation specification in the database
+        # Commit
+        #print(self.model_data.vaccination_stage.value)
 
         # Create agents
         self.i = 0
 
-        for ag in self.age_distribution:
-            for sg in self.sex_distribution:
-                r = self.age_distribution[ag]*self.sex_distribution[sg]
+        for ag in self.model_data.age_distribution:
+            for sg in self.model_data.sex_distribution:
+                r = self.model_data.age_distribution[ag]*self.model_data.sex_distribution[sg]
                 num_agents = int(round(self.num_agents*r))
-                mort = self.age_mortality[ag]*self.sex_mortality[sg]
+                mort = self.model_data.age_mortality[ag]*self.model_data.sex_mortality[sg]
                 for k in range(num_agents):
                     a = CovidAgent(self.i, ag, sg, mort, self)
                     self.schedule.add(a)
@@ -1262,6 +1333,7 @@ class CovidModel(Model):
 
 
         age_vaccination_dict = {}
+
         for age in AgeGroup:
             age_group_name = "Vaccinated " + str(age.name)
             age_vaccination_dict[age_group_name] = [compute_vaccinated_in_group, [self, age]]
@@ -1300,6 +1372,7 @@ class CovidModel(Model):
             agent_status_dict[stage_name] = [compute_stage, [self,stage]]
 
 
+        # This is part of the summary
         prices_dict = { "CumulPrivValue": compute_cumul_private_value,
             "CumulPublValue": compute_cumul_public_value,
             "CumulTestCost": compute_cumul_testing_cost,
@@ -1311,6 +1384,8 @@ class CovidModel(Model):
             "Cumul_Vaccine_Cost": compute_cumul_vaccination_cost,
             "Cumul_Cost": compute_total_cost
         }
+
+        # This is also part of the summary
         model_reporters_dict = {
                 "Step": compute_stepno,
                 "N": compute_num_agents,
@@ -1339,54 +1414,117 @@ class CovidModel(Model):
         # Final step: infect an initial proportion of random agents
         num_init = int(self.num_agents * prop_initial_infected)
 
+        # Save all initial values of agents in the database
+        # Commit
+
+        cumul_priv_value = compute_cumul_private_value(self)
+        cumul_publ_value = compute_cumul_public_value(self)
+        cumul_test_cost = compute_cumul_testing_cost(self)
+        rt = compute_eff_reprod_number(self)
+        employed = compute_employed(self)
+        unemployed = compute_unemployed(self)
+        tested = compute_tested(self)
+        traced = compute_traced(self)
+        cumul_vaccine_cost = compute_cumul_vaccination_cost(self)
+        cumul_cost =compute_total_cost(self)
+        step = compute_stepno(self)
+        n = compute_num_agents(self)
+        isolated = compute_isolated(self)
+        vaccinated = compute_vaccinated(self)
+        vaccines = compute_vaccine_count(self)
+        v = compute_vaccinated(self)
+        data_time = compute_datacollection_time(self)
+        step_time = compute_step_time(self)
+        generally_infected = compute_generally_infected(self)
+        fully_vaccinated = compute_generally_infected(self)
+        vaccine_1 = compute_vaccinated_1(self)
+        vaccine_2 = compute_vaccinated_2(self)
+        vaccine_willing = compute_willing_agents(self)
+
+
+        #Save all initial summaries into the database
+        # insert a summary into database
+        myid = str(uuid.uuid4())
+        summary_params = [(
+            myid,
+            cumul_priv_value,
+            cumul_publ_value,
+            cumul_test_cost,
+            rt,
+            employed,
+            unemployed,
+            tested,
+            traced,
+            cumul_vaccine_cost,
+            cumul_cost,
+            step,
+            n,
+            isolated,
+            vaccinated,
+            vaccines,
+            v,
+            data_time,
+            step_time,
+            generally_infected,
+            fully_vaccinated,
+            vaccine_1,
+            vaccine_2,
+            vaccine_willing
+        )]
+
+        self.db.insert_summary(summary_params)
+        self.db.commit()
+
+
         for a in self.schedule.agents:
             if num_init < 0:
                 break
             else:
                 a.stage = Stage.EXPOSED
-                self.generally_infected = self.generally_infected + 1
+                self.model_data.generally_infected = self.model_data.generally_infected + 1
                 num_init = num_init - 1
 
     def step(self):
         datacollectiontimeA = timeit.default_timer()
         self.datacollector.collect(self)
+        # summary
         datacollectiontimeB = timeit.default_timer()
         self.datacollection_time = datacollectiontimeB-datacollectiontimeA
 
         steptimeA = timeit.default_timer()
-        if self.stepno % self.dwell_15_day == 0:
-            print(f'Simulating day {self.stepno // self.dwell_15_day}')
+        if self.stepno % self.model_data.dwell_15_day == 0:
+            print(f'Simulating day {self.stepno // self.model_data.dwell_15_day}')
                 #Addition for adding the daily amount of vaccines.
-            if self.vaccinating_now:
-                self.vaccine_count = self.vaccine_count + self.distribution_rate
+            if self.model_data.vaccination_now:
+                self.model_data.vaccine_count = self.model_data.vaccine_count + self.model_data.distribution_rate
 
 
         # Activate contact tracing only if necessary and turn it off correspondingly at the end
-        if not(self.tracing_now) and (self.stepno >= self.tracing_start):
-            self.tracing_now = True
+        if not(self.model_data.tracing_now) and (self.stepno >= self.model_data.tracing_start):
+            self.model_data.tracing_now = True
         
-        if self.tracing_now and (self.stepno > self.tracing_end):
-            self.tracing_now = False
+        if self.model_data.tracing_now and (self.stepno > self.model_data.tracing_end):
+            self.model_data.tracing_now = False
 
-        if not (self.vaccinating_now) and (self.stepno >= self.vaccination_start):
-            self.vaccinating_now = True
+        if not (self.model_data.vaccination_now) and (self.stepno >= self.model_data.vaccination_start):
+            self.model_data.vaccinating_now = True
 
-        if self.vaccinating_now and (self.stepno > self.vaccination_end):
-            self.vaccinating_now = False
+        if self.model_data.vaccination_now and (self.stepno > self.model_data.vaccination_end):
+            self.model_data.vaccination_now = False
 
 
-        for variant in self.variant_start_times:
+        for variant in self.model_data.variant_start_times:
             #print(f"Made it here for variant {variant} stepnumber is {self.stepno} out of {self.variant_start_times[variant]}")
-            if not(self.variant_start[variant]) and (self.stepno > self.variant_start_times[variant]):
-                new_infection_count = int(self.num_agents*self.prop_initial_infected)
-                self.variant_start[variant] = True
+            if not(self.model_data.variant_start[variant]) and (self.stepno > self.model_data.variant_start_times[variant]):
+                new_infection_count = int(self.num_agents*self.model_data.prop_initial_infected)
+                self.model_data.variant_start[variant] = True
                 print(f"Variant {variant} is set to True with cound {new_infection_count}")
                 for _ in range(0,new_infection_count):
                     print(f"Creating new variant {variant}")
                     #Creates new agents that are infected with the variant
                     ag = random.choice(list(AgeGroup))
                     sg = random.choice(list(SexGroup))
-                    mort = self.age_mortality[ag]*self.sex_mortality[sg]
+                    mort = self.model_data.age_mortality[ag]*self.model_data.sex_mortality[sg]
                     a = CovidAgent(self.i, ag, sg, mort, self)
                     self.schedule.add(a)
                     a.variant = variant
@@ -1396,12 +1534,12 @@ class CovidModel(Model):
                     self.grid.place_agent(a, (x, y))
                     self.i = self.i + 1
                     self.num_agents = self.num_agents + 1
-                    self.generally_infected += 1
+                    self.model_data.generally_infected += 1
 
 
 
                 # If new agents enter the population, create them
-        if (self.stepno >= self.new_agent_start) and (self.stepno < self.new_agent_end):
+        if (self.stepno >= self.model_data.new_agent_start) and (self.stepno < self.model_data.new_agent_end):
             # Check if the current step is in the new-agent time map
             if self.stepno in self.new_agent_time_map.keys():
                 # We repeat the following procedure as many times as the value stored in the map
@@ -1413,19 +1551,19 @@ class CovidModel(Model):
                     arange = 0
 
                     while not(in_range):
-                        arange = poisson.rvs(self.new_agent_age_mean)
+                        arange = poisson.rvs(self.model_data.new_agent_age_mean)
                         if arange in range(0, 9):
                             in_range = True
                     
                     ag = AgeGroup(arange)
                     sg = random.choice(list(SexGroup))
-                    mort = self.age_mortality[ag]*self.sex_mortality[sg]
+                    mort = self.model_data.age_mortality[ag]*self.model_data.sex_mortality[sg]
                     a = CovidAgent(self.i, ag, sg, mort, self)
                     
                     # Some will be infected
-                    if bernoulli.rvs(self.new_agent_prop_infected):
+                    if bernoulli.rvs(self.model_data.new_agent_prop_infected):
                         a.stage = Stage.EXPOSED
-                        self.generally_infected = self.generally_infected + 1
+                        self.model_data.generally_infected = self.model_data.generally_infected + 1
 
                     self.schedule.add(a)
                     x = self.random.randrange(self.grid.width)
@@ -1437,4 +1575,8 @@ class CovidModel(Model):
         self.schedule.step()
         steptimeB = timeit.default_timer()
         self.step_time = steptimeB - steptimeA
+
+        # Commit (save first all the agent data in memory)
+        # Save the summaries
+
         self.stepno = self.stepno + 1
