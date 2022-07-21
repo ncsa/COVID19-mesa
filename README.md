@@ -59,7 +59,7 @@ source .venv/bin/activate
 To execute the dashboard interface:
 
 ```bash
-(.venv) python covidserver.py
+(.venv) python covidserver.py scenarios/[variant_data_filename]
 ```
 
 To execute a scenario stored in `scenarios/`:
