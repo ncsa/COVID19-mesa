@@ -28,6 +28,15 @@ import uuid
 from database import Database
 
 
+def bernoulli_rvs(p):
+    # Return a sample from a Bernoulli-distributed random source
+    # We convert from a Uniform(0, 1)
+    r = random.random()
+    if r >= p:
+        return 1
+    return 0
+
+
 class Stage(Enum):
     SUSCEPTIBLE = 1
     EXPOSED = 2
@@ -127,7 +136,7 @@ class CovidAgent(Agent):
         elif self.stage == Stage.EXPOSED:
             self.agent_data.tested_traced = True
 
-            if bernoulli.rvs(self.model.model_data.prob_asymptomatic):
+            if bernoulli_rvs(self.model.model_data.prob_asymptomatic):
                     self.stage = Stage.ASYMPDETECTED
             else:
                 self.stage = Stage.SYMPDETECTED
@@ -154,7 +163,7 @@ class CovidAgent(Agent):
         eligible_count = compute_age_group_count(self.model, self.agent_data.age_group)
         vaccination_chance = 1/eligible_count
         if self.stage == Stage.ASYMPTOMATIC or self.stage == Stage.SUSCEPTIBLE or self.stage == Stage.EXPOSED:
-            if bernoulli.rvs(vaccination_chance):
+            if bernoulli_rvs(vaccination_chance):
                 return True
             return False
         return False
@@ -198,16 +207,16 @@ class CovidAgent(Agent):
         # In 60 days, this is equivalent to a probability of 1% unemployment filings.
         if self.agent_data.employed:
             if self.agent_data.isolated:
-                if bernoulli.rvs(32*0.00018/self.model.model_data.dwell_15_day):
+                if bernoulli_rvs(32*0.00018/self.model.model_data.dwell_15_day):
                     self.agent_data.employed = False
             else:
-                if bernoulli.rvs(8*0.00018/self.model.model_data.dwell_15_day):
+                if bernoulli_rvs(8*0.00018/self.model.model_data.dwell_15_day):
                     self.agent_data.employed = False
 
         # We also compute the probability of re-employment, which is at least ten times
         # as smaller in a crisis.
         if not(self.agent_data.employed):
-            if bernoulli.rvs(0.000018/self.model.model_data.dwell_15_day):
+            if bernoulli_rvs(0.000018/self.model.model_data.dwell_15_day):
                 self.agent_data.employed = True
 
 
@@ -234,7 +243,7 @@ class CovidAgent(Agent):
         #Will process based on whether all older agents in an older group are vaccinated
         if (not(self.agent_data.vaccinated) or self.agent_data.dosage_eligible) and self.model.model_data.vaccination_now and (not(self.agent_data.fully_vaccinated) and (self.agent_data.vaccine_count < self.model.model_data.vaccine_dosage)):
             if self.should_be_vaccinated() and self.model.model_data.vaccine_count > 0 and self.agent_data.vaccine_willingness:
-                if not (bernoulli.rvs(0.1)):  # Chance that someone doesnt show up for the vaccine/ vaccine expires.
+                if not (bernoulli_rvs(0.1)):  # Chance that someone doesnt show up for the vaccine/ vaccine expires.
                     self.agent_data.vaccinated = True
                     self.agent_data.vaccination_day = self.model.stepno
                     self.agent_data.vaccine_count = self.agent_data.vaccine_count + 1
@@ -259,7 +268,7 @@ class CovidAgent(Agent):
             if (self.astep >= self.model.model_data.isolation_start):
                 if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
                     (self.stage == Stage.ASYMPTOMATIC):
-                    if bool(bernoulli.rvs(self.model.model_data.isolation_rate)):
+                    if bool(bernoulli_rvs(self.model.model_data.isolation_rate)):
                         self.agent_data.isolated = True
                     else:
                         self.agent_data.isolated = False
@@ -267,7 +276,7 @@ class CovidAgent(Agent):
             elif (self.astep >= self.model.model_data.isolation_end):
                 if (self.stage == Stage.SUSCEPTIBLE) or (self.stage == Stage.EXPOSED) or \
                     (self.stage == Stage.ASYMPTOMATIC):
-                    if bool(bernoulli.rvs(self.model.model_data.after_isolation)):
+                    if bool(bernoulli_rvs(self.model.model_data.after_isolation)):
                         self.agent_data.isolated = True
                     else:
                         self.agent_data.isolated = False
@@ -303,7 +312,7 @@ class CovidAgent(Agent):
         # Using the model, determine if a susceptible individual becomes infected due to
         # being elsewhere and returning to the community
         if self.stage == Stage.SUSCEPTIBLE:
-            #             if bernoulli.rvs(self.model.rate_inbound):
+            #             if bernoulli_rvs(self.model.rate_inbound):
             #                 self.stage = Stage.EXPOSED
             #                 self.model.generally_infected = self.model.generally_infected + 1
             #
@@ -316,7 +325,7 @@ class CovidAgent(Agent):
             # still susceptible.
             # We take care of testing probability at the top level step
             # routine to avoid this repeated computation
-            if not(self.agent_data.tested or self.agent_data.tested_traced) and bernoulli.rvs(self.agent_data.test_chance):
+            if not(self.agent_data.tested or self.agent_data.tested_traced) and bernoulli_rvs(self.agent_data.test_chance):
                 self.agent_data.tested = True
                 self.model.model_data.cumul_test_cost = self.model.model_data.cumul_test_cost + self.model.model_data.test_cost
             # First opportunity to get infected: contact with others
@@ -333,7 +342,7 @@ class CovidAgent(Agent):
             for c in cellmates:
                     if c.is_contagious() and (c.stage == Stage.SYMPDETECTED or c.stage == Stage.SEVERE) and self.agent_data.variant_immune[c.agent_data.variant] == False:
                         c.add_contact_trace(self)
-                        if self.agent_data.isolated and bernoulli.rvs(1 - self.model.model_data.prob_isolation_effective):
+                        if self.agent_data.isolated and bernoulli_rvs(1 - self.model.model_data.prob_isolation_effective):
                             self.agent_data.isolated_but_inefficient = True
                             infected_contact = 1
                             variant = c.agent_data.variant
@@ -344,7 +353,7 @@ class CovidAgent(Agent):
                             break
                     elif c.is_contagious() and (c.stage == Stage.ASYMPTOMATIC or c.stage == Stage.ASYMPDETECTED) and self.agent_data.variant_immune[c.agent_data.variant] == False:
                         c.add_contact_trace(self)
-                        if self.agent_data.isolated and bernoulli.rvs(1 - self.model.model_data.prob_isolation_effective):
+                        if self.agent_data.isolated and bernoulli_rvs(1 - self.model.model_data.prob_isolation_effective):
                             self.agent_data.isolated_but_inefficient = True
                             infected_contact = 2
                             variant = c.agent_data.variant
@@ -381,12 +390,12 @@ class CovidAgent(Agent):
 
             if infected_contact > 0:
                 if self.agent_data.isolated:
-                    if bernoulli.rvs(current_prob) and not(bernoulli.rvs(self.model.model_data.prob_isolation_effective)):
+                    if bernoulli_rvs(current_prob) and not(bernoulli_rvs(self.model.model_data.prob_isolation_effective)):
                         self.stage = Stage.EXPOSED
                         self.agent_data.variant = variant
                         self.model.model_data.generally_infected = self.model.model_data.generally_infected + 1
                 else:
-                    if bernoulli.rvs(current_prob):
+                    if bernoulli_rvs(current_prob):
                         #Added vaccination account after being exposed to determine exposure.
                         self.stage = Stage.EXPOSED
                         self.agent_data.variant = variant
@@ -431,8 +440,8 @@ class CovidAgent(Agent):
 
 
             # If testing is available and the date is reached, test
-            if not(self.agent_data.tested or self.agent_data.tested_traced) and bernoulli.rvs(self.agent_data.test_chance):
-                if bernoulli.rvs(current_prob_asymptomatic):
+            if not(self.agent_data.tested or self.agent_data.tested_traced) and bernoulli_rvs(self.agent_data.test_chance):
+                if bernoulli_rvs(current_prob_asymptomatic):
                     self.stage = Stage.ASYMPDETECTED
                 else:
                     self.stage = Stage.SYMPDETECTED
@@ -444,7 +453,7 @@ class CovidAgent(Agent):
                 if self.agent_data.curr_incubation < self.agent_data.incubation_time:
                     self.agent_data.curr_incubation = self.agent_data.curr_incubation + 1
                 else:
-                    if bernoulli.rvs(current_prob_asymptomatic):
+                    if bernoulli_rvs(current_prob_asymptomatic):
                         self.stage = Stage.ASYMPTOMATIC
                     else:
                         self.stage = Stage.SYMPDETECTED
@@ -476,7 +485,7 @@ class CovidAgent(Agent):
                     self.agent_data.cumul_private_value = self.agent_data.cumul_private_value + 0
                     self.agent_data.cumul_public_value = self.agent_data.cumul_public_value - 2*self.model.model_data.stage_value_dist[ValueGroup.PUBLIC][Stage.ASYMPTOMATIC]
 
-            if not(self.agent_data.tested or self.agent_data.tested_traced) and bernoulli.rvs(self.agent_data.test_chance):
+            if not(self.agent_data.tested or self.agent_data.tested_traced) and bernoulli_rvs(self.agent_data.test_chance):
                 self.stage = Stage.ASYMPDETECTED
                 self.agent_data.tested = True
                 self.model.model_data.cumul_test_cost = self.model.model_data.cumul_test_cost + self.model.model_data.test_cost
@@ -522,7 +531,7 @@ class CovidAgent(Agent):
             if self.agent_data.curr_incubation + self.agent_data.curr_recovery < self.agent_data.incubation_time + self.agent_data.recovery_time:
                 self.agent_data.curr_recovery = self.agent_data.curr_recovery + 1
 
-                if bernoulli.rvs(current_severe_chance):
+                if bernoulli_rvs(current_severe_chance):
                     self.stage = Stage.SEVERE
             else:
                 self.stage = Stage.RECOVERED
@@ -612,7 +621,7 @@ class CovidAgent(Agent):
             variant = "Standard"
             for c in cellmates:
                 if c.is_contagious() and self.model.model_data.variant_data_list[c.variant]["Reinfection"] == True and (c.stage == Stage.SYMPDETECTED or c.stage == Stage.SEVERE) and self.agent_data.variant_immune[c.variant] != True:
-                    if self.agent_data.isolated and bernoulli.rvs(1 - self.model.model_data.prob_isolation_effective):
+                    if self.agent_data.isolated and bernoulli_rvs(1 - self.model.model_data.prob_isolation_effective):
                         self.agent_data.isolated_but_inefficient = True
                         infected_contact = 1
                         variant = c.variant
@@ -623,7 +632,7 @@ class CovidAgent(Agent):
                         break
                 elif c.is_contagious() and (c.stage == Stage.ASYMPTOMATIC or c.stage == Stage.ASYMPDETECTED) and self.agent_data.variant_immune[c.variant] == False:
                     c.add_contact_trace(self)
-                    if self.agent_data.isolated and bernoulli.rvs(1 - self.model.model_data.prob_isolation_effective):
+                    if self.agent_data.isolated and bernoulli_rvs(1 - self.model.model_data.prob_isolation_effective):
                         self.agent_data.isolated_but_inefficient = True
                         infected_contact = 2
                         variant = c.variant
@@ -640,11 +649,11 @@ class CovidAgent(Agent):
 
             if infected_contact > 0:
                 if self.agent_data.isolated:
-                    if bernoulli.rvs(current_prob) and not (bernoulli.rvs(self.model.model_data.prob_isolation_effective)):
+                    if bernoulli_rvs(current_prob) and not (bernoulli_rvs(self.model.model_data.prob_isolation_effective)):
                         self.stage = Stage.EXPOSED
                         self.agent_data.variant = variant
                 else:
-                    if bernoulli.rvs(current_prob):
+                    if bernoulli_rvs(current_prob):
                         # Added vaccination account after being exposed to determine exposure.
                         self.stage = Stage.EXPOSED
                         self.agent_data.variant = variant
@@ -1561,7 +1570,7 @@ class CovidModel(Model):
                     a = CovidAgent(self.i, ag, sg, mort, self)
                     
                     # Some will be infected
-                    if bernoulli.rvs(self.model_data.new_agent_prop_infected):
+                    if bernoulli_rvs(self.model_data.new_agent_prop_infected):
                         a.stage = Stage.EXPOSED
                         self.model_data.generally_infected = self.model_data.generally_infected + 1
 
