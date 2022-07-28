@@ -4,6 +4,7 @@
 # {nunezco,jake}@illinois.edu
 
 # A simple tunable model for COVID-19 response
+import math
 from operator import mod
 from sqlite3 import DatabaseError
 import timeit
@@ -35,6 +36,17 @@ def bernoulli_rvs(p):
     if r >= p:
         return 1
     return 0
+
+
+def poisson_rvs(mu):
+    p0 = math.exp(-mu)
+    F = p0
+    i = 0
+    sample = random.random()
+    while sample >= F:
+        i += 1
+        F += p0 * (mu ** i) / math.factorial(i)
+    return i
 
 
 class Stage(Enum):
@@ -732,7 +744,7 @@ class CovidAgent(Agent):
             new_position = self.random.choice(possible_steps)
 
             self.model.grid.move_agent(self, new_position)
-            self.agent_data.curr_dwelling = poisson.rvs(self.model.model_data.avg_dwell)
+            self.agent_data.curr_dwelling = poisson_rvs(self.model.model_data.avg_dwell)
 
 
 ########################################
@@ -1560,7 +1572,7 @@ class CovidModel(Model):
                     arange = 0
 
                     while not(in_range):
-                        arange = poisson.rvs(self.model_data.new_agent_age_mean)
+                        arange = poisson_rvs(self.model_data.new_agent_age_mean)
                         if arange in range(0, 9):
                             in_range = True
                     
