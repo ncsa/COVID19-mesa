@@ -342,7 +342,7 @@ class CovidAgent(Agent):
                 self.model.model_data.cumul_test_cost = self.model.model_data.cumul_test_cost + self.model.model_data.test_cost
             # First opportunity to get infected: contact with others
             # in near proximity
-            cellmates = self.model.grid.get_cell_list_contents([self.pos])
+            cellmates = self.model.grid[self.pos[0]][self.pos[1]]
             infected_contact = 0 #Changed to account for asymptomatic threat of infection
 
             # Isolated people should only be contagious if they do not follow proper
