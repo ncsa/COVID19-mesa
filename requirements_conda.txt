@@ -17,7 +17,7 @@ matplotlib==3.4.2
 Mesa==0.8.6
 multiprocess==0.70.9
 networkx==2.4
-numpy==1.18.2
+numpy
 pandas
 pathos==0.2.5
 pox==0.2.7
@@ -26,7 +26,7 @@ ppft==1.6.6.1
 pyparsing==2.4.6
 python-dateutil==2.8.1
 pytz==2019.3
-requests==2.23.0
+requests
 scipy
 seaborn==0.10.0
 six==1.14.0
