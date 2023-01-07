@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "pixi.js": "^7.0.5"
+  }
+}

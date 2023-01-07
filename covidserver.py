@@ -10,7 +10,7 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.UserParam import UserSettableParameter
 import sys
 import json
-from covidmodel import CovidModel
+from covidmodel import CovidAgent, CovidModel
 from covidmodel import Stage
 from covidmodel import AgeGroup
 from covidmodel import SexGroup
@@ -89,11 +89,13 @@ cr_value_distibution = {
     }
 }
 
-def agent_portrayal(agent):
+def agent_portrayal(agent: CovidAgent):
     portrayal = {"Shape": "circle",
                  "Filled": "true",
                  "Layer": 0,
-                 "r": 0.5}
+                 "r": 0.5,
+                 'id': agent.unique_id,
+                 'stage': str(agent.stage)}
     if agent.vaccinated:
         portrayal["Color"] = "lime"
         portrayal["Layer"] = 0
