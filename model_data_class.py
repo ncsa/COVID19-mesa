@@ -69,6 +69,8 @@ class ModelDataClass:
     prob_severe: float
     max_bed_available: int
     bed_count: int
+    # location types
+    location_types: dict()
 
     
 

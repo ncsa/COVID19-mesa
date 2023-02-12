@@ -1210,7 +1210,8 @@ class CovidModel(Model):
             variant_start={},
             prob_severe=proportion_severe,
             max_bed_available = max_bed_available,
-            bed_count=max_bed_available
+            bed_count=max_bed_available,
+            location_types={}
         )
         print("model finished")
         # initial commit
