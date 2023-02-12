@@ -1313,6 +1313,11 @@ class CovidModel(Model):
         # of those interactions
         self.variant_start_times = {}
         self.variant_start = {}
+
+        # A dictionary to count the dwell time of an agent at a location; 
+        # key is (agent, x, y) and value is count of dwell time
+        self.dwell_time_at_locations = {}
+
         for key in self.model_data.variant_data_list:
             self.variant_start_times[key] = self.model_data.variant_data_list[key]["Appearance"] * self.model_data.dwell_15_day
             self.variant_start[key] = False
@@ -1344,6 +1349,8 @@ class CovidModel(Model):
                     y = self.random.randrange(self.grid.height)
                     self.grid.place_agent(a, (x,y))
                     self.i = self.i + 1
+                    # count dwell time for agent
+                    self.dwell_time_at_locations[(a, x, y)] = self.dwell_time_at_locations.get((a, x, y), 0) + 1
 
         processes = psu.cpu_percent(1, True)
         processes_dict = {}
@@ -1556,6 +1563,8 @@ class CovidModel(Model):
                     self.i = self.i + 1
                     self.num_agents = self.num_agents + 1
                     self.model_data.generally_infected += 1
+                    # count dwell time for agent
+                    self.dwell_time_at_locations[(a, x, y)] = self.dwell_time_at_locations.get((a, x, y), 0) + 1
 
 
 
@@ -1592,6 +1601,8 @@ class CovidModel(Model):
                     self.grid.place_agent(a, (x,y))
                     self.i = self.i + 1
                     self.num_agents = self.num_agents + 1
+                    # count dwell time for agent
+                    self.dwell_time_at_locations[(a, x, y)] = self.dwell_time_at_locations.get((a, x, y), 0) + 1
         
         self.schedule.step()
         steptimeB = timeit.default_timer()
