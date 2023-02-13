@@ -27,6 +27,7 @@ from agent_data_class import AgentDataClass
 from model_data_class import ModelDataClass
 import uuid
 from database import Database
+from policyhandler import PolicyHandler
 
 
 def bernoulli_rvs(p):
@@ -1122,7 +1123,9 @@ class CovidModel(Model):
                  day_distancing_start, days_distancing_lasts, proportion_detected, day_testing_start, days_testing_lasts, 
                  new_agent_proportion, new_agent_start, new_agent_lasts, new_agent_age_mean, new_agent_prop_infected,
                  day_tracing_start, days_tracing_lasts, stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop, day_vaccination_begin,
-                 day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data, db, dummy=0):
+                 day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data, 
+                 # policy_data,
+                 db, dummy=0):
 
         print("Made it to the model")
         self.running = True
@@ -1212,6 +1215,16 @@ class CovidModel(Model):
             max_bed_available = max_bed_available,
             bed_count=max_bed_available
         )
+
+        
+        self.pol_handler = PolicyHandler()
+
+        #Read
+        #pol_handler.parse_all_policies(policy_data)
+
+        # Get default policies
+        # pol_handler.set_defaults(self.model_data)
+
         print("model finished")
         # initial commit
 
@@ -1228,17 +1241,17 @@ class CovidModel(Model):
             self.model_data.cumul_vaccine_cost,
             self.model_data.cumul_test_cost,
             self.model_data.total_costs,
-            self.model_data.vaccination_chance,
+            self.model_data.vaccination_chance, #
             self.model_data.vaccination_stage.value,
-            self.model_data.vaccine_cost,
-            self.model_data.day_vaccination_begin,
+            self.model_data.vaccine_cost, #
+            self.model_data.day_vaccination_begin, 
             self.model_data.day_vaccination_end,
             self.model_data.effective_period,
             self.model_data.effectiveness,
             self.model_data.distribution_rate,
-            self.model_data.vaccine_count,
-            self.model_data.vaccinated_count,
-            self.model_data.vaccinated_percent,
+            self.model_data.vaccine_count, #
+            self.model_data.vaccinated_count, #
+            self.model_data.vaccinated_percent, #
             self.model_data.vaccine_dosage,
             self.model_data.effectiveness_per_dosage,
             self.model_data.dwell_15_day,
@@ -1251,18 +1264,18 @@ class CovidModel(Model):
             self.model_data.prob_contagion_places,
             self.model_data.prob_asymptomatic,
             self.model_data.avg_recovery,
-            self.model_data.testing_rate,
+            self.model_data.testing_rate, #
             self.model_data.testing_start,
             self.model_data.testing_end,
             self.model_data.tracing_start,
             self.model_data.tracing_end,
             self.model_data.tracing_now,
-            self.model_data.isolation_rate,
+            self.model_data.isolation_rate, #
             self.model_data.isolation_start,
             self.model_data.isolation_end,
             self.model_data.after_isolation,
-            self.model_data.prob_isolation_effective,
-            self.model_data.distancing,
+            self.model_data.prob_isolation_effective, #
+            self.model_data.distancing, #
             self.model_data.distancing_start,
             self.model_data.distancing_end,
             self.model_data.new_agent_num,
@@ -1519,6 +1532,11 @@ class CovidModel(Model):
             if self.model_data.vaccination_now:
                 self.model_data.vaccine_count = self.model_data.vaccine_count + self.model_data.distribution_rate
 
+        # Deactivate unnecessary policies once they run their course
+        self.policy_handler.reverse_dispatch(self, self.model_data)
+
+        # Use the policy handler to apply relevant policies
+        self.policy_handler.dispatch(self, self.model_data)
 
         # Activate contact tracing only if necessary and turn it off correspondingly at the end
         if not(self.model_data.tracing_now) and (self.stepno >= self.model_data.tracing_start):
@@ -1600,4 +1618,9 @@ class CovidModel(Model):
         # Commit (save first all the agent data in memory)
         # Save the summaries
 
+        # We now do a reverse dispatch: deactivate all policies that need to be deactivated
+        # 
+
         self.stepno = self.stepno + 1
+
+
