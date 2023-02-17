@@ -1162,19 +1162,6 @@ class CovidModel(Model):
             cumul_vaccine_cost=0,
             cumul_test_cost=0, 
             total_costs=0, 
-            vaccination_chance=distribution_rate/num_agents,
-            vaccination_stage=VaccinationStage.C80toXX, 
-            vaccine_cost=cost_per_vaccine,
-            day_vaccination_begin=day_vaccination_begin, 
-            day_vaccination_end=day_vaccination_end, 
-            effective_period=effective_period,
-            effectiveness=effectiveness, 
-            distribution_rate=distribution_rate, 
-            vaccine_count=0, 
-            vaccinated_count=0,
-            vaccinated_percent=vaccination_percent,
-            vaccine_dosage=vaccine_dosage,
-            effectiveness_per_dosage=effectiveness/vaccine_dosage,
             variant_data_list={},
             agent_parameter_names=[],
             dwell_15_day=dwell_15_day,
@@ -1196,7 +1183,7 @@ class CovidModel(Model):
             isolation_rate=proportion_isolated,
             isolation_start=isolation_start,
             isolation_end=isolation_start + days_isolation_lasts*dwell_15_day,
-            after_isolation=after_isolation,
+            after_isolation=after_isolation,    # TODO: Remove this from the model dataclass, the scenario and the __init__ function.
             prob_isolation_effective=prob_isolation_effective,
             distancing=social_distance,
             distancing_start=distancing_start,
@@ -1206,9 +1193,22 @@ class CovidModel(Model):
             new_agent_end=new_agent_start + new_agent_lasts*dwell_15_day,
             new_agent_age_mean=new_agent_age_mean,
             new_agent_prop_infected=new_agent_prop_infected,
-            vaccination_start=day_vaccination_begin * dwell_15_day,
-            vaccination_end=day_vaccination_end * dwell_15_day,
-            vaccination_now=False,
+            vaccination_start=day_vaccination_begin * dwell_15_day, # TODO: check why we have two starting times
+            vaccination_end=day_vaccination_end * dwell_15_day, # TODO: same here
+            vaccination_now=False,  # TODO: change using the policy handler
+            distribution_rate=distribution_rate, 
+            vaccination_chance=distribution_rate/num_agents, # This is not actually a parameter, it is derived
+            vaccination_stage=VaccinationStage.C80toXX, # Not a parameter
+            vaccine_cost=cost_per_vaccine, # PH
+            day_vaccination_begin=day_vaccination_begin, # TODO: see line 1196 above
+            day_vaccination_end=day_vaccination_end, # TODO: see line 1197
+            effective_period=effective_period, # PH
+            effectiveness=effectiveness, # PH
+            vaccine_count=0, 
+            vaccinated_count=0,
+            vaccinated_percent=vaccination_percent,
+            vaccine_dosage=vaccine_dosage,
+            effectiveness_per_dosage=effectiveness/vaccine_dosage,
             variant_start_times={},
             variant_start={},
             prob_severe=proportion_severe,
@@ -1217,7 +1217,7 @@ class CovidModel(Model):
         )
 
         
-        self.pol_handler = PolicyHandler()
+        self.pol_handler = PolicyHandler(dwell_15_day)
 
         #Read
         #pol_handler.parse_all_policies(policy_data)
