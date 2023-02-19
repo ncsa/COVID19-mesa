@@ -71,6 +71,7 @@ class ModelDataClass:
     bed_count: int
     # location types
     location_types: dict()
+    locations: dict()
 
     
 

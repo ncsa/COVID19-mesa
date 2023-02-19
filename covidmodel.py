@@ -1211,7 +1211,14 @@ class CovidModel(Model):
             prob_severe=proportion_severe,
             max_bed_available = max_bed_available,
             bed_count=max_bed_available,
-            location_types={}
+            # location type probs
+            location_types={
+                "bars": 10,
+                "homes": 50,
+                "supermarkets": 10,
+                "stores": 30
+            },
+            locations={}
         )
         print("model finished")
         # initial commit
@@ -1429,6 +1436,13 @@ class CovidModel(Model):
         model_reporters_dict.update(vaccinated_status_dict)
         model_reporters_dict.update(variant_data_collection_dict)
         model_reporters_dict.update(prices_dict)
+
+        # assign all locations (x,y) with a type
+        for i in range(self.grid.width):
+            for j in range(self.grid.height):
+                self.model_data.locations[(i, j)] = (
+                    random.choices(list(self.model_data.location_types.keys(), weights=self.model_data.location_types.values(), k=1))[0]
+                )
 
 
         self.datacollector = DataCollector(model_reporters = model_reporters_dict)
