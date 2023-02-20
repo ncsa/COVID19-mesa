@@ -1318,6 +1318,7 @@ class CovidModel(Model):
         # key is (agent, x, y) and value is count of dwell time
         self.dwell_time_at_locations = {}
         positions = [(x, y) for x, y in zip(range(self.grid.width), range(self.grid.height))]
+        
         for i,j in positions:
             self.dwell_time_at_locations[(x, y)] = poisson_rvs(self.model.model_data.avg_dwell)
 
