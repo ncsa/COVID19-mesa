@@ -141,11 +141,9 @@ class PolicyHandler:
         model_dataclass.vaccine_count = policy.spec["vaccine_count"]
         model_dataclass.vaccinated_count = policy.spec["vaccinated_count"]
         model_dataclass.vaccinated_percent = policy.spec["vaccinated_percent"]
-        # add parameters
         model_dataclass.effective_period = policy.spec["effective_period"]
         model_dataclass.effectiveness = policy.spec["effectiveness"]
         model_dataclass.now = True
-
         model_dataclass.start_time = policy.spec["start_time"]
         model_dataclass.duration = policy.spec["duration"]
         model_dataclass.end_time = policy.spec["start_time"] + policy.spec["duration"]
