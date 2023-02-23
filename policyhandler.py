@@ -129,6 +129,7 @@ class PolicyHandler:
         # TODO: remember that all policy measures have a start time and a duration
         model_dataclass.isolation_rate = policy.spec["isolation_rate"]
         model_dataclass.prob_isolation_effective = policy.spec["prob_isolation_effective"]
+        model_dataclass.now = True
         model_dataclass.start_time = policy.spec["start_time"]
         model_dataclass.duration = policy.spec["duration"]
         model_dataclass.end_time = policy.spec["start_time"] + policy.spec["duration"]
