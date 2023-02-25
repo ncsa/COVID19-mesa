@@ -1125,6 +1125,7 @@ class CovidModel(Model):
                  day_tracing_start, days_tracing_lasts, stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop, day_vaccination_begin,
                  day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data, 
                  # policy_data,
+                 location_type, location_spec,
                  db, dummy=0):
 
         print("Made it to the model")
@@ -1146,6 +1147,21 @@ class CovidModel(Model):
         distancing_start = day_distancing_start*dwell_15_day
         new_agent_start=new_agent_start*dwell_15_day
         max_bed_available = num_agents * proportion_beds_pop
+
+        self.dwell_time_at_locations = {}
+
+        # load locations
+        if location_type == "named":
+            for x,y in zip(range(self.grid.width), range(self.grid.height)):
+                self.dwell_time_at_locations[(x, y)] = poisson_rvs(self.model.model_data.avg_dwell)
+        else:
+            # given distribution
+            location_probs = location_spec["proportions"]
+            location_dwell_time = location_probs["dwell"]
+            for x, y in zip(range(self.grid.width), range(self.grid.height)):
+                random_location = random.choices(list(location_probs.keys(), weights=location_probs.values(), k=1))[0]
+                self.dwell_time_at_locations[(x, y)] = location_dwell_time[random_location]
+
 
         self.model_data = ModelDataClass (
             age_mortality=age_mortality, 
@@ -1329,11 +1345,11 @@ class CovidModel(Model):
 
         # A dictionary to count the dwell time of an agent at a location; 
         # key is (agent, x, y) and value is count of dwell time
-        self.dwell_time_at_locations = {}
-        positions = [(x, y) for x, y in zip(range(self.grid.width), range(self.grid.height))]
+        # self.dwell_time_at_locations = {}
+        # positions = [(x, y) for x, y in zip(range(self.grid.width), range(self.grid.height))]
         
-        for i,j in positions:
-            self.dwell_time_at_locations[(x, y)] = poisson_rvs(self.model.model_data.avg_dwell)
+        # for i,j in positions:
+        #     self.dwell_time_at_locations[(x, y)] = poisson_rvs(self.model.model_data.avg_dwell)
 
         for key in self.model_data.variant_data_list:
             self.variant_start_times[key] = self.model_data.variant_data_list[key]["Appearance"] * self.model_data.dwell_15_day

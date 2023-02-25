@@ -149,7 +149,9 @@ def runModelScenario(data,index,virus_data,filenames_list,is_checkpoint):
             "agent_storage": data["output"]["agent_storage"],
             "model_storage": data["output"]["model_storage"],
             "agent_increment":  data["output"]["agent_increment"],
-            "model_increment":  data["output"]["model_increment"]
+            "model_increment":  data["output"]["model_increment"],
+            "location_type": data["model"]["locations"]["type"],
+            "location_spec": data["model"]["locations"]["spec"]
         }
     # start from time 0
     else:
@@ -199,7 +201,9 @@ def runModelScenario(data,index,virus_data,filenames_list,is_checkpoint):
             "effectiveness": data["model"]["policies"]["vaccine_rollout"]["effectiveness"],
             "distribution_rate": data["model"]["policies"]["vaccine_rollout"]["distribution_rate"],
             "cost_per_vaccine":data["model"]["policies"]["vaccine_rollout"]["cost_per_vaccine"],
-            "vaccination_percent": data["model"]["policies"]["vaccine_rollout"]["vaccination_percent"]
+            "vaccination_percent": data["model"]["policies"]["vaccine_rollout"]["vaccination_percent"],
+            "location_type": data["model"]["locations"]["type"],
+            "location_spec": data["model"]["locations"]["spec"]
         }
    
     virus_param_list = []
