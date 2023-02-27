@@ -1158,6 +1158,7 @@ class CovidModel(Model):
             # given distribution
             location_probs = location_spec["proportions"]
             location_dwell_time = location_probs["dwell"]
+            
             for x, y in zip(range(self.grid.width), range(self.grid.height)):
                 random_location = random.choices(list(location_probs.keys(), weights=location_probs.values(), k=1))[0]
                 self.dwell_time_at_locations[(x, y)] = location_dwell_time[random_location]
