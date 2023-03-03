@@ -20,6 +20,7 @@ import psutil as psu
 import timeit as time
 import os
 import pandas as pd
+from scipy.stats import poisson
 
 class Stage(Enum):
     SUSCEPTIBLE = 1
@@ -1080,7 +1081,8 @@ class CovidModel(Model):
                  day_distancing_start, days_distancing_lasts, proportion_detected, day_testing_start, days_testing_lasts, 
                  new_agent_proportion, new_agent_start, new_agent_lasts, new_agent_age_mean, new_agent_prop_infected,
                  day_tracing_start, days_tracing_lasts, stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop, day_vaccination_begin,
-                 day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data, dummy=0):
+                 day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data,
+                 location_type, location_spec, dummy=0):
         print("Made_it_here")
         self.running = True
         self.num_agents = num_agents
@@ -1119,6 +1121,22 @@ class CovidModel(Model):
         # Keeps track of how many doses of the vaccine are required
         self.vaccine_dosage = 2
         self.effectiveness_per_dosage = self.effectiveness/self.vaccine_dosage
+
+        self.dwell_time_at_locations = {}
+
+        # load locations
+        if location_type == "named":
+            for x,y in zip(range(self.grid.width), range(self.grid.height)):
+                self.dwell_time_at_locations[(x, y)] = poisson_rvs(self.model.model_data.avg_dwell)
+        else:
+            # given distribution
+            location_probs = location_spec["proportions"]
+            location_dwell_time = location_probs["dwell"]
+            
+            for x, y in zip(range(self.grid.width), range(self.grid.height)):
+                random_location = random.choices(list(location_probs.keys(), weights=location_probs.values(), k=1))[0]
+                self.dwell_time_at_locations[(x, y)] = location_dwell_time[random_location]
+
         print("Made it here")
         if self.vaccination_chance > 1:
             print("INVALID VACCINATION CHANCE")

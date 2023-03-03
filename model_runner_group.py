@@ -158,7 +158,9 @@ def runModelScenario(data,index):
         "effectiveness": data["model"]["policies"]["vaccine_rollout"]["effectiveness"],
         "distribution_rate": data["model"]["policies"]["vaccine_rollout"]["distribution_rate"],
         "cost_per_vaccine":data["model"]["policies"]["vaccine_rollout"]["cost_per_vaccine"],
-        "vaccination_percent": data["model"]["policies"]["vaccine_rollout"]["vaccination_percent"]
+        "vaccination_percent": data["model"]["policies"]["vaccine_rollout"]["vaccination_percent"],
+        "location_type": data["model"]["locations"]["type"],
+        "location_spec": data["model"]["locations"]["spec"]
     }
     virus_param_list = []
     for virus in virus_data["variant"]:
