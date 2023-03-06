@@ -135,11 +135,7 @@ class PolicyHandler:
         model_dataclass.end_time = policy.spec["start_time"] + policy.spec["duration"]
     
     def apply_vaccination(self, policy, model_dataclass):
-        # TODO: remember that all policy measures have a start time and a duration
-        model_dataclass.vaccination_chance = policy.spec["vaccination_chance"]
-        model_dataclass.vaccine_cost = policy.spec["vaccine_cost"]
-        model_dataclass.vaccine_count = policy.spec["vaccine_count"]
-        model_dataclass.vaccinated_count = policy.spec["vaccinated_count"]
+        # Implement
         model_dataclass.vaccinated_percent = policy.spec["vaccinated_percent"]
         model_dataclass.effective_period = policy.spec["effective_period"]
         model_dataclass.effectiveness = policy.spec["effectiveness"]
@@ -163,8 +159,17 @@ class PolicyHandler:
         model_dataclass.tracing_end = model_dataclass.tracing_start + policy.spec["days_tracing_lasts"]*self.dwell_factor
         model_dataclass.tracing_now = True
         model_dataclass.start_time = policy.spec["start_time"]
-        model_dataclass.duration = policy.spec["duration"]
-        model_dataclass.end_time = policy.spec["start_time"] + policy.spec["duration"]
+        model_dataclass.duration = policy.spec["duration"] 
+
+    def apply_social_and_masks(self, policy, model_dataclass):
+        # Implement
+        model_dataclass.testing_rate = policy.spec["testing_rate"] 
+        model_dataclass.distancing = policy.spec["distancing"] 
+    
+    def apply_contact_tracing(self, policy, model_dataclass):
+        # Implement
+        #?????????
+        pass
     
     def dispatch(self, model_dataclass, time):
         # Obtain all policies that start at this moment and apply them
