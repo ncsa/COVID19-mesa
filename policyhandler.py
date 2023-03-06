@@ -10,15 +10,16 @@ import sys
 
 class PolicyHandler:
     
-    def __init__(self):
-        self.policies = []  
+    def __init__(self, dwell_factor):
+        self.policies = []
+        self.dwell_factor = dwell_factor
         
     def parse_policy(self, policy_json) -> CovidPolicy:
         # Implement this
         # Also use the duration + start time to compute end time
 
         is_default = policy_json["is_default"]
-        policy_type = policy_json["isolation"]
+        policy_type = policy_json["policy_type"]
         spec = policy_json["spec"] 
         start_time = policy_json["start_time"]
         duration = policy_json["duration"]
@@ -125,17 +126,40 @@ class PolicyHandler:
         policy_functions[policy.policy_type](policy, model_dataclass)
     
     def apply_isolation(self, policy, model_dataclass):
+        # TODO: remember that all policy measures have a start time and a duration
         model_dataclass.isolation_rate = policy.spec["isolation_rate"]
         model_dataclass.prob_isolation_effective = policy.spec["prob_isolation_effective"]
+        model_dataclass.now = True
+        model_dataclass.start_time = policy.spec["start_time"]
+        model_dataclass.duration = policy.spec["duration"]
+        model_dataclass.end_time = policy.spec["start_time"] + policy.spec["duration"]
     
     def apply_vaccination(self, policy, model_dataclass):
         # Implement
-        model_dataclass.vaccination_chance = policy.spec["vaccination_chance"]
-        model_dataclass.vaccine_cost = policy.spec["vaccine_cost"]
-        model_dataclass.vaccine_count = policy.spec["vaccine_count"]
-        model_dataclass.vaccinated_count = policy.spec["vaccinated_count"]
-        model_dataclass.vaccinated_percent = policy.spec["vaccinated_percent"]        
+        model_dataclass.vaccinated_percent = policy.spec["vaccinated_percent"]
+        model_dataclass.effective_period = policy.spec["effective_period"]
+        model_dataclass.effectiveness = policy.spec["effectiveness"]
+        model_dataclass.now = True
+        model_dataclass.start_time = policy.spec["start_time"]
+        model_dataclass.duration = policy.spec["duration"]
+        model_dataclass.end_time = policy.spec["start_time"] + policy.spec["duration"]
+        # TODO: check against model_data attributes pertaining to vaccination, some missing ones        
 
+    def apply_social_and_masks(self, policy, model_dataclass):
+        # TODO: remember that all policy measures have a start time and an end time
+        model_dataclass.testing_rate = policy.spec["testing_rate"] 
+        model_dataclass.distancing = policy.spec["distancing"] 
+        model_dataclass.start_time = policy.spec["start_time"]
+        model_dataclass.duration = policy.spec["duration"]
+        model_dataclass.end_time = policy.spec["start_time"] + policy.spec["duration"]
+    
+    def apply_contact_tracing(self, policy, model_dataclass):
+        # Set the start and end time using a start spec and a duration
+        model_dataclass.tracing_start = policy.spec["tracing_start"]
+        model_dataclass.tracing_end = model_dataclass.tracing_start + policy.spec["days_tracing_lasts"]*self.dwell_factor
+        model_dataclass.tracing_now = True
+        model_dataclass.start_time = policy.spec["start_time"]
+        model_dataclass.duration = policy.spec["duration"] 
 
     def apply_social_and_masks(self, policy, model_dataclass):
         # Implement
