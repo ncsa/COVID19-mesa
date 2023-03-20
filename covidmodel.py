@@ -1116,54 +1116,121 @@ def compute_fully_vaccinated_count(model):
 
 class CovidModel(Model):
     """ A model to describe parameters relevant to COVID-19"""
-    def __init__(self, num_agents, width, height, kmob, repscaling, rate_inbound, age_mortality,
-                 sex_mortality, age_distribution, sex_distribution, prop_initial_infected,
-                 proportion_asymptomatic, proportion_severe, avg_incubation_time, avg_recovery_time, prob_contagion,
-                 proportion_isolated, day_start_isolation, days_isolation_lasts, after_isolation, prob_isolation_effective, social_distance,
-                 day_distancing_start, days_distancing_lasts, proportion_detected, day_testing_start, days_testing_lasts, 
-                 new_agent_proportion, new_agent_start, new_agent_lasts, new_agent_age_mean, new_agent_prop_infected,
-                 day_tracing_start, days_tracing_lasts, stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop, day_vaccination_begin,
-                 day_vaccination_end, effective_period, effectiveness, distribution_rate, cost_per_vaccine, vaccination_percent, variant_data, 
+    def __init__(self,
+                 num_agents,
+                 width,
+                 height,
+                 kmob,
+                 repscaling,
+                 rate_inbound,
+                 age_mortality,
+                 sex_mortality,
+                 age_distribution,
+                 sex_distribution,
+                 prop_initial_infected,
+                 proportion_asymptomatic,
+                 proportion_severe,
+                 avg_incubation_time,
+                 avg_recovery_time,
+                 prob_contagion,
+                 # Specification of policies
+                 policy_data,
+                 # TODO
+                 stage_value_matrix, test_cost, alpha_private, alpha_public, proportion_beds_pop,
+                 # Modify the code assuming that econometric_data is a dictionary containing the necessary
+                 # variables to fill in the model data class
+                 variant_data, 
                  # policy_data,
                  db, dummy=0):
+        # TODO: organize this into smaller dictionaries using the same comments in the model data class
 
         print("Made it to the model")
-        self.running = True
-        self.num_agents = num_agents
-        self.grid = MultiGrid(width, height, True)
-        self.schedule = RandomActivation(self)
-        self.stepno = 0
-        self.datacollection_time = 0
-        self.step_time = 0
-        self.db = db
-        
-        dwell_15_day = 96
+        self = {
+            "running": True,
+            "num_agents": num_agents,
+            "grid": MultiGrid(width, height, True),
+            "schedule": RandomActivation(self),
+            "stepno": 0,
+            "datacollection_time": 0,
+            "step_time": 0,
+            "db": db
+        }
+  
+        # Vaccination related data
         vaccine_dosage = 2
-        repscaling = 1
+        # Testing
         testing_start = day_testing_start* dwell_15_day
         tracing_start = day_tracing_start* dwell_15_day
+        # Isolation
         isolation_start = day_start_isolation*dwell_15_day
+        # Distancing
         distancing_start = day_distancing_start*dwell_15_day
+        # Massive ingress
         new_agent_start=new_agent_start*dwell_15_day
+        # Epidemic parameters
+        dwell_15_day = 96
+        repscaling = 1
         max_bed_available = num_agents * proportion_beds_pop
 
         self.model_data = ModelDataClass (
+            # TODO: reorganize this initialization according to the modeldataclass file
+            # Population data
             age_mortality=age_mortality, 
             sex_mortality=sex_mortality, 
             age_distribution=age_distribution, 
             sex_distribution=sex_distribution,
-            stage_value_dist=stage_value_matrix,
-            test_cost=test_cost, 
+            # Econometric model
             alpha_private=alpha_private, 
             alpha_public=alpha_public,
-            fully_vaccinated_count=0, 
-            prop_initial_infected=prop_initial_infected, 
-            generally_infected=0, 
+            stage_value_dist=stage_value_matrix,
+            # Vaccination related data
+            vaccination_chance=distribution_rate/num_agents,
+            vaccination_stage=VaccinationStage.C80toXX,
+            vaccine_cost=cost_per_vaccine,
             cumul_vaccine_cost=0,
-            cumul_test_cost=0, 
-            total_costs=0, 
+            cumul_test_cost=0,
+            total_costs=0,            
+            vaccination_start=day_vaccination_begin * dwell_15_day, 
+            vaccination_end=day_vaccination_end * dwell_15_day, 
+            vaccination_now=False,
+            fully_vaccinated_count=0, 
+            effective_period=effective_period,
+            effectiveness=effectiveness,
+            vaccine_count=0, 
+            vaccinated_count=0,
+            vaccinated_percent=vaccination_percent,
+            vaccine_dosage=vaccine_dosage,
+            effectiveness_per_dosage=effectiveness/vaccine_dosage,
+            distribution_rate=distribution_rate, 
+            # Variant data
             variant_data_list={},
             agent_parameter_names=[],
+            variant_start_times={},
+            variant_start={},
+            # Testing
+            test_cost=test_cost, 
+            testing_rate=proportion_detected/(days_testing_lasts  * dwell_15_day),
+            testing_start=testing_start,
+            testing_end=testing_start + days_testing_lasts* dwell_15_day,
+            tracing_start=tracing_start,
+            tracing_end=tracing_start + days_tracing_lasts* dwell_15_day,
+            tracing_now=False,
+            # Isolation
+            isolation_rate=proportion_isolated,
+            isolation_start=isolation_start,
+            isolation_end=isolation_start + days_isolation_lasts*dwell_15_day,
+            prob_isolation_effective=prob_isolation_effective,
+            # Distancing
+            distancing=social_distance,
+            distancing_start=distancing_start,
+            distancing_end=distancing_start + days_distancing_lasts*dwell_15_day,
+            # Massive ingress
+            new_agent_num=int(new_agent_proportion * self.num_agents),
+            new_agent_start=new_agent_start,
+            new_agent_end=new_agent_start + new_agent_lasts*dwell_15_day,
+            new_agent_age_mean=new_agent_age_mean,
+            new_agent_prop_infected=new_agent_prop_infected,
+            # Epidemic parameters
             dwell_15_day=dwell_15_day,
             avg_dwell=4,
             avg_incubation=int(round(avg_incubation_time * dwell_15_day)),
@@ -1172,55 +1239,18 @@ class CovidModel(Model):
             kmob=kmob,
             rate_inbound=rate_inbound/dwell_15_day,
             prob_contagion_places=0.001,
+            prop_initial_infected=prop_initial_infected, 
+            generally_infected=0, 
             prob_asymptomatic=proportion_asymptomatic,
             avg_recovery=avg_recovery_time * dwell_15_day,
-            testing_rate=proportion_detected/(days_testing_lasts  * dwell_15_day),
-            testing_start=testing_start,
-            testing_end=testing_start + days_testing_lasts* dwell_15_day,
-            tracing_start=tracing_start,
-            tracing_end=tracing_start + days_tracing_lasts* dwell_15_day,
-            tracing_now=False,
-            isolation_rate=proportion_isolated,
-            isolation_start=isolation_start,
-            isolation_end=isolation_start + days_isolation_lasts*dwell_15_day,
-            after_isolation=after_isolation,    # TODO: Remove this from the model dataclass, the scenario and the __init__ function.
-            prob_isolation_effective=prob_isolation_effective,
-            distancing=social_distance,
-            distancing_start=distancing_start,
-            distancing_end=distancing_start + days_distancing_lasts*dwell_15_day,
-            new_agent_num=int(new_agent_proportion * self.num_agents),
-            new_agent_start=new_agent_start,
-            new_agent_end=new_agent_start + new_agent_lasts*dwell_15_day,
-            new_agent_age_mean=new_agent_age_mean,
-            new_agent_prop_infected=new_agent_prop_infected,
-            vaccination_start=day_vaccination_begin * dwell_15_day, # TODO: check why we have two starting times
-            vaccination_end=day_vaccination_end * dwell_15_day, # TODO: same here
-            vaccination_now=False,  # TODO: change using the policy handler
-            distribution_rate=distribution_rate, 
-            vaccination_chance=distribution_rate/num_agents, # This is not actually a parameter, it is derived
-            vaccination_stage=VaccinationStage.C80toXX, # Not a parameter
-            vaccine_cost=cost_per_vaccine, # PH
-            day_vaccination_begin=day_vaccination_begin, # TODO: see line 1196 above
-            day_vaccination_end=day_vaccination_end, # TODO: see line 1197
-            effective_period=effective_period, # PH
-            effectiveness=effectiveness, # PH
-            vaccine_count=0, 
-            vaccinated_count=0,
-            vaccinated_percent=vaccination_percent,
-            vaccine_dosage=vaccine_dosage,
-            effectiveness_per_dosage=effectiveness/vaccine_dosage,
-            variant_start_times={},
-            variant_start={},
             prob_severe=proportion_severe,
             max_bed_available = max_bed_available,
             bed_count=max_bed_available
+            after_isolation=after_isolation, # not in modeldata class 
         )
 
-        
         self.pol_handler = PolicyHandler(dwell_15_day)
-
-        #Read
-        #pol_handler.parse_all_policies(policy_data)
+        self.pol_handler.parse_all_policies(policy_data)
 
         # Get default policies
         # pol_handler.set_defaults(self.model_data)
