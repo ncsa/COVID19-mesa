@@ -157,7 +157,6 @@ class PolicyHandler:
         model_dataclass.tracing_start = policy.spec["tracing_start"]
         model_dataclass.tracing_end = model_dataclass.tracing_start + policy.spec["days_tracing_lasts"]*self.dwell_factor
         model_dataclass.tracing_now = True
-        duration = policy.spec["duration"] # need duration?
     
     def dispatch(self, model_dataclass, time):
         # Obtain all policies that start at this moment and apply them
