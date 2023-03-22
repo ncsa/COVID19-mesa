@@ -1,0 +1,70 @@
+{
+    "location": "Champaign-Urbana",
+    "description": "COVID19-variant data",
+    "prepared-by": "Angelo Santos",
+    "date": "2020.07.15",
+    "variant": {
+      "Standard": {
+        "Name": "Standard",
+        "Appearance": 1000,
+        "Contagtion_Multiplier": 1,
+        "Vaccine_Multiplier": 1,
+        "Asymtpomatic_Multiplier": 1,
+        "Mortality_Multiplier": 1,
+        "Reinfection": {
+            "Reinfection Probability": 0.2,
+            "Average Reinfect Time": 25920
+        }
+      },
+      "Alpha": {
+        "Name": "Alpha_Variant",
+        "Appearance": 50,
+        "Contagtion_Multiplier": 1.6,
+        "Vaccine_Multiplier": 0.9863,
+        "Asymtpomatic_Multiplier": 1,
+        "Mortality_Multiplier": 1.65,
+        "Reinfection": {
+            "Reinfection Probability": 0.4,
+            "Average Reinfect Time": 25920
+        }
+      },
+      "Beta": {
+        "Name": "Beta_Variant",
+        "Appearance": 100,
+        "Contagtion_Multiplier": 1.6,
+        "Vaccine_Multiplier": 0.875,
+        "Asymtpomatic_Multiplier": 1,
+        "Mortality_Multiplier": 1,
+        "Reinfection": {
+            "Reinfection Probability": 0.4,
+            "Average Reinfect Time": 25920
+        }
+      },
+      "Delta": {
+        "Name": "Delta_Variant",
+        "Appearance": 150,
+        "Contagtion_Multiplier": 2.1,
+        "Vaccine_Multiplier": 0.9263,
+        "Asymtpomatic_Multiplier": 1,
+        "Mortality_Multiplier": 1,
+        "Reinfection": {
+            "Reinfection Probability": 0.6,
+            "Average Reinfect Time": 25920
+        }
+      },
+      "Xeta": {
+        "Name": "Xeta_Variant",
+        "Appearance": 200,
+        "Contagtion_Multiplier": 2.1,
+        "Vaccine_Multiplier": 0.5,
+        "Asymtpomatic_Multiplier": 0.5,
+        "Mortality_Multiplier": 2,
+        "Reinfection": {
+            "Reinfection Probability": 0.6,
+            "Average Reinfect Time": 25920
+        }
+      }
+    }
+  }
+  
+  
