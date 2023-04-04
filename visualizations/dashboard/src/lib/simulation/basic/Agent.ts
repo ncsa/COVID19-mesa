@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
-import {BloomFilter} from '@pixi/filter-bloom';
-import { historySize, ropeSize, STAGE, STAGE_COLOR } from './constants';
+import { BloomFilter } from '@pixi/filter-bloom';
+import { historySize, ropeSize, STAGE, STAGE_COLOR } from '../constants';
 import { cubicInterpolation } from './utils';
 
 export class Agent {
@@ -78,11 +78,11 @@ export class Agent {
 
 	applyTint(): void {
 		this.sprite.alpha = 1.0;
-		if (this.stage == STAGE.exposed) this.sprite.tint = parseInt(STAGE_COLOR.exposed, 16);
-		else if (this.stage == STAGE.sympdetected) this.sprite.tint = parseInt(STAGE_COLOR.sympdetected, 16);
-		else if (this.stage == STAGE.severe) this.sprite.tint = parseInt(STAGE_COLOR.severe, 16);
-		else if (this.stage == STAGE.deceased) this.sprite.tint = parseInt(STAGE_COLOR.deceased, 16);
-		else if (this.stage == STAGE.asymptomatic) this.sprite.tint = parseInt(STAGE_COLOR.asymptomatic, 16);
+		if (this.stage == STAGE.exposed) this.sprite.tint = parseInt(STAGE_COLOR.exposed.replace("#",''), 16);
+		else if (this.stage == STAGE.sympdetected) this.sprite.tint = parseInt(STAGE_COLOR.sympdetected.replace("#",''), 16);
+		else if (this.stage == STAGE.severe) this.sprite.tint = parseInt(STAGE_COLOR.severe.replace("#",''), 16);
+		else if (this.stage == STAGE.deceased) this.sprite.tint = parseInt(STAGE_COLOR.deceased.replace("#",''), 16);
+		else if (this.stage == STAGE.asymptomatic) this.sprite.tint = parseInt(STAGE_COLOR.asymptomatic.replace("#",''), 16);
 		else {
 			this.sprite.tint = parseInt(STAGE_COLOR.susceptible, 16);
 			this.sprite.alpha = 0.5;

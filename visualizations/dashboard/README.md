@@ -1,17 +1,9 @@
-# create-svelte
+## Installing
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
-
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
+Make sure your local node.js is version 16 or above. Otherwise, on Mac install it via `brew`.
 
 ```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
+brew install node
 ```
 
 ## Developing
@@ -25,9 +17,11 @@ npm run dev
 npm run dev -- --open
 ```
 
+See `/dashboard-server/README.md` up setting on the server. 
+
 ## Building
 
-To create a production version of your app:
+To create a production version of the app:
 
 ```bash
 npm run build

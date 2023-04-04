@@ -2,8 +2,8 @@
 	import * as PIXI from 'pixi.js';
 	import * as d3 from 'd3';
 	import { onDestroy, onMount } from 'svelte';
-	import { Agent } from '../simulation/Agent';
-	import { Grid } from '../simulation/Grid';
+	import { Agent } from '../../simulation/basic/Agent';
+	import { Grid } from '../../simulation/basic/Grid';
 	import InfoBar from './InfoBar.svelte';
 
 	let socket: WebSocket;

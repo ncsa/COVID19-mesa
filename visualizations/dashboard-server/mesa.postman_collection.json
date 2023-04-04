@@ -1,0 +1,236 @@
+{
+	"info": {
+		"_postman_id": "1cae7cd6-e4a4-41ef-8aa2-104b86cdb44c",
+		"name": "mesa",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Hello World",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000"
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/check",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"check"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "load",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/load?filename=sims_10_steps_4000.csv",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"load"
+					],
+					"query": [
+						{
+							"key": "filename",
+							"value": "sims_5_steps_200.csv",
+							"disabled": true
+						},
+						{
+							"key": "filename",
+							"value": "sims_10_steps_600.csv",
+							"disabled": true
+						},
+						{
+							"key": "filename",
+							"value": "sims_10_steps_4000.csv"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "load",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/load?filename=sims_10_steps_4000.csv",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"load"
+					],
+					"query": [
+						{
+							"key": "filename",
+							"value": "sims_5_steps_200.csv",
+							"disabled": true
+						},
+						{
+							"key": "filename",
+							"value": "sims_10_steps_600.csv",
+							"disabled": true
+						},
+						{
+							"key": "filename",
+							"value": "sims_10_steps_4000.csv"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "data",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/data?field=minmax&filename=sims_5_steps_200",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"data"
+					],
+					"query": [
+						{
+							"key": "field",
+							"value": "minmax"
+						},
+						{
+							"key": "filename",
+							"value": "sims_5_steps_200"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ensemble",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/data/ensemble?filename=sims_10_steps_4000.csv&stage=Stage.EXPOSED&stage=Stage.SUSCEPTIBLE",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"data",
+						"ensemble"
+					],
+					"query": [
+						{
+							"key": "filename",
+							"value": "sims_10_steps_4000.csv"
+						},
+						{
+							"key": "stage",
+							"value": "Stage.EXPOSED"
+						},
+						{
+							"key": "stage",
+							"value": "Stage.SUSCEPTIBLE"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "files",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/files",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"files"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "simulation",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/data/simulation",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"data",
+						"simulation"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "states",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/data/states",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"data",
+						"states"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

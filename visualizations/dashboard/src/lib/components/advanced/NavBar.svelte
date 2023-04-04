@@ -17,7 +17,7 @@
 	</div>
 	<div class="stepper-item" class:completed={currentView >= 3} class:active={currentView < 3} id="stepper-3" on:click={() => click(3)}>
 		<div class="step-counter">3</div>
-		<div class="step-name">Agent</div>
+		<div class="step-name">Agents</div>
 	</div>
 </div>
 

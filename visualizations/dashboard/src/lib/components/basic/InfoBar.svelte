@@ -27,6 +27,7 @@
 
 <section style='padding:5vh;display: flex;flex-grow: 1;background-color: #332d3666;flex-direction: column'>
 	<h1>Step: {step}</h1>
+
 	<Controls controls={controls} />
 	<Stages />
 	<div class='options'>
