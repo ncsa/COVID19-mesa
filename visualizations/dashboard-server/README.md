@@ -13,4 +13,6 @@ Run the flask server specified in `app.py` in dev mode:
 flask --debug run
 ```
 
-Open the `GET load` tab under mesa collection in Postman. Execute a GET request to `/load?filename=...`  load the ensemble files one by one under `/data` into redis.
+Open the `GET load` tab under mesa collection in Postman. Execute a GET request to `/load?filename=...`  load the ensemble files one by one under `/data` into redis. Currently the dashboard does not support simulation view of ensemble if no. steps * no. runs > 50000.
+
+To delete all data in redis open `redis-cli` in terminal and enter `FLUSHALL`.

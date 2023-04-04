@@ -178,6 +178,7 @@ def parseEnsemble(df: pd.DataFrame, key: str):
 
 def parseSimulation(df: pd.DataFrame, key: str):
     print("saving individual simulations...")
+    if (df.run.max() * df.step.max() > 50000): return
     for run in df.run.unique():
         data = df[df['run'] == run].to_json(orient='records')
         r.hset(key, f"run-{run}", data)
