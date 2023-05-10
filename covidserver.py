@@ -8,23 +8,26 @@ from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.modules import ChartModule
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.UserParam import UserSettableParameter
-import sys
-import json
 from covidmodel import CovidModel
 from covidmodel import Stage
 from covidmodel import AgeGroup
 from covidmodel import SexGroup
 from covidmodel import ValueGroup
 
-# Specific model data
+import sys
+import json
+import asyncio
 
-virus_data_file = open(sys.argv[1])
-virus_data = json.load(virus_data_file)
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) ### Seungmi Modified 4/20/23
+
+# Specific model data
+#virus_data_file = open(sys.argv[1])
+with open('variants.json', 'r') as f: ### Seungmi Modified 4/20/23
+    virus_data = json.load(f) ### Seungmi Modified 4/20/23
 virus_param_list = []
 for virus in virus_data["variant"]:
     virus_param_list.append(virus_data["variant"][virus])
 print(virus_param_list)
-
 
 
 
@@ -394,11 +397,14 @@ model_params = {
     "vaccination_percent": UserSettableParameter("slider", "vaccination_percent", 0.5, 0, 1, 0.01),
     "variant_data": virus_param_list
 }
+
 server = ModularServer(CovidModel,
-                       [grid,chart,chart_epidemiology,chart_cumulative_effectiveness,vaccinated_age_group,Achart,Bchart,Dchart],
+                       [grid,chart,chart_epidemiology,chart_cumulative_effectiveness,vaccinated_age_group, chart_employment],
                        "COVID-19 epidemiological and economic model",
                        model_params
                        )
 
 server.port = 8521 # The default
 server.launch()
+
+
