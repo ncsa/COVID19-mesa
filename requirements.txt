@@ -7,7 +7,7 @@ cookiecutter
 cycler==0.10.0
 decorator==4.4.2
 dill==0.3.1.1
-future==0.18.2
+future==0.18.3
 idna==2.9
 Jinja2==2.11.3
 jinja2-time==0.2.0
